@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmployeesModule } from 'src/employees/employee.module';
+import { ProductsModule } from 'src/products/product.module';
 import appConfig from './app.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,6 +27,8 @@ import { AppService } from './app.service';
         };
       },
     }),
+    EmployeesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
