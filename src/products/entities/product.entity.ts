@@ -26,11 +26,3 @@ export class Product {
   @Column({ type: 'varchar', length: 255 })
   sku: string;
 }
-
-//nome
-// categoria
-// desc
-// preço --> string usando decimal.js
-// imagens
-// estoque
-// condigo interno sku
