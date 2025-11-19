@@ -1,8 +1,10 @@
 import { IsEmail, IsString } from 'class-validator';
+import { Order } from 'src/orders/entities/order.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -31,6 +33,11 @@ export class User {
   @Column({ type: 'varchar', length: 100 })
   @IsString()
   address: string;
+
+  @OneToMany(() => Order, (order) => order.user, {
+    eager: true,
+  })
+  order_history: Order[];
 
   @CreateDateColumn()
   createdAt: Date;

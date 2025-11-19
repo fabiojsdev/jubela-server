@@ -1,7 +1,10 @@
+import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -23,9 +26,9 @@ export class Order {
   @Column({ type: 'varchar', length: 255 })
   description: string;
 
-  // @ManyToOne(() => Doctor, { onDelete: 'RESTRICT' })
-  // @JoinColumn({ name: 'doctor' })
-  // user: Doctor;
+  @ManyToOne(() => User, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'user' })
+  user: User;
 
   @CreateDateColumn()
   createdAt: Date;
