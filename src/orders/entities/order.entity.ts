@@ -7,30 +7,25 @@ import {
 } from 'typeorm';
 
 @Entity()
-export class Product {
+export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar', length: 100 })
-  name: string;
-
-  @Column({ type: 'varchar', length: 60 })
-  category: string;
-
-  @Column({ type: 'varchar', length: 255 })
-  description: string;
-
-  @Column({ type: 'varchar', length: 15 })
-  price: string;
-
-  @Column({ type: 'varchar', length: 120 })
-  images: string[];
+  item: string;
 
   @Column({ type: 'int' })
   quantity: string;
 
+  @Column({ type: 'varchar', length: 15 })
+  price: string;
+
   @Column({ type: 'varchar', length: 255 })
-  sku: string;
+  description: string;
+
+  // @ManyToOne(() => Doctor, { onDelete: 'RESTRICT' })
+  // @JoinColumn({ name: 'doctor' })
+  // user: Doctor;
 
   @CreateDateColumn()
   createdAt: Date;
