@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from 'src/auth/auth.module';
 import { EmployeesModule } from 'src/employees/employee.module';
 import { OrdersModule } from 'src/orders/order.module';
 import { ProductsModule } from 'src/products/product.module';
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
     ProductsModule,
     OrdersModule,
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
