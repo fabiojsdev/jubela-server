@@ -43,19 +43,9 @@ export class EmployeesController {
     return this.employeesService.FindByEmail(email);
   }
 
-  @Get('/search/cpf/:cpf')
-  FindByCpf(@Param('cpf') cpf: string) {
-    return this.employeesService.FindByCpf(cpf);
-  }
-
   @Get('/search/phoneNumber/:phoneNumber')
   FindByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
     return this.employeesService.FindByPhoneNumber(phoneNumber);
-  }
-
-  @Get('/search/address/:address')
-  FindByAddress(@Param('address') address: string) {
-    return this.employeesService.FindByAddress(address);
   }
 
   @Get('/search/name/')
@@ -66,10 +56,5 @@ export class EmployeesController {
   @Get('/search/role/')
   FindByRole(@Query() paginationDto: PaginationDTO) {
     return this.employeesService.FindByRole(paginationDto);
-  }
-
-  @Get('/search/situation/')
-  FindBySituation(@Query() paginationDto: PaginationDTO) {
-    return this.employeesService.FindBySituation(paginationDto);
   }
 }

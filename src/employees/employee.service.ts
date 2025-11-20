@@ -136,22 +136,10 @@ export class EmployeesService {
     return this.employeeRepository.save(employeeUpdate);
   }
 
-  // Validar os dados dos parametros (e de onde mais eles vierem. Para todas as buscas)
-  async FindByCpf(cpf: string) {
-    const employeeFindByCpf = await this.employeeRepository.findOneBy({
-      cpf,
-    });
-
-    if (!employeeFindByCpf) {
-      throw new NotFoundException('Funcionário não encontrado');
-    }
-
-    return employeeFindByCpf;
-  }
-
   async FindByEmail(email: string) {
     const employeeFindByEmail = await this.employeeRepository.findOneBy({
       email,
+      situation: 'empregado',
     });
 
     if (!employeeFindByEmail) {
@@ -172,6 +160,7 @@ export class EmployeesService {
       },
       where: {
         name: Like(`${value}%`),
+        situation: 'empregado',
       },
     });
 
@@ -191,6 +180,7 @@ export class EmployeesService {
   async FindByPhoneNumber(phoneNumber: string) {
     const employeeFindByPhoneNumber = await this.employeeRepository.findOneBy({
       phone_number: phoneNumber,
+      situation: 'empregado',
     });
 
     if (!employeeFindByPhoneNumber) {
@@ -198,18 +188,6 @@ export class EmployeesService {
     }
 
     return employeeFindByPhoneNumber;
-  }
-
-  async FindByAddress(address: string) {
-    const employeeFindByAddress = await this.employeeRepository.findOneBy({
-      address: address,
-    });
-
-    if (!employeeFindByAddress) {
-      throw new NotFoundException('Funcionário não encontrado');
-    }
-
-    return employeeFindByAddress;
   }
 
   async FindByRole(paginationDTO: PaginationDTO) {
@@ -223,6 +201,7 @@ export class EmployeesService {
       },
       where: {
         role: value,
+        situation: 'empregado',
       },
     });
 
@@ -237,32 +216,5 @@ export class EmployeesService {
     }
 
     return employeeFindByRole;
-  }
-
-  async FindBySituation(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
-
-    const employeeFindBySituation = await this.employeeRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
-      },
-      where: {
-        situation: value,
-      },
-    });
-
-    if (!employeeFindBySituation) {
-      throw new InternalServerErrorException(
-        'Erro desconhecido ao tentar pesquisar por funcionários',
-      );
-    }
-
-    if (employeeFindBySituation.length < 1) {
-      throw new NotFoundException('Funcionários não encontrados');
-    }
-
-    return employeeFindBySituation;
   }
 }
