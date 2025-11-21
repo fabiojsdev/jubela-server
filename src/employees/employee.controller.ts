@@ -22,7 +22,7 @@ export class EmployeesController {
     return this.employeesService.Create(body);
   }
 
-  @Patch('/update/self/:id')
+  @Patch('update/self/:id')
   UpdateSelf(
     @Param('id') id: string,
     @Body() updateEmployeeDTO: UpdateEmployeeDTO,
@@ -30,7 +30,7 @@ export class EmployeesController {
     return this.employeesService.UpdateSelf(id, updateEmployeeDTO);
   }
 
-  @Patch('/update/admin/:id')
+  @Patch('update/admin/:id')
   UpdateAdmin(
     @Param('id') id: string,
     @Body() updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
@@ -38,22 +38,22 @@ export class EmployeesController {
     return this.employeesService.UpdateAdmin(id, updateEmployeeAdminDTO);
   }
 
-  @Get('/search/email/:email')
+  @Get('search/email/:email')
   FindByEmail(@Param('email') email: string) {
     return this.employeesService.FindByEmail(email);
   }
 
-  @Get('/search/phoneNumber/:phoneNumber')
+  @Get('search/phoneNumber/:phoneNumber')
   FindByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
     return this.employeesService.FindByPhoneNumber(phoneNumber);
   }
 
-  @Get('/search/name/')
+  @Get('search/name/')
   FindByName(@Query() paginationDto: PaginationDTO) {
     return this.employeesService.FindByName(paginationDto);
   }
 
-  @Get('/search/role/')
+  @Get('search/role/')
   FindByRole(@Query() paginationDto: PaginationDTO) {
     return this.employeesService.FindByRole(paginationDto);
   }
