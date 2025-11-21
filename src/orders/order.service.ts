@@ -12,12 +12,12 @@ export class OrdersService {
   ) {}
 
   async Create(createOrderDTO: CreateOrderDTO) {
-    const productCreate = this.ordersRepository.create(createOrderDTO);
+    const orderCreate = this.ordersRepository.create(createOrderDTO);
 
-    const newProductData = await this.ordersRepository.save(productCreate);
+    const newOrderData = await this.ordersRepository.save(orderCreate);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { description, ...convenientData } = newProductData;
+    const { description, price, ...convenientData } = newOrderData;
 
     return {
       ...convenientData,

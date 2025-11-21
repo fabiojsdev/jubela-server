@@ -1,11 +1,11 @@
 import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Patch,
-    Post,
-    Query,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
 } from '@nestjs/common';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
@@ -39,5 +39,10 @@ export class ProductsController {
   @Get('search/category/')
   FindByRole(@Query() paginationDto: PaginationDTO) {
     return this.productsService.FindByCategory(paginationDto);
+  }
+
+  @Get('search/employee/')
+  FindByEmployee(@Query() paginationDto: PaginationDTO) {
+    return this.productsService.FindByEmployee(paginationDto);
   }
 }

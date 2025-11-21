@@ -123,4 +123,45 @@ export class ProductsService {
 
     return productFindBySku;
   }
+
+  async FindByEmployee(paginationDTO: PaginationDTO) {
+    const { limit, offset, value } = paginationDTO;
+
+    const productFindByEmployee = await this.productsRepository.find({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        employee: {
+          id: value,
+        },
+      },
+      relations: {
+        employee: true,
+      },
+      select: {
+        employee: {
+          id: true,
+          name: true,
+          email: true,
+          situation: true,
+          role: true,
+        },
+      },
+    });
+
+    if (!productFindByEmployee) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por produtos',
+      );
+    }
+
+    if (productFindByEmployee.length < 1) {
+      throw new NotFoundException('Produtos não encontrados');
+    }
+
+    return productFindByEmployee;
+  }
 }
