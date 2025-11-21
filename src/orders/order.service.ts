@@ -1,7 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateOrderDTO } from './dto/create-order.dto';
+import { PaginationDTO } from './dto/pagination-order.dto';
 import { Order } from './entities/order.entity';
 
 @Injectable()
@@ -22,5 +27,98 @@ export class OrdersService {
     return {
       ...convenientData,
     };
+  }
+
+  async FindByPrice(paginationDTO: PaginationDTO) {
+    const { limit, offset, value } = paginationDTO;
+
+    const orderFindByName = await this.ordersRepository.find({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        price: value,
+      },
+    });
+
+    if (!orderFindByName) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por pedidos',
+      );
+    }
+
+    if (orderFindByName.length < 1) {
+      throw new NotFoundException('Pedidos não encontrados');
+    }
+
+    return orderFindByName;
+  }
+
+  async FindByItem(paginationDTO: PaginationDTO) {
+    const { limit, offset, value } = paginationDTO;
+
+    const orderFindByName = await this.ordersRepository.find({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        item: value,
+      },
+    });
+
+    if (!orderFindByName) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por pedidos',
+      );
+    }
+
+    if (orderFindByName.length < 1) {
+      throw new NotFoundException('Pedidos não encontrados');
+    }
+
+    return orderFindByName;
+  }
+
+  async FindByUser(paginationDTO: PaginationDTO) {
+    const { limit, offset, value } = paginationDTO;
+
+    const orderFindByUser = await this.ordersRepository.find({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        user: {
+          id: value,
+        },
+      },
+      relations: {
+        user: true,
+      },
+      select: {
+        user: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    });
+
+    if (!orderFindByUser) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por pedidos',
+      );
+    }
+
+    if (orderFindByUser.length < 1) {
+      throw new NotFoundException('Pedidos não encontrados');
+    }
+
+    return orderFindByUser;
   }
 }
