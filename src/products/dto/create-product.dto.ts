@@ -44,7 +44,7 @@ export class CreateProductDTO {
   @IsNotEmpty({
     message: 'O campo "sku" não preenchido',
   })
-  @IsInt({
+  @IsString({
     message: 'O campo "sku" deve estar em formato de texto',
   })
   readonly sku: string;
