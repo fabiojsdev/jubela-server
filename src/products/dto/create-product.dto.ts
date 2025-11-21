@@ -1,9 +1,15 @@
-import { IsInt, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { Employee } from 'src/employees/entities/employee.entity';
 
 export class CreateProductDTO {
   @IsNotEmpty({
-    message: 'O campo "nome" não preenchido',
+    message: 'Campo "nome" não preenchido',
   })
   @IsString({
     message: 'O campo "nome" deve estar no formato de texto',
@@ -11,7 +17,7 @@ export class CreateProductDTO {
   readonly name: string;
 
   @IsNotEmpty({
-    message: 'O campo "categoria" não preenchido',
+    message: 'Campo "categoria" não preenchido',
   })
   @IsString({
     message: 'O campo "categoria" deve estar no formato de texto',
@@ -19,7 +25,7 @@ export class CreateProductDTO {
   readonly category: string;
 
   @IsNotEmpty({
-    message: 'O campo "descrição" não preenchido',
+    message: 'Campo "descrição" não preenchido',
   })
   @IsString({
     message: 'O campo "descrição" deve estar no formato de texto',
@@ -27,7 +33,7 @@ export class CreateProductDTO {
   readonly description: string;
 
   @IsNotEmpty({
-    message: 'O campo "preço" não preenchido',
+    message: 'Campo "preço" não preenchido',
   })
   @IsString({
     message: 'O campo "preço" deve estar no formato de texto',
@@ -35,15 +41,18 @@ export class CreateProductDTO {
   readonly price: string;
 
   @IsNotEmpty({
-    message: 'O campo "quantidade" não preenchido',
+    message: 'Campo "quantidade" não preenchido',
   })
   @IsInt({
-    message: 'O campo "quantidade" deve ser um número inteiro',
+    message: 'Campo "quantidade" deve ser um número inteiro positivo',
+  })
+  @IsPositive({
+    message: 'Campo "quantidade" deve ser um número inteiro positivo',
   })
   readonly quantity: number;
 
   @IsNotEmpty({
-    message: 'O campo "sku" não preenchido',
+    message: 'Campo "sku" não preenchido',
   })
   @IsString({
     message: 'O campo "sku" deve estar em formato de texto',
@@ -51,7 +60,7 @@ export class CreateProductDTO {
   readonly sku: string;
 
   @IsNotEmpty({
-    message: 'O campo "funcionário" não preenchido',
+    message: 'Campo "funcionário" não preenchido',
   })
   @IsUUID(4, {
     message: 'O campo "funcionário deve ser um uuid"',

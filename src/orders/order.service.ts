@@ -9,4 +9,17 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
   ) {}
+
+  async Create(createOrderDTO: CreateOrderDTO) {
+    const productCreate = this.ordersRepository.create(createProductDTO);
+
+    const newProductData = await this.ordersRepository.save(productCreate);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { description, ...convenientData } = newProductData;
+
+    return {
+      ...convenientData,
+    };
+  }
 }
