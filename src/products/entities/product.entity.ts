@@ -1,7 +1,9 @@
+import { Employee } from 'src/employees/entities/employee.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -31,6 +33,11 @@ export class Product {
 
   @Column({ type: 'varchar', length: 255 })
   sku: string;
+
+  @OneToMany(() => Employee, (Employee) => Employee.products, {
+    eager: true,
+  })
+  employee: Employee[];
 
   @CreateDateColumn()
   createdAt: Date;

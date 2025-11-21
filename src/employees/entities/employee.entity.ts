@@ -1,8 +1,10 @@
 import { IsEmail, IsString } from 'class-validator';
+import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -42,6 +44,11 @@ export class Employee {
   @Column({ type: 'varchar', length: 100 })
   @IsString()
   address: string;
+
+  @OneToMany(() => Product, (product) => product.employee, {
+    eager: true,
+  })
+  products: Product[];
 
   @CreateDateColumn()
   createdAt: Date;
