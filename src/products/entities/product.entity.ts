@@ -27,7 +27,7 @@ export class Product {
   images: string[];
 
   @Column({ type: 'int' })
-  quantity: string;
+  quantity: number;
 
   @Column({ type: 'varchar', length: 255 })
   sku: string;
