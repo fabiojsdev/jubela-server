@@ -1,4 +1,5 @@
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { Employee } from 'src/employees/entities/employee.entity';
 
 export class CreateProductDTO {
   @IsNotEmpty({
@@ -48,4 +49,12 @@ export class CreateProductDTO {
     message: 'O campo "sku" deve estar em formato de texto',
   })
   readonly sku: string;
+
+  @IsNotEmpty({
+    message: 'O campo "funcionário" não preenchido',
+  })
+  @IsUUID(4, {
+    message: 'O campo "funcionário deve ser um uuid"',
+  })
+  readonly employee: Employee;
 }

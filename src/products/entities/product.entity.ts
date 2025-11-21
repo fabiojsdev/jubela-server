@@ -3,7 +3,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  OneToMany,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -34,10 +35,9 @@ export class Product {
   @Column({ type: 'varchar', length: 255 })
   sku: string;
 
-  @OneToMany(() => Employee, (Employee) => Employee.products, {
-    eager: true,
-  })
-  employee: Employee[];
+  @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'employee' })
+  employee: Employee;
 
   @CreateDateColumn()
   createdAt: Date;

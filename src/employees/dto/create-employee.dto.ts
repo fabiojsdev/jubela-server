@@ -1,10 +1,12 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsStrongPassword,
   Length,
 } from 'class-validator';
+import { Product } from 'src/products/entities/product.entity';
 
 export class CreateEmployeeDTO {
   @IsNotEmpty({
@@ -96,4 +98,7 @@ export class CreateEmployeeDTO {
     message: 'O campo "endereço não deve passar dos 100 caracteres',
   })
   readonly address: string;
+
+  @IsOptional()
+  readonly products: Product[];
 }
