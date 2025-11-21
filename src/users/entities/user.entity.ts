@@ -34,8 +34,10 @@ export class User {
   @IsString()
   address: string;
 
+  // Este campo pode ser nulo porque o cliente pode criar uma conta e não comprar nada, ao menos inicialmente
   @OneToMany(() => Order, (order) => order.user, {
     eager: true,
+    nullable: true,
   })
   order_history: Order[];
 
