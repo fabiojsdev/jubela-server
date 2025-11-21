@@ -18,7 +18,7 @@ export class Order {
   item: string;
 
   @Column({ type: 'int' })
-  quantity: string;
+  quantity: number;
 
   @Column({ type: 'varchar', length: 15 })
   price: string;
