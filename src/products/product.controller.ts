@@ -1,14 +1,14 @@
 import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
 } from '@nestjs/common';
 import { CreateProductDTO } from './dto/create-product.dto';
-import { PaginationDTO } from './dto/pagination-products.dto';
+import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductsService } from './product.service';
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CreateOrderDTO } from './dto/create-order.dto';
 import { Order } from './entities/order.entity';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class OrdersService {
   ) {}
 
   async Create(createOrderDTO: CreateOrderDTO) {
-    const productCreate = this.ordersRepository.create(createProductDTO);
+    const productCreate = this.ordersRepository.create(createOrderDTO);
 
     const newProductData = await this.ordersRepository.save(productCreate);
 

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
-import { PaginationDTO } from './dto/pagination-products.dto';
+import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 
