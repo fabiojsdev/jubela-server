@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { Like, Repository } from 'typeorm';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
+import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { PaginationDTO } from './dto/pagination-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
@@ -190,8 +191,8 @@ export class EmployeesService {
     return employeeFindByPhoneNumber;
   }
 
-  async FindByRole(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
+  async FindByRole(paginationByRoleDTO: PaginationByRoleDTO) {
+    const { limit, offset, value } = paginationByRoleDTO;
 
     const employeeFindByRole = await this.employeeRepository.find({
       take: limit,

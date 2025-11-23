@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
+import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { PaginationDTO } from './dto/pagination-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
@@ -54,7 +55,7 @@ export class EmployeesController {
   }
 
   @Get('search/role/')
-  FindByRole(@Query() paginationDto: PaginationDTO) {
-    return this.employeesService.FindByRole(paginationDto);
+  FindByRole(@Query() paginationByRoleDto: PaginationByRoleDTO) {
+    return this.employeesService.FindByRole(paginationByRoleDto);
   }
 }

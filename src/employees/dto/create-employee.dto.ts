@@ -1,11 +1,13 @@
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsStrongPassword,
   Length,
 } from 'class-validator';
+import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { Product } from 'src/products/entities/product.entity';
 
 export class CreateEmployeeDTO {
@@ -57,13 +59,13 @@ export class CreateEmployeeDTO {
   @IsNotEmpty({
     message: 'campo "função" não preenchido',
   })
-  @IsString({
-    message: 'campo "função" deve estar em formato de texto',
-  })
   @Length(5, 15, {
     message: 'campo "função" deve ter entre 5 e 15 caracteres',
   })
-  readonly role: string;
+  @IsEnum(EmployeeRole, {
+    message: 'Permissão inválida',
+  })
+  readonly role: EmployeeRole;
 
   @IsNotEmpty({
     message: 'campo "situação" não preenchido',

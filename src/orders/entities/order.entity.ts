@@ -30,6 +30,10 @@ export class Order {
   @JoinColumn({ name: 'user' })
   user: User;
 
+  // mudar para enum
+  @Column({ type: 'varchar', length: 15 })
+  state: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
