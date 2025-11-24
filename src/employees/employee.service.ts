@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
+import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Like, Repository } from 'typeorm';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
@@ -140,7 +141,7 @@ export class EmployeesService {
   async FindByEmail(email: string) {
     const employeeFindByEmail = await this.employeeRepository.findOneBy({
       email,
-      situation: 'empregado',
+      situation: EmployeeSituation.EMPLOYED,
     });
 
     if (!employeeFindByEmail) {
@@ -161,7 +162,7 @@ export class EmployeesService {
       },
       where: {
         name: Like(`${value}%`),
-        situation: 'empregado',
+        situation: EmployeeSituation.EMPLOYED,
       },
     });
 
@@ -181,7 +182,7 @@ export class EmployeesService {
   async FindByPhoneNumber(phoneNumber: string) {
     const employeeFindByPhoneNumber = await this.employeeRepository.findOneBy({
       phone_number: phoneNumber,
-      situation: 'empregado',
+      situation: EmployeeSituation.EMPLOYED,
     });
 
     if (!employeeFindByPhoneNumber) {
@@ -202,7 +203,7 @@ export class EmployeesService {
       },
       where: {
         role: value,
-        situation: 'empregado',
+        situation: EmployeeSituation.EMPLOYED,
       },
     });
 

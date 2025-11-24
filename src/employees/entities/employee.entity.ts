@@ -1,5 +1,6 @@
 import { IsEmail, IsString } from 'class-validator';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
+import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
@@ -34,8 +35,8 @@ export class Employee {
   @Column({ type: 'enum', enum: EmployeeRole })
   role: EmployeeRole;
 
-  @Column({ type: 'varchar', length: 9 })
-  situation: string;
+  @Column({ type: 'enum', enum: EmployeeSituation })
+  situation: EmployeeSituation;
 
   @Column({ type: 'varchar', length: 15 })
   @IsString()

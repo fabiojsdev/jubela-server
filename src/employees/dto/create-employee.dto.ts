@@ -8,6 +8,7 @@ import {
   Length,
 } from 'class-validator';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
+import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Product } from 'src/products/entities/product.entity';
 
 export class CreateEmployeeDTO {
@@ -59,9 +60,6 @@ export class CreateEmployeeDTO {
   @IsNotEmpty({
     message: 'campo "função" não preenchido',
   })
-  @Length(5, 15, {
-    message: 'campo "função" deve ter entre 5 e 15 caracteres',
-  })
   @IsEnum(EmployeeRole, {
     message: 'Permissão inválida',
   })
@@ -70,14 +68,10 @@ export class CreateEmployeeDTO {
   @IsNotEmpty({
     message: 'campo "situação" não preenchido',
   })
-  @IsString({
-    message: 'campo "situação" deve estar em formato de texto',
+  @IsEnum(EmployeeSituation, {
+    message: 'Situação do funcionário inválida',
   })
-  @Length(8, 9, {
-    message:
-      'campo "situação" deve ser "empregado", "demitido", "afastado" ou "sob aviso"',
-  })
-  readonly situation: string;
+  readonly situation: EmployeeSituation;
 
   @IsNotEmpty({
     message: 'campo "telefone" não preenchido',
