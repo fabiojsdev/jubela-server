@@ -8,9 +8,11 @@ import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Like, Repository } from 'typeorm';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
+import { PaginationByNameDTO } from './dto/pagination-employee-name.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
-import { PaginationDTO } from './dto/pagination-employee.dto';
+import { SearchByEmailDTO } from './dto/search-email-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
+import { EmployeeUpdateUuidDTO } from './dto/update-employee-uuid.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
 import { Employee } from './entities/employee.entity';
 
@@ -55,7 +57,12 @@ export class EmployeesService {
   }
 
   // Verificar se é um funcionário ou admin no guard ou middleware
-  async UpdateSelf(id: string, updateEmployeeDTO: UpdateEmployeeDTO) {
+  async UpdateSelf(
+    employeeIdDTO: EmployeeUpdateUuidDTO,
+    updateEmployeeDTO: UpdateEmployeeDTO,
+  ) {
+    const id = employeeIdDTO.id;
+
     const allowedData = {
       email: updateEmployeeDTO.email,
       name: updateEmployeeDTO.name,
@@ -101,9 +108,11 @@ export class EmployeesService {
   }
 
   async UpdateAdmin(
-    id: string,
+    employeeIdDTO: EmployeeUpdateUuidDTO,
     updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
   ) {
+    const id = employeeIdDTO.id;
+
     const allowedData = {
       email: updateEmployeeAdminDTO.email,
       name: updateEmployeeAdminDTO.name,
@@ -138,7 +147,9 @@ export class EmployeesService {
     return this.employeeRepository.save(employeeUpdate);
   }
 
-  async FindByEmail(email: string) {
+  async FindByEmail(emailDTO: SearchByEmailDTO) {
+    const email = emailDTO.email;
+
     const employeeFindByEmail = await this.employeeRepository.findOneBy({
       email,
       situation: EmployeeSituation.EMPLOYED,
@@ -151,8 +162,8 @@ export class EmployeesService {
     return employeeFindByEmail;
   }
 
-  async FindByName(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
+  async FindByName(paginationByNameDTO: PaginationByNameDTO) {
+    const { limit, offset, value } = paginationByNameDTO;
 
     const employeeFindByName = await this.employeeRepository.find({
       take: limit,
