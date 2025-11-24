@@ -1,3 +1,4 @@
+import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -30,9 +31,8 @@ export class Order {
   @JoinColumn({ name: 'user' })
   user: User;
 
-  // mudar para enum
-  @Column({ type: 'varchar', length: 15 })
-  state: string;
+  @Column({ type: 'enum', enum: OrderStatus })
+  status: OrderStatus;
 
   @CreateDateColumn()
   createdAt: Date;

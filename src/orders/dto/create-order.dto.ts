@@ -1,10 +1,12 @@
 import {
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsPositive,
   IsString,
   IsUUID,
 } from 'class-validator';
+import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { User } from 'src/users/entities/user.entity';
 
 export class CreateOrderDTO {
@@ -50,4 +52,12 @@ export class CreateOrderDTO {
     message: 'O campo "usuário deve ser um uuid"',
   })
   readonly user: User;
+
+  @IsNotEmpty({
+    message: 'Campo "status" não preenchido',
+  })
+  @IsEnum(OrderStatus, {
+    message: 'Status do pedido inválido',
+  })
+  readonly status: OrderStatus;
 }

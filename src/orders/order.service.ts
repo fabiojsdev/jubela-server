@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateOrderDTO } from './dto/create-order.dto';
+import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
 import { Order } from './entities/order.entity';
 
@@ -81,6 +82,33 @@ export class OrdersService {
     }
 
     return orderFindByName;
+  }
+
+  async FindByStatus(paginationByStatusDTO: PaginationByStatusDTO) {
+    const { limit, offset, value } = paginationByStatusDTO;
+
+    const orderFindByStatus = await this.ordersRepository.find({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        status: value,
+      },
+    });
+
+    if (!orderFindByStatus) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por pedidos',
+      );
+    }
+
+    if (orderFindByStatus.length < 1) {
+      throw new NotFoundException('Pedidos não encontrados');
+    }
+
+    return orderFindByStatus;
   }
 
   async FindByUser(paginationDTO: PaginationDTO) {

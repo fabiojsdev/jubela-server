@@ -1,0 +1,15 @@
+export enum OrderStatus {
+  CANCELED = 'Cancelado',
+  APPROVED = 'Aprovado',
+  WAITING_PAYMENT = 'Aguardando pagamento',
+  REJECTED = 'Rejeitado',
+  PAYMENT_REVIEW = 'Pagamento em análise',
+  SEPARATED = 'Separado',
+  PACKAGED = 'Embalado',
+  IN_TRANSPORTATION = 'Em transporte',
+  OUT_FOR_DELIVERY = 'Saiu para entrega',
+  DELIVERED = 'Entregue',
+  WAITING_PICKUP = 'Aguardando retirada',
+  RETURNED = 'Devolvido',
+  LOST = 'Extraviado',
+}
