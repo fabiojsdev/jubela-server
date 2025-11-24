@@ -7,7 +7,10 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
+import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { CreateProductDTO } from './dto/create-product.dto';
+import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductsService } from './product.service';
@@ -22,7 +25,10 @@ export class ProductsController {
   }
 
   @Patch('update/:id')
-  Update(@Param('id') id: string, @Body() updateProductDTO: UpdateProductDTO) {
+  Update(
+    @Param('id') id: UpdateUuidDTO,
+    @Body() updateProductDTO: UpdateProductDTO,
+  ) {
     return this.productsService.Update(id, updateProductDTO);
   }
 
@@ -32,8 +38,8 @@ export class ProductsController {
   }
 
   @Get('search/name/')
-  FindByName(@Query() paginationDto: PaginationDTO) {
-    return this.productsService.FindByName(paginationDto);
+  FindByName(@Query() paginationByNameDto: PaginationByNameDTO) {
+    return this.productsService.FindByName(paginationByNameDto);
   }
 
   @Get('search/category/')
@@ -42,7 +48,7 @@ export class ProductsController {
   }
 
   @Get('search/employee/')
-  FindByEmployee(@Query() paginationDto: PaginationDTO) {
-    return this.productsService.FindByEmployee(paginationDto);
+  FindByEmployee(@Query() paginationByEmployeeDto: PaginationByEmployeeDTO) {
+    return this.productsService.FindByEmployee(paginationByEmployeeDto);
   }
 }

@@ -4,8 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
+import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
@@ -30,9 +32,13 @@ export class ProductsService {
     };
   }
 
-  async Update(id: string, updateProductDTO: UpdateProductDTO) {
+  async Update(
+    productIdDTO: UpdateUuidDTO,
+    updateProductDTO: UpdateProductDTO,
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sku, ...restOfProductData } = updateProductDTO;
+    const id = productIdDTO.id;
 
     const productExists = this.productsRepository.findOne({
       where: {
@@ -124,8 +130,8 @@ export class ProductsService {
     return productFindBySku;
   }
 
-  async FindByEmployee(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
+  async FindByEmployee(paginationByEmployeeDTO: PaginationByEmployeeDTO) {
+    const { limit, offset, value } = paginationByEmployeeDTO;
 
     const productFindByEmployee = await this.productsRepository.find({
       take: limit,

@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsUUID } from 'class-validator';
 
-export class EmployeeUpdateUuidDTO {
+export class UpdateUuidDTO {
   @IsNotEmpty({
     message: 'Id do funcionário não fornecido',
   })

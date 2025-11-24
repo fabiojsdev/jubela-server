@@ -7,12 +7,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Like, Repository } from 'typeorm';
+import { UpdateUuidDTO } from '../common/dto/update-uuid.dto';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByNameDTO } from './dto/pagination-employee-name.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { SearchByEmailDTO } from './dto/search-email-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
-import { EmployeeUpdateUuidDTO } from './dto/update-employee-uuid.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
 import { Employee } from './entities/employee.entity';
 
@@ -58,7 +58,7 @@ export class EmployeesService {
 
   // Verificar se é um funcionário ou admin no guard ou middleware
   async UpdateSelf(
-    employeeIdDTO: EmployeeUpdateUuidDTO,
+    employeeIdDTO: UpdateUuidDTO,
     updateEmployeeDTO: UpdateEmployeeDTO,
   ) {
     const id = employeeIdDTO.id;
@@ -108,7 +108,7 @@ export class EmployeesService {
   }
 
   async UpdateAdmin(
-    employeeIdDTO: EmployeeUpdateUuidDTO,
+    employeeIdDTO: UpdateUuidDTO,
     updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
   ) {
     const id = employeeIdDTO.id;

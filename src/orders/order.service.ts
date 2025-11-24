@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateOrderDTO } from './dto/create-order.dto';
+import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
 import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
 import { Order } from './entities/order.entity';
@@ -111,8 +112,8 @@ export class OrdersService {
     return orderFindByStatus;
   }
 
-  async FindByUser(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
+  async FindByUser(paginationByUserDTO: PaginationByUserDTO) {
+    const { limit, offset, value } = paginationByUserDTO;
 
     const orderFindByUser = await this.ordersRepository.find({
       take: limit,

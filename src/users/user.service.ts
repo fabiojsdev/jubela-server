@@ -5,9 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
+import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { Like, Repository } from 'typeorm';
+import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
-import { PaginationDTO } from './dto/pagination-user.dto';
+import { SearchByEmailDTO } from './dto/search-email-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 
@@ -47,7 +49,9 @@ export class UsersService {
     };
   }
 
-  async Update(id: string, updateUserDTO: UpdateUserDTO) {
+  async Update(userIdDTO: UpdateUuidDTO, updateUserDTO: UpdateUserDTO) {
+    const id = userIdDTO.id;
+
     const allowedData = {
       email: updateUserDTO.email,
       name: updateUserDTO.name,
@@ -90,7 +94,9 @@ export class UsersService {
     return this.usersRepository.save(userUpdate);
   }
 
-  async FindByEmail(email: string) {
+  async FindByEmail(emailDTO: SearchByEmailDTO) {
+    const email = emailDTO.email;
+
     const employeeFindByEmail = await this.usersRepository.findOneBy({
       email,
     });
@@ -102,8 +108,8 @@ export class UsersService {
     return employeeFindByEmail;
   }
 
-  async FindByName(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
+  async FindByName(paginationByNameDTO: PaginationByNameDTO) {
+    const { limit, offset, value } = paginationByNameDTO;
 
     const userFindByName = await this.usersRepository.find({
       take: limit,
