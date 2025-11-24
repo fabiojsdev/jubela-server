@@ -6,7 +6,11 @@ import {
   Patch,
   Post,
   Query,
+  UsePipes,
 } from '@nestjs/common';
+import { ReqBodyCpfValidation } from 'src/common/pipes/cpf-validation-body-request.pipe';
+import { ReqBodyPhoneNumberValidation } from 'src/common/pipes/phone-number-validation-body-request.pipe';
+import { FindByPhoneNumberValidation } from 'src/common/pipes/phone-number-validation.pipe';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { PaginationDTO } from './dto/pagination-employee.dto';
@@ -19,11 +23,13 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Post()
+  @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   Create(@Body() body: CreateEmployeeDTO) {
     return this.employeesService.Create(body);
   }
 
   @Patch('update/self/:id')
+  @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   UpdateSelf(
     @Param('id') id: string,
     @Body() updateEmployeeDTO: UpdateEmployeeDTO,
@@ -32,6 +38,7 @@ export class EmployeesController {
   }
 
   @Patch('update/admin/:id')
+  @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   UpdateAdmin(
     @Param('id') id: string,
     @Body() updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
@@ -45,6 +52,7 @@ export class EmployeesController {
   }
 
   @Get('search/phoneNumber/:phoneNumber')
+  @UsePipes(FindByPhoneNumberValidation)
   FindByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
     return this.employeesService.FindByPhoneNumber(phoneNumber);
   }
