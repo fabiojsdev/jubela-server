@@ -113,6 +113,7 @@ export class EmployeesService {
   async UpdateAdmin(
     employeeIdDTO: UpdateUuidDTO,
     updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
   ) {
     const id = employeeIdDTO.id;
 
@@ -126,11 +127,19 @@ export class EmployeesService {
       address: updateEmployeeAdminDTO.address,
     };
 
+    if (tokenPayloadDTO.role !== 'admin') {
+      throw new ForbiddenException('Ação não permitida');
+    }
+
     const findEmployeeById = await this.employeeRepository.findOne({
       where: {
         id,
       },
     });
+
+    if (tokenPayloadDTO.sub !== id && findEmployeeById.role === 'admin') {
+      throw new ForbiddenException('Ação não permitida');
+    }
 
     if (!findEmployeeById) {
       throw new NotFoundException('Funcionário não encontrado');
