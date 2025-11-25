@@ -1,9 +1,11 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { Like, Repository } from 'typeorm';
@@ -49,7 +51,11 @@ export class UsersService {
     };
   }
 
-  async Update(userIdDTO: UpdateUuidDTO, updateUserDTO: UpdateUserDTO) {
+  async Update(
+    userIdDTO: UpdateUuidDTO,
+    updateUserDTO: UpdateUserDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
+  ) {
     const id = userIdDTO.id;
 
     const allowedData = {
@@ -60,9 +66,9 @@ export class UsersService {
       address: updateUserDTO.address,
     };
 
-    // if (id !== tokenPayload.sub) {
-    //   throw new ForbiddenException('Ação não permitida');
-    // }
+    if (id !== tokenPayloadDTO.sub) {
+      throw new ForbiddenException('Ação não permitida');
+    }
 
     if (updateUserDTO?.password) {
       const passwordHash = await this.hashingService.Hash(

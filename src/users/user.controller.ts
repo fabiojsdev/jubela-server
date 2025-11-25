@@ -8,6 +8,8 @@ import {
   Query,
   UsePipes,
 } from '@nestjs/common';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { ReqBodyPhoneNumberValidation } from 'src/common/pipes/phone-number-validation-body-request.pipe';
 import { FindByPhoneNumberValidation } from 'src/common/pipes/phone-number-validation.pipe';
@@ -29,8 +31,12 @@ export class UsersController {
 
   @Patch(':id')
   @UsePipes(ReqBodyPhoneNumberValidation)
-  Update(@Param('id') id: UpdateUuidDTO, @Body() updateUserDTO: UpdateUserDTO) {
-    return this.usersService.Update(id, updateUserDTO);
+  Update(
+    @Param('id') id: UpdateUuidDTO,
+    @Body() updateUserDTO: UpdateUserDTO,
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    return this.usersService.Update(id, updateUserDTO, tokenPayloadDTO);
   }
 
   @Get('search/email/:email')

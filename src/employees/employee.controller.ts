@@ -8,6 +8,8 @@ import {
   Query,
   UsePipes,
 } from '@nestjs/common';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { ReqBodyCpfValidation } from 'src/common/pipes/cpf-validation-body-request.pipe';
 import { ReqBodyPhoneNumberValidation } from 'src/common/pipes/phone-number-validation-body-request.pipe';
@@ -35,8 +37,13 @@ export class EmployeesController {
   UpdateSelf(
     @Param('id') id: UpdateUuidDTO,
     @Body() updateEmployeeDTO: UpdateEmployeeDTO,
+    @TokenPayloadParam() TokenPayloadDTO: TokenPayloadDTO,
   ) {
-    return this.employeesService.UpdateSelf(id, updateEmployeeDTO);
+    return this.employeesService.UpdateSelf(
+      id,
+      updateEmployeeDTO,
+      TokenPayloadDTO,
+    );
   }
 
   @Patch('update/admin/:id')
