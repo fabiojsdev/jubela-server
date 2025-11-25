@@ -23,7 +23,7 @@ export class Product {
   @Column({ type: 'varchar', length: 255 })
   description: string;
 
-  @Column({ type: 'varchar', length: 15 })
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: string;
 
   @Column({ type: 'varchar', length: 120 })

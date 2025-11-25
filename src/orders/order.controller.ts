@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { CreateOrderDTO } from './dto/create-order.dto';
+import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
 import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
@@ -15,8 +16,8 @@ export class OrdersController {
   }
 
   @Get('search/price')
-  FindByPrice(@Query() paginationDTO: PaginationDTO) {
-    return this.ordersService.FindByPrice(paginationDTO);
+  FindByPrice(@Query() paginationByPriceDTO: PaginationByPriceDTO) {
+    return this.ordersService.FindByPrice(paginationByPriceDTO);
   }
 
   @Get('search/item')

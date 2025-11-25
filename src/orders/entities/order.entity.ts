@@ -21,7 +21,7 @@ export class Order {
   @Column({ type: 'int' })
   quantity: number;
 
-  @Column({ type: 'varchar', length: 15 })
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: string;
 
   @Column({ type: 'varchar', length: 255 })

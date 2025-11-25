@@ -2,6 +2,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumberString,
   IsPositive,
   IsString,
   IsUUID,
@@ -34,6 +35,9 @@ export class CreateOrderDTO {
   })
   @IsString({
     message: 'O campo "preço" deve estar no formato de texto',
+  })
+  @IsNumberString({
+    no_symbols: true,
   })
   readonly price: string;
 
