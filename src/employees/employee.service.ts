@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
+import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Like, Repository } from 'typeorm';
 import { UpdateUuidDTO } from '../common/dto/update-uuid.dto';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
-import { PaginationByNameDTO } from './dto/pagination-employee-name.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { SearchByEmailDTO } from './dto/search-email-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';

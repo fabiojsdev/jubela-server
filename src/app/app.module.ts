@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
+import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { EmployeesModule } from 'src/employees/employee.module';
 import { OrdersModule } from 'src/orders/order.module';
 import { ProductsModule } from 'src/products/product.module';
@@ -37,6 +39,12 @@ import { AppService } from './app.service';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthTokenGuard,
+    },
+  ],
 })
 export class AppModule {}
