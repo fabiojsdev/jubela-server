@@ -1,4 +1,5 @@
 import { IsEmail, IsString } from 'class-validator';
+import { RefreshTokenEmployee } from 'src/auth/refresh-tokens/entities/refresh-tokens-employees.entity';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Product } from 'src/products/entities/product.entity';
@@ -50,6 +51,9 @@ export class Employee {
     eager: true,
   })
   products: Product[];
+
+  @OneToMany(() => RefreshTokenEmployee, (token) => token.employee)
+  refresh_tokens: RefreshTokenEmployee[];
 
   @CreateDateColumn()
   createdAt: Date;

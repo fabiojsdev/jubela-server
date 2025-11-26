@@ -25,6 +25,6 @@ import { HashingServiceProtocol } from './hashing/hashing.service';
       useClass: BcryptService,
     },
   ],
-  exports: [HashingServiceProtocol, JwtModule, ConfigModule],
+  exports: [HashingServiceProtocol, JwtModule, ConfigModule, AuthService],
 })
 export class AuthModule {}

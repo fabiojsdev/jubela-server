@@ -6,9 +6,9 @@ import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
+import { RefreshTokenDTO } from '../refresh-tokens/dto/refresh-token.dto';
 import jwtConfig from './config/jwt.config';
 import { LoginDTO } from './dto/login.dto';
-import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { HashingServiceProtocol } from './hashing/hashing.service';
 
 @Injectable()

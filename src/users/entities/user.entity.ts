@@ -1,4 +1,5 @@
 import { IsEmail, IsString } from 'class-validator';
+import { RefreshTokenUser } from 'src/auth/refresh-tokens/entities/refresh-tokens-users.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import {
   Column,
@@ -40,6 +41,9 @@ export class User {
     nullable: true,
   })
   order_history: Order[];
+
+  @OneToMany(() => RefreshTokenUser, (token) => token.user)
+  refresh_tokens: RefreshTokenUser[];
 
   @CreateDateColumn()
   createdAt: Date;
