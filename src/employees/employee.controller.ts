@@ -51,8 +51,13 @@ export class EmployeesController {
   UpdateAdmin(
     @Param('id') id: UpdateUuidDTO,
     @Body() updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    return this.employeesService.UpdateAdmin(id, updateEmployeeAdminDTO);
+    return this.employeesService.UpdateAdmin(
+      id,
+      updateEmployeeAdminDTO,
+      tokenPayloadDTO,
+    );
   }
 
   @Get('search/email/:email')

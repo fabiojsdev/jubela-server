@@ -2,6 +2,7 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -25,44 +26,75 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async Login(loginDTO: LoginDTO) {
-    let employeeOrUserData: User | Employee;
-
+  async LoginEmployee(loginDTO: LoginDTO) {
     const findEmployee = await this.employeeRepository.findOneBy({
       email: loginDTO.email,
+      situation: EmployeeSituation.EMPLOYED,
     });
 
-    const findUser = await this.userRepository.findOneBy({
-      email: loginDTO.email,
-    });
-
-    if (!findEmployee && !findUser) {
+    if (!findEmployee) {
       throw new UnauthorizedException('Email ou senha inválidos');
     }
 
-    if (findEmployee) employeeOrUserData = { ...findEmployee };
-    if (findUser) employeeOrUserData = { ...findUser };
-
     const passwordCompare = await this.hashingService.Compare(
       loginDTO.password,
-      employeeOrUserData.password_hash,
+      findEmployee.password_hash,
     );
 
     if (!passwordCompare) {
       throw new UnauthorizedException('Email ou senha inválidos');
     }
 
-    return this.CreateTokens(employeeOrUserData);
+    return this.CreateTokensEmployee(findEmployee);
   }
 
-  async CreateTokens(employeeOrUserData: Employee | User) {
-    const accessToken = await this.SignJwtAsync<Partial<Employee | User>>(
+  async LoginUser(loginDTO: LoginDTO) {
+    const findUser = await this.userRepository.findOneBy({
+      email: loginDTO.email,
+    });
+
+    if (!findUser && !findUser) {
+      throw new UnauthorizedException('Email ou senha inválidos');
+    }
+
+    const passwordCompare = await this.hashingService.Compare(
+      loginDTO.password,
+      findUser.password_hash,
+    );
+
+    if (!passwordCompare) {
+      throw new UnauthorizedException('Email ou senha inválidos');
+    }
+
+    return this.CreateTokensUser(findUser);
+  }
+
+  async CreateTokensEmployee(employeeData: Employee) {
+    const accessToken = await this.SignJwtAsync<Partial<Employee>>(
+      employeeData.id,
+      this.jwtConfiguration.jwtTtl,
+      { email: employeeData.email, role: employeeData.role },
+    );
+
+    const refreshToken = await this.SignJwtAsync<Partial<Employee>>(
+      employeeData.id,
+      this.jwtConfiguration.jwtRefreshTtl,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async CreateTokensUser(employeeOrUserData: User) {
+    const accessToken = await this.SignJwtAsync<Partial<User>>(
       employeeOrUserData.id,
       this.jwtConfiguration.jwtTtl,
       { email: employeeOrUserData.email },
     );
 
-    const refreshToken = await this.SignJwtAsync<Partial<Employee | User>>(
+    const refreshToken = await this.SignJwtAsync<Partial<User>>(
       employeeOrUserData.id,
       this.jwtConfiguration.jwtRefreshTtl,
     );
@@ -88,10 +120,8 @@ export class AuthService {
     );
   }
 
-  async RefreshTokens(refreshTokenDto: RefreshTokenDTO) {
+  async RefreshTokensEmployee(refreshTokenDto: RefreshTokenDTO) {
     try {
-      let employeeOrUserData: User | Employee;
-
       const { sub } = await this.jwtService.verifyAsync(
         refreshTokenDto.refreshToken,
         this.jwtConfiguration,
@@ -99,21 +129,37 @@ export class AuthService {
 
       const findEmployee = await this.employeeRepository.findOneBy({
         id: sub,
+        situation: EmployeeSituation.EMPLOYED,
       });
+
+      if (!findEmployee) {
+        // O Error vai pular para o Unauthorized no catch e a mensagem será esta
+        throw new Error('Usuário não encontrado');
+      }
+
+      return this.CreateTokensEmployee(findEmployee);
+    } catch (error) {
+      throw new UnauthorizedException(error.message);
+    }
+  }
+
+  async RefreshTokensUser(refreshTokenDto: RefreshTokenDTO) {
+    try {
+      const { sub } = await this.jwtService.verifyAsync(
+        refreshTokenDto.refreshToken,
+        this.jwtConfiguration,
+      );
 
       const findUser = await this.userRepository.findOneBy({
         id: sub,
       });
 
-      if (!findEmployee && !findUser) {
+      if (!findUser) {
         // O Error vai pular para o Unauthorized no catch e a mensagem será esta
         throw new Error('Usuário não encontrado');
       }
 
-      if (findEmployee) employeeOrUserData = { ...findEmployee };
-      if (findUser) employeeOrUserData = { ...findUser };
-
-      return this.CreateTokens(employeeOrUserData);
+      return this.CreateTokensUser(findUser);
     } catch (error) {
       throw new UnauthorizedException(error.message);
     }

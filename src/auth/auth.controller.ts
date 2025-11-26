@@ -9,14 +9,26 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Post()
-  Login(@Body() loginDto: LoginDTO) {
-    return this.authService.Login(loginDto);
+  @Post('employee')
+  LoginEmployee(@Body() loginDto: LoginDTO) {
+    return this.authService.LoginEmployee(loginDto);
   }
 
   @Public()
-  @Post('refresh')
-  RefreshTokens(@Body() refreshTokenDto: RefreshTokenDTO) {
-    return this.authService.RefreshTokens(refreshTokenDto);
+  @Post('user')
+  LoginUser(@Body() loginDto: LoginDTO) {
+    return this.authService.LoginUser(loginDto);
+  }
+
+  @Public()
+  @Post('refreshUser')
+  RefreshTokensUser(@Body() refreshTokenDto: RefreshTokenDTO) {
+    return this.authService.RefreshTokensUser(refreshTokenDto);
+  }
+
+  @Public()
+  @Post('refreshEmployee')
+  RefreshTokensEmployee(@Body() refreshTokenDto: RefreshTokenDTO) {
+    return this.authService.RefreshTokensEmployee(refreshTokenDto);
   }
 }
