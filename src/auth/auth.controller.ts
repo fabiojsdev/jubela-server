@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDTO } from './dto/login.dto';
+import { LogoutDTO } from './dto/logout.dto';
 import { Public } from './params/set-metadata';
 
 @Controller('auth')
@@ -17,5 +18,11 @@ export class AuthController {
   @Post('user')
   LoginUser(@Body() loginDto: LoginDTO) {
     return this.authService.LoginUser(loginDto);
+  }
+
+  @Public()
+  @Post('logout')
+  Logout(@Body() logoutDto: LogoutDTO) {
+    return this.authService.Logout(logoutDto);
   }
 }

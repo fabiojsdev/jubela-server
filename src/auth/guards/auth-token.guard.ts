@@ -8,9 +8,12 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
+import { Repository } from 'typeorm';
 import { REQUEST_TOKEN_PAYLOAD_KEY } from '../auth.constants';
 import jwtConfig from '../config/jwt.config';
+import { JWTBlacklist } from '../entities/jwt_blacklist.entity';
 import { IS_PUBLIC_KEY } from '../params/set-metadata';
 
 @Injectable()
@@ -21,6 +24,9 @@ export class AuthTokenGuard implements CanActivate {
 
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+
+    @InjectRepository(JWTBlacklist)
+    private readonly jwtBlacklist: Repository<JWTBlacklist>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -35,6 +41,16 @@ export class AuthTokenGuard implements CanActivate {
 
     if (!token) {
       throw new UnauthorizedException('Não logado');
+    }
+
+    const isLoggedOut = await this.jwtBlacklist.findOne({
+      where: {
+        token,
+      },
+    });
+
+    if (isLoggedOut) {
+      throw new UnauthorizedException('Usuário deslogado');
     }
 
     try {

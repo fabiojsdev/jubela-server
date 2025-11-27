@@ -9,6 +9,8 @@ import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import jwtConfig from './config/jwt.config';
 import { LoginDTO } from './dto/login.dto';
+import { LogoutDTO } from './dto/logout.dto';
+import { JWTBlacklist } from './entities/jwt_blacklist.entity';
 import { HashingServiceProtocol } from './hashing/hashing.service';
 
 @Injectable()
@@ -19,6 +21,9 @@ export class AuthService {
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    @InjectRepository(JWTBlacklist)
+    private readonly jwtBlacklistRepository: Repository<JWTBlacklist>,
 
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
@@ -68,6 +73,19 @@ export class AuthService {
     }
 
     return this.CreateTokensUser(findUser);
+  }
+
+  async Logout(logoutDto: LogoutDTO) {
+    const jwtBlacklistData = {
+      email: logoutDto.email,
+      token: logoutDto.token,
+    };
+
+    const createLogout = this.jwtBlacklistRepository.create(jwtBlacklistData);
+
+    await this.jwtBlacklistRepository.save(createLogout);
+
+    return 'Logout criado com suceso';
   }
 
   async CreateTokensEmployee(employeeData: Employee) {
