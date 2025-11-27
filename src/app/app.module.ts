@@ -7,6 +7,7 @@ import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { EmployeesModule } from 'src/employees/employee.module';
 import { OrdersModule } from 'src/orders/order.module';
 import { ProductsModule } from 'src/products/product.module';
+import { RefreshTokensModule } from 'src/refresh-tokens/refresh-token.module';
 import { UsersModule } from 'src/users/user.module';
 import appConfig from './app.config';
 import { AppController } from './app.controller';
@@ -37,6 +38,7 @@ import { AppService } from './app.service';
     OrdersModule,
     UsersModule,
     AuthModule,
+    RefreshTokensModule,
   ],
   controllers: [AppController],
   providers: [

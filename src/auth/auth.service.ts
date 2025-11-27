@@ -4,9 +4,9 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
+import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
-import { RefreshTokenDTO } from '../refresh-tokens/dto/refresh-token.dto';
 import jwtConfig from './config/jwt.config';
 import { LoginDTO } from './dto/login.dto';
 import { HashingServiceProtocol } from './hashing/hashing.service';
@@ -24,6 +24,7 @@ export class AuthService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly hashingService: HashingServiceProtocol,
     private readonly jwtService: JwtService,
+    private readonly rtEmployeeService: RefreshTokensService,
   ) {}
 
   async LoginEmployee(loginDTO: LoginDTO) {
@@ -81,6 +82,8 @@ export class AuthService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
+    await this.rtEmployeeService.Create(refreshToken, employeeData);
+
     return {
       accessToken,
       refreshToken,
@@ -118,50 +121,5 @@ export class AuthService {
         expiresIn,
       },
     );
-  }
-
-  async RefreshTokensEmployee(refreshTokenDto: RefreshTokenDTO) {
-    try {
-      const { sub } = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken,
-        this.jwtConfiguration,
-      );
-
-      const findEmployee = await this.employeeRepository.findOneBy({
-        id: sub,
-        situation: EmployeeSituation.EMPLOYED,
-      });
-
-      if (!findEmployee) {
-        // O Error vai pular para o Unauthorized no catch e a mensagem será esta
-        throw new Error('Usuário não encontrado');
-      }
-
-      return this.CreateTokensEmployee(findEmployee);
-    } catch (error) {
-      throw new UnauthorizedException(error.message);
-    }
-  }
-
-  async RefreshTokensUser(refreshTokenDto: RefreshTokenDTO) {
-    try {
-      const { sub } = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken,
-        this.jwtConfiguration,
-      );
-
-      const findUser = await this.userRepository.findOneBy({
-        id: sub,
-      });
-
-      if (!findUser) {
-        // O Error vai pular para o Unauthorized no catch e a mensagem será esta
-        throw new Error('Usuário não encontrado');
-      }
-
-      return this.CreateTokensUser(findUser);
-    } catch (error) {
-      throw new UnauthorizedException(error.message);
-    }
   }
 }

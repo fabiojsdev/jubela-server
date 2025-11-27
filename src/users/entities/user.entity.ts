@@ -1,6 +1,6 @@
 import { IsEmail, IsString } from 'class-validator';
-import { RefreshTokenUser } from 'src/auth/refresh-tokens/entities/refresh-tokens-users.entity';
 import { Order } from 'src/orders/entities/order.entity';
+import { RefreshTokenUser } from 'src/refresh-tokens/entities/refresh-token-user.entity';
 import {
   Column,
   CreateDateColumn,
