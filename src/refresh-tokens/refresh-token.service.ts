@@ -40,7 +40,8 @@ export class RefreshTokensService {
 
   async Create(refreshToken: string, sub: Employee) {
     try {
-      await this.FindUsedRefreshToken(refreshToken, sub);
+      const a = await this.FindUsedRefreshToken(refreshToken, sub);
+      console.log(a);
 
       const hashedRefreshToken = await this.hashingService.Hash(refreshToken);
 
@@ -63,31 +64,42 @@ export class RefreshTokensService {
 
   async FindUsedRefreshToken(refreshToken: string, sub: Employee) {
     try {
-      const findUsedRefreshToken = await this.RTEmployeeRepository.findOne({
+      const rtExists = [];
+
+      const findUsedRefreshToken = await this.RTEmployeeRepository.find({
         where: {
           employee: {
             id: sub.id,
           },
-          is_valid: true,
         },
       });
 
       if (findUsedRefreshToken) {
-        const refreshTokenCompare = await this.hashingService.Compare(
-          refreshToken,
-          findUsedRefreshToken.refresh_token,
-        );
+        for (let i = 0; i < findUsedRefreshToken.length; i++) {
+          const compare = await this.hashingService.Compare(
+            refreshToken,
+            findUsedRefreshToken[i].refresh_token,
+          );
 
-        if (
-          refreshTokenCompare === true &&
-          findUsedRefreshToken.is_valid !== true
-        ) {
+          if (compare === true) rtExists.push(findUsedRefreshToken[i]);
+        }
+
+        if (rtExists[0].is_valid !== true) {
           // Acionar um alerta aqui por email também
           this.RevokeAll(sub);
         }
+      } else {
+        const findUsedRefreshToken2 = await this.RTEmployeeRepository.findOne({
+          where: {
+            employee: {
+              id: sub.id,
+            },
+            is_valid: true,
+          },
+        });
 
         const updateIsValid = await this.RTEmployeeRepository.update(
-          findUsedRefreshToken.id,
+          findUsedRefreshToken2.id,
           {
             is_valid: false,
           },
@@ -199,7 +211,8 @@ export class RefreshTokensService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    await this.Create(refreshToken, employeeData);
+    const a = await this.Create(refreshToken, employeeData);
+    console.log(a);
 
     return {
       accessToken,
