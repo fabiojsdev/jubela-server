@@ -126,6 +126,7 @@ export class RefreshTokensService {
           is_valid: false,
         });
       }
+      // Mandar um email de alerta também
 
       throw new UnauthorizedException('Acessos revogados, contate o suporte');
     } catch (error) {
@@ -152,7 +153,7 @@ export class RefreshTokensService {
 
       if (!findEmployee) {
         // O Error vai pular para o Unauthorized no catch e a mensagem será esta
-        throw new Error('Usuário não encontrado');
+        throw new Error('Usuário não encontrado ou inativo');
       }
 
       return this.CreateTokensEmployee(findEmployee);
@@ -198,23 +199,27 @@ export class RefreshTokensService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
+    await this.Create(refreshToken, employeeData);
+
     return {
       accessToken,
       refreshToken,
     };
   }
 
-  async CreateTokensUser(employeeOrUserData: User) {
+  async CreateTokensUser(userData: User) {
     const accessToken = await this.SignJwtAsync<Partial<User>>(
-      employeeOrUserData.id,
+      userData.id,
       this.jwtConfiguration.jwtTtl,
-      { email: employeeOrUserData.email },
+      { email: userData.email },
     );
 
     const refreshToken = await this.SignJwtAsync<Partial<User>>(
-      employeeOrUserData.id,
+      userData.id,
       this.jwtConfiguration.jwtRefreshTtl,
     );
+
+    // await this.Create(refreshToken, userData);
 
     return {
       accessToken,

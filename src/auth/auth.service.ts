@@ -7,10 +7,10 @@ import { Employee } from 'src/employees/entities/employee.entity';
 import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
+import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import jwtConfig from './config/jwt.config';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
-import { JWTBlacklist } from './entities/jwt_blacklist.entity';
 import { HashingServiceProtocol } from './hashing/hashing.service';
 
 @Injectable()

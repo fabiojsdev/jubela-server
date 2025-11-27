@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { EmployeesModule } from 'src/employees/employee.module';
+import { JWTBlacklistModule } from 'src/jwt-blacklist/jwt-blacklist.module';
 import { OrdersModule } from 'src/orders/order.module';
 import { ProductsModule } from 'src/products/product.module';
 import { RefreshTokensModule } from 'src/refresh-tokens/refresh-token.module';
@@ -39,6 +40,7 @@ import { AppService } from './app.service';
     UsersModule,
     AuthModule,
     RefreshTokensModule,
+    JWTBlacklistModule,
   ],
   controllers: [AppController],
   providers: [
