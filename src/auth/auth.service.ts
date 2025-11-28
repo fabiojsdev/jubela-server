@@ -1,4 +1,9 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -29,7 +34,7 @@ export class AuthService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly hashingService: HashingServiceProtocol,
     private readonly jwtService: JwtService,
-    private readonly rtEmployeeService: RefreshTokensService,
+    private readonly refreshTokenService: RefreshTokensService,
   ) {}
 
   async LoginEmployee(loginDTO: LoginDTO) {
@@ -51,7 +56,9 @@ export class AuthService {
       throw new UnauthorizedException('Email ou senha inválidos');
     }
 
-    return this.CreateTokensEmployee(findEmployee);
+    const create = await this.CreateTokensEmployee(findEmployee);
+
+    return create;
   }
 
   async LoginUser(loginDTO: LoginDTO) {
@@ -75,11 +82,40 @@ export class AuthService {
     return this.CreateTokensUser(findUser);
   }
 
-  async Logout(logoutDto: LogoutDTO) {
+  async LogoutEmployee(logoutDto: LogoutDTO) {
     const jwtBlacklistData = {
       email: logoutDto.email,
       token: logoutDto.token,
     };
+
+    const findEmployee = await this.employeeRepository.findOne({
+      where: {
+        email: logoutDto.email,
+      },
+    });
+
+    await this.refreshTokenService.RevokeAllEmployee(findEmployee, true);
+
+    const createLogout = this.jwtBlacklistRepository.create(jwtBlacklistData);
+
+    await this.jwtBlacklistRepository.save(createLogout);
+
+    return 'Logout criado com suceso';
+  }
+
+  async LogoutUser(logoutDto: LogoutDTO) {
+    const jwtBlacklistData = {
+      email: logoutDto.email,
+      token: logoutDto.token,
+    };
+
+    const findUser = await this.userRepository.findOne({
+      where: {
+        email: logoutDto.email,
+      },
+    });
+
+    await this.refreshTokenService.RevokeAllUser(findUser, true);
 
     const createLogout = this.jwtBlacklistRepository.create(jwtBlacklistData);
 
@@ -100,7 +136,16 @@ export class AuthService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    await this.rtEmployeeService.Create(refreshToken, employeeData);
+    const create = await this.refreshTokenService.CreateEmployee(
+      refreshToken,
+      employeeData,
+    );
+
+    if (!create) {
+      throw new InternalServerErrorException(
+        'Erro ao criar registro de refresh token',
+      );
+    }
 
     return {
       accessToken,
@@ -108,17 +153,25 @@ export class AuthService {
     };
   }
 
-  async CreateTokensUser(employeeOrUserData: User) {
+  async CreateTokensUser(userData: User) {
     const accessToken = await this.SignJwtAsync<Partial<User>>(
-      employeeOrUserData.id,
+      userData.id,
       this.jwtConfiguration.jwtTtl,
-      { email: employeeOrUserData.email },
+      { email: userData.email },
     );
 
     const refreshToken = await this.SignJwtAsync<Partial<User>>(
-      employeeOrUserData.id,
+      userData.id,
       this.jwtConfiguration.jwtRefreshTtl,
     );
+
+    await this.refreshTokenService.CreateUser(refreshToken, userData);
+
+    // if (!create) {
+    //   throw new InternalServerErrorException(
+    //     'Erro ao criar registro de refresh token',
+    //   );
+    // }
 
     return {
       accessToken,

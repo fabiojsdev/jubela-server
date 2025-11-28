@@ -38,92 +38,199 @@ export class RefreshTokensService {
     private readonly hashingService: HashingServiceProtocol,
   ) {}
 
-  async Create(refreshToken: string, sub: Employee) {
-    try {
-      const a = await this.FindUsedRefreshToken(refreshToken, sub);
-      console.log(a);
+  async CreateEmployee(refreshToken: string, sub: Employee) {
+    const hashedRefreshToken = await this.hashingService.Hash(refreshToken);
 
-      const hashedRefreshToken = await this.hashingService.Hash(refreshToken);
+    const rtData = {
+      refresh_token: hashedRefreshToken,
+      is_valid: true,
+      employee: sub,
+    };
 
-      const rtData = {
-        refresh_token: hashedRefreshToken,
-        is_valid: true,
-        employee: sub,
-      };
+    const rtCreate = this.RTEmployeeRepository.create(rtData);
 
-      const rtCreate = this.RTEmployeeRepository.create(rtData);
+    const newRT = await this.RTEmployeeRepository.save(rtCreate);
 
-      await this.RTEmployeeRepository.save(rtCreate);
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        where: 'Create',
-      });
-    }
+    return {
+      ...newRT,
+    };
   }
 
-  async FindUsedRefreshToken(refreshToken: string, sub: Employee) {
-    try {
-      const rtExists = [];
+  async CreateUser(refreshToken: string, sub: User) {
+    await this.FindUsedRefreshTokenUser(refreshToken, sub);
 
-      const findUsedRefreshToken = await this.RTEmployeeRepository.find({
-        where: {
-          employee: {
-            id: sub.id,
-          },
+    const hashedRefreshToken = await this.hashingService.Hash(refreshToken);
+
+    const rtData = {
+      refresh_token: hashedRefreshToken,
+      is_valid: true,
+      user: sub,
+    };
+
+    const rtCreate = this.RTUserRepository.create(rtData);
+
+    await this.RTUserRepository.save(rtCreate);
+  }
+
+  async FindUsedRefreshTokenEmployee(sub: Employee) {
+    const findUsedRefreshTokenAll = await this.RTEmployeeRepository.find({
+      where: {
+        employee: {
+          id: sub.id,
         },
-      });
+      },
+    });
 
-      if (findUsedRefreshToken) {
-        for (let i = 0; i < findUsedRefreshToken.length; i++) {
-          const compare = await this.hashingService.Compare(
-            refreshToken,
-            findUsedRefreshToken[i].refresh_token,
-          );
+    const findUsedRefreshTokenOne = await this.RTEmployeeRepository.findOne({
+      where: {
+        employee: {
+          id: sub.id,
+        },
+        is_valid: true,
+      },
+    });
 
-          if (compare === true) rtExists.push(findUsedRefreshToken[i]);
-        }
+    if (!findUsedRefreshTokenAll) {
+      throw new InternalServerErrorException(
+        'Erro ao buscar refresh tokens relacionados ao usuário',
+      );
+    }
 
-        if (rtExists[0].is_valid !== true) {
-          // Acionar um alerta aqui por email também
-          this.RevokeAll(sub);
-        }
-      } else {
-        const findUsedRefreshToken2 = await this.RTEmployeeRepository.findOne({
-          where: {
-            employee: {
-              id: sub.id,
-            },
-            is_valid: true,
-          },
-        });
+    return {
+      findUsedAll: findUsedRefreshTokenAll,
+      findUsedOne: findUsedRefreshTokenOne,
+    };
+  }
 
-        const updateIsValid = await this.RTEmployeeRepository.update(
-          findUsedRefreshToken2.id,
-          {
-            is_valid: false,
-          },
+  async RefreshTokenVerify(
+    refreshTokenDataArray: RefreshTokenEmployee[] | RefreshTokenUser[],
+    refreshTokenData: RefreshTokenEmployee | RefreshTokenUser,
+    refreshToken: string,
+    sub: Employee,
+  ) {
+    const rtExists = [];
+
+    if (refreshTokenDataArray.length > 0) {
+      for (let i = 0; i < refreshTokenDataArray.length; i++) {
+        const compare = await this.hashingService.Compare(
+          refreshToken,
+          refreshTokenDataArray[i].refresh_token,
         );
 
-        if (!updateIsValid) {
-          throw new InternalServerErrorException(
-            'Erro ao atualizar estado de refresh token',
-          );
-        }
+        console.log({
+          token: refreshToken,
+          token_hash: refreshTokenDataArray[i].refresh_token,
+          is_valid: refreshTokenDataArray[i].is_valid,
+          result: compare,
+        });
 
-        return 'RT anterior invalidado com sucesso';
+        if (compare === true) {
+          rtExists.push(refreshTokenDataArray[i]);
+          break;
+        }
       }
 
-      return 'Ok';
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        where: 'FindUsedRefreshToken',
-      });
+      if (rtExists.length > 0) {
+        console.log('EXISTS: ');
+        console.log(rtExists);
+        if (rtExists[0].is_valid !== true) {
+          return this.RevokeAllEmployee(sub, false);
+        }
+      }
+
+      const updateIsValid = await this.RTEmployeeRepository.update(
+        refreshTokenData.id,
+        {
+          is_valid: false,
+        },
+      );
+
+      if (!updateIsValid) {
+        throw new InternalServerErrorException(
+          'Erro ao atualizar estado de refresh token',
+        );
+      }
+
+      return 'RT anterior invalidado com sucesso';
     }
+
+    return 'Ok';
   }
 
-  async RevokeAll(sub: Employee) {
+  async FindUsedRefreshTokenUser(refreshToken: string, sub: User) {
+    const rtExists = [];
+
+    const findUsedRefreshToken = await this.RTUserRepository.find({
+      where: {
+        user: {
+          id: sub.id,
+        },
+      },
+    });
+
+    const findUsedRefreshToken2 = await this.RTUserRepository.findOne({
+      where: {
+        user: {
+          id: sub.id,
+        },
+        is_valid: true,
+      },
+    });
+
+    if (findUsedRefreshToken.length > 0) {
+      for (let i = 0; i < findUsedRefreshToken.length; i++) {
+        const compare = await this.hashingService.Compare(
+          refreshToken,
+          findUsedRefreshToken[i].refresh_token,
+        );
+
+        if (compare === true) {
+          rtExists.push(findUsedRefreshToken[i]);
+          break;
+        }
+      }
+
+      if (rtExists.length > 0) {
+        if (rtExists[0].is_valid !== true) {
+          await this.RevokeAllUser(sub, false);
+        }
+      }
+
+      const updateIsValid = await this.RTUserRepository.update(
+        findUsedRefreshToken2.id,
+        {
+          is_valid: false,
+        },
+      );
+
+      if (!updateIsValid) {
+        throw new InternalServerErrorException(
+          'Erro ao atualizar estado de refresh token',
+        );
+      }
+
+      return 'RT anterior invalidado com sucesso';
+    }
+
+    if (findUsedRefreshToken2) {
+      const updateIsValid = await this.RTUserRepository.update(
+        findUsedRefreshToken2.id,
+        {
+          is_valid: false,
+        },
+      );
+
+      if (!updateIsValid) {
+        throw new InternalServerErrorException(
+          'Erro ao atualizar estado de refresh token',
+        );
+      }
+    }
+
+    return 'Ok';
+  }
+
+  async RevokeAllEmployee(sub: Employee, isLogout: boolean) {
     try {
       const findAllUserRT = await this.RTEmployeeRepository.find({
         where: {
@@ -134,15 +241,45 @@ export class RefreshTokensService {
       });
 
       for (let i = 0; i < findAllUserRT.length; i++) {
-        this.RTEmployeeRepository.update(findAllUserRT[i].id, {
+        await this.RTEmployeeRepository.update(findAllUserRT[i].id, {
           is_valid: false,
         });
       }
       // Mandar um email de alerta também
 
-      throw new UnauthorizedException('Acessos revogados, contate o suporte');
+      if (isLogout) return;
+
+      throw new Error('Acessos revogados, contate o suporte');
     } catch (error) {
-      throw new InternalServerErrorException({
+      throw new UnauthorizedException({
+        message: error.message,
+        where: 'RevokeAll',
+      });
+    }
+  }
+
+  async RevokeAllUser(sub: User, isLogout: boolean) {
+    try {
+      const findAllUserRT = await this.RTUserRepository.find({
+        where: {
+          user: {
+            id: sub.id,
+          },
+        },
+      });
+
+      for (let i = 0; i < findAllUserRT.length; i++) {
+        await this.RTEmployeeRepository.update(findAllUserRT[i].id, {
+          is_valid: false,
+        });
+      }
+      // Mandar um email de alerta também
+
+      if (isLogout) return;
+
+      throw new Error('Acessos revogados, contate o suporte');
+    } catch (error) {
+      throw new UnauthorizedException({
         message: error.message,
         where: 'RevokeAll',
       });
@@ -150,56 +287,69 @@ export class RefreshTokensService {
   }
 
   async RefreshTokensEmployee(refreshTokenDto: RefreshTokenDTO) {
-    try {
-      const { sub } = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken,
-        this.jwtConfiguration,
-      );
+    const { sub } = await this.jwtService.verifyAsync(
+      refreshTokenDto.refreshToken,
+      this.jwtConfiguration,
+    );
 
-      const findEmployee = await this.employeeRepository.findOne({
-        where: {
-          id: sub,
-          situation: EmployeeSituation.EMPLOYED,
-        },
-      });
+    const findEmployee = await this.employeeRepository.findOne({
+      where: {
+        id: sub,
+        situation: EmployeeSituation.EMPLOYED,
+      },
+    });
 
-      if (!findEmployee) {
-        // O Error vai pular para o Unauthorized no catch e a mensagem será esta
-        throw new Error('Usuário não encontrado ou inativo');
-      }
-
-      return this.CreateTokensEmployee(findEmployee);
-    } catch (error) {
-      throw new UnauthorizedException({
-        message: error.message,
-        where: 'RefreshTokensEmployee',
-      });
+    if (!findEmployee) {
+      // O Error vai pular para o Unauthorized no catch e a mensagem será esta
+      throw new Error('Usuário não encontrado ou inativo');
     }
+
+    const create = await this.CreateTokensEmployee(
+      findEmployee,
+      refreshTokenDto.refreshToken,
+    );
+
+    return create;
   }
 
   async RefreshTokensUser(refreshTokenDto: RefreshTokenDTO) {
-    try {
-      const { sub } = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken,
-        this.jwtConfiguration,
-      );
+    const { sub } = await this.jwtService.verifyAsync(
+      refreshTokenDto.refreshToken,
+      this.jwtConfiguration,
+    );
 
-      const findUser = await this.userRepository.findOneBy({
-        id: sub,
-      });
+    const findUser = await this.userRepository.findOneBy({
+      id: sub,
+    });
 
-      if (!findUser) {
-        // O Error vai pular para o Unauthorized no catch e a mensagem será esta
-        throw new Error('Usuário não encontrado');
-      }
-
-      return this.CreateTokensUser(findUser);
-    } catch (error) {
-      throw new UnauthorizedException(error.message);
+    if (!findUser) {
+      // O Error vai pular para o Unauthorized no catch e a mensagem será esta
+      throw new Error('Usuário não encontrado');
     }
+
+    const create = await this.CreateTokensUser(
+      findUser,
+      refreshTokenDto.refreshToken,
+    );
+
+    return create;
   }
 
-  async CreateTokensEmployee(employeeData: Employee) {
+  async CreateTokensEmployee(
+    employeeData: Employee,
+    refreshTokenIncoming: string,
+  ) {
+    const findUsedRT = await this.FindUsedRefreshTokenEmployee(employeeData);
+
+    const v = await this.RefreshTokenVerify(
+      findUsedRT.findUsedAll,
+      findUsedRT.findUsedOne,
+      refreshTokenIncoming,
+      employeeData,
+    );
+
+    console.log(v);
+
     const accessToken = await this.SignJwtAsync<Partial<Employee>>(
       employeeData.id,
       this.jwtConfiguration.jwtTtl,
@@ -211,8 +361,13 @@ export class RefreshTokensService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    const a = await this.Create(refreshToken, employeeData);
-    console.log(a);
+    const create = await this.CreateEmployee(refreshToken, employeeData);
+
+    if (!create) {
+      throw new InternalServerErrorException(
+        'Erro ao criar registro de refresh token',
+      );
+    }
 
     return {
       accessToken,
@@ -220,7 +375,7 @@ export class RefreshTokensService {
     };
   }
 
-  async CreateTokensUser(userData: User) {
+  async CreateTokensUser(userData: User, refreshTokenIncoming: string) {
     const accessToken = await this.SignJwtAsync<Partial<User>>(
       userData.id,
       this.jwtConfiguration.jwtTtl,
@@ -232,7 +387,7 @@ export class RefreshTokensService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    // await this.Create(refreshToken, userData);
+    await this.CreateUser(refreshTokenIncoming, userData);
 
     return {
       accessToken,

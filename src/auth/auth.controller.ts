@@ -21,8 +21,14 @@ export class AuthController {
   }
 
   @Public()
-  @Post('logout')
-  Logout(@Body() logoutDto: LogoutDTO) {
-    return this.authService.Logout(logoutDto);
+  @Post('logout/employee')
+  LogoutEmployee(@Body() logoutDto: LogoutDTO) {
+    return this.authService.LogoutEmployee(logoutDto);
+  }
+
+  @Public()
+  @Post('logout/user')
+  LogoutUser(@Body() logoutDto: LogoutDTO) {
+    return this.authService.LogoutUser(logoutDto);
   }
 }
