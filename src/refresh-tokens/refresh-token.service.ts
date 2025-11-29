@@ -38,7 +38,7 @@ export class RefreshTokensService {
     private readonly hashingService: HashingServiceProtocol,
   ) {}
 
-  async CreateEmployee(sub: Employee) {
+  async CreateEmployee(sub: Employee, isLogin: boolean) {
     const rtData = {
       is_valid: true,
       employee: sub,
@@ -53,7 +53,7 @@ export class RefreshTokensService {
     };
   }
 
-  async CreateUser(sub: User) {
+  async CreateUser(sub: User, isLogin: boolean) {
     const rtData = {
       is_valid: true,
       user: sub,
