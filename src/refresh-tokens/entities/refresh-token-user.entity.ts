@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Generated,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -14,8 +15,9 @@ export class RefreshTokenUser {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  refresh_token: string;
+  @Column()
+  @Generated('uuid')
+  token_id: string;
 
   @Column({ type: 'boolean', default: false })
   is_valid: boolean;

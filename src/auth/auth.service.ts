@@ -136,10 +136,7 @@ export class AuthService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    const create = await this.refreshTokenService.CreateEmployee(
-      refreshToken,
-      employeeData,
-    );
+    const create = await this.refreshTokenService.CreateEmployee(employeeData);
 
     if (!create) {
       throw new InternalServerErrorException(
@@ -165,13 +162,29 @@ export class AuthService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    await this.refreshTokenService.CreateUser(refreshToken, userData);
+    const findUsedRT =
+      await this.refreshTokenService.FindUsedRefreshTokenEmployee(
+        refreshToken,
+        employeeData,
+      );
 
-    // if (!create) {
-    //   throw new InternalServerErrorException(
-    //     'Erro ao criar registro de refresh token',
-    //   );
-    // }
+    await this.RefreshTokenVerifyEmployee(findUsedRT, employeeData);
+
+    const invalidate = await this.InvalidateRefreshToken(findUsedRT.id);
+
+    if (!invalidate) {
+      throw new InternalServerErrorException(
+        'Erro ao atualizar estado de refresh token',
+      );
+    }
+
+    const create = await this.refreshTokenService.CreateUser(userData);
+
+    if (!create) {
+      throw new InternalServerErrorException(
+        'Erro ao criar registro de refresh token',
+      );
+    }
 
     return {
       accessToken,
