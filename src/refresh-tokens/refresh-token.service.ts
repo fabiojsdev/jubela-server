@@ -8,7 +8,6 @@ import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import jwtConfig from 'src/auth/config/jwt.config';
-import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -35,7 +34,6 @@ export class RefreshTokensService {
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
-    private readonly hashingService: HashingServiceProtocol,
   ) {}
 
   async CreateEmployee(sub: Employee) {

@@ -6,10 +6,13 @@ import { Employee } from 'src/employees/entities/employee.entity';
 import { JWTBlacklistModule } from 'src/jwt-blacklist/jwt-blacklist.module';
 import { RefreshTokensModule } from 'src/refresh-tokens/refresh-token.module';
 import { User } from 'src/users/entities/user.entity';
+import { UsersModule } from 'src/users/user.module';
 import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import googleOauthConfig from './config/google-oauth.config';
 import jwtConfig from './config/jwt.config';
+import { GoogleStrategy } from './google.strategy';
 import { BcryptService } from './hashing/bcrypt.service';
 import { HashingServiceProtocol } from './hashing/hashing.service';
 
@@ -18,13 +21,16 @@ import { HashingServiceProtocol } from './hashing/hashing.service';
   imports: [
     TypeOrmModule.forFeature([Employee, User, JWTBlacklist]),
     ConfigModule.forFeature(jwtConfig),
+    ConfigModule.forFeature(googleOauthConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     RefreshTokensModule,
     JWTBlacklistModule,
+    UsersModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
+    GoogleStrategy,
     {
       provide: HashingServiceProtocol,
       useClass: BcryptService,

@@ -10,7 +10,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
+import { CreateUserDTO } from 'src/users/dto/create-user.dto';
 import { User } from 'src/users/entities/user.entity';
+import { UsersService } from 'src/users/user.service';
 import { Repository } from 'typeorm';
 import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import jwtConfig from './config/jwt.config';
@@ -35,6 +37,7 @@ export class AuthService {
     private readonly hashingService: HashingServiceProtocol,
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokensService,
+    private readonly userService: UsersService,
   ) {}
 
   async LoginEmployee(loginDTO: LoginDTO) {
@@ -189,5 +192,15 @@ export class AuthService {
         expiresIn,
       },
     );
+  }
+
+  async ValidateGoogleUser(googleUser: CreateUserDTO) {
+    const createUser = await this.userService.FindByEmailForGoogle(
+      googleUser.email,
+    );
+
+    if (createUser) return createUser;
+
+    return await this.userService.Create(googleUser);
   }
 }

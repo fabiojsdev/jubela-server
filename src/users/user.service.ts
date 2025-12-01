@@ -114,6 +114,18 @@ export class UsersService {
     return employeeFindByEmail;
   }
 
+  async FindByEmailForGoogle(email: string) {
+    const employeeFindByEmail = await this.usersRepository.findOneBy({
+      email,
+    });
+
+    if (!employeeFindByEmail) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return employeeFindByEmail;
+  }
+
   async FindByName(paginationByNameDTO: PaginationByNameDTO) {
     const { limit, offset, value } = paginationByNameDTO;
 
