@@ -12,7 +12,6 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { ReqBodyPhoneNumberValidation } from 'src/common/pipes/phone-number-validation-body-request.pipe';
-import { FindByPhoneNumberValidation } from 'src/common/pipes/phone-number-validation.pipe';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { SearchByEmailDTO } from './dto/search-email-user.dto';
@@ -42,12 +41,6 @@ export class UsersController {
   @Get('search/email/:email')
   FindByEmail(@Param('email') email: SearchByEmailDTO) {
     return this.usersService.FindByEmail(email);
-  }
-
-  @Get('search/phoneNumber/:phoneNumber')
-  @UsePipes(FindByPhoneNumberValidation)
-  FindByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
-    return this.usersService.FindByPhoneNumber(phoneNumber);
   }
 
   @Get('search/name/')

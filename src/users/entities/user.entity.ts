@@ -27,14 +27,6 @@ export class User {
   @IsString()
   password_hash: string;
 
-  @Column({ type: 'varchar', length: 15 })
-  @IsString()
-  phone_number: string;
-
-  @Column({ type: 'varchar', length: 100 })
-  @IsString()
-  address: string;
-
   // Este campo pode ser nulo porque o cliente pode criar uma conta e não comprar nada, ao menos inicialmente
   @OneToMany(() => Order, (order) => order.user, {
     eager: true,

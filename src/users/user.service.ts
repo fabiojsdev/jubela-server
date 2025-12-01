@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
-import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
@@ -20,23 +19,10 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
-    private readonly hashingService: HashingServiceProtocol,
   ) {}
 
   async Create(createUserDTO: CreateUserDTO) {
-    const password_hash = await this.hashingService.Hash(
-      createUserDTO.password,
-    );
-
-    const userCreateData = {
-      email: createUserDTO.email,
-      name: createUserDTO.name,
-      password_hash,
-      phone_number: createUserDTO.phone_number,
-      address: createUserDTO.address,
-    };
-
-    const userCreate = this.usersRepository.create(userCreateData);
+    const userCreate = this.usersRepository.create(createUserDTO);
 
     const newUser = await this.usersRepository.save(userCreate);
 
@@ -61,21 +47,10 @@ export class UsersService {
     const allowedData = {
       email: updateUserDTO.email,
       name: updateUserDTO.name,
-      password_hash: updateUserDTO.password,
-      phone_number: updateUserDTO.phone_number,
-      address: updateUserDTO.address,
     };
 
     if (id !== tokenPayloadDTO.sub) {
       throw new ForbiddenException('Ação não permitida');
-    }
-
-    if (updateUserDTO?.password) {
-      const passwordHash = await this.hashingService.Hash(
-        updateUserDTO.password,
-      );
-
-      allowedData.password_hash = passwordHash;
     }
 
     const findUserById = await this.usersRepository.findOne({
@@ -151,17 +126,5 @@ export class UsersService {
     }
 
     return userFindByName;
-  }
-
-  async FindByPhoneNumber(phoneNumber: string) {
-    const userFindByPhoneNumber = await this.usersRepository.findOneBy({
-      phone_number: phoneNumber,
-    });
-
-    if (!userFindByPhoneNumber) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    return userFindByPhoneNumber;
   }
 }
