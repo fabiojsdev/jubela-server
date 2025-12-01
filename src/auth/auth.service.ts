@@ -136,10 +136,7 @@ export class AuthService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    const create = await this.refreshTokenService.CreateEmployee(
-      employeeData,
-      true,
-    );
+    const create = await this.refreshTokenService.CreateEmployee(employeeData);
 
     if (!create) {
       throw new InternalServerErrorException(
@@ -165,7 +162,7 @@ export class AuthService {
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    const create = await this.refreshTokenService.CreateUser(userData, true);
+    const create = await this.refreshTokenService.CreateUser(userData);
 
     if (!create) {
       throw new InternalServerErrorException(

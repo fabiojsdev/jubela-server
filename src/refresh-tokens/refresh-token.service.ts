@@ -38,7 +38,7 @@ export class RefreshTokensService {
     private readonly hashingService: HashingServiceProtocol,
   ) {}
 
-  async CreateEmployee(sub: Employee, isLogin: boolean) {
+  async CreateEmployee(sub: Employee) {
     const rtData = {
       is_valid: true,
       employee: sub,
@@ -53,7 +53,7 @@ export class RefreshTokensService {
     };
   }
 
-  async CreateUser(sub: User, isLogin: boolean) {
+  async CreateUser(sub: User) {
     const rtData = {
       is_valid: true,
       user: sub,
@@ -182,7 +182,7 @@ export class RefreshTokensService {
   }
 
   async RefreshTokensEmployee(refreshTokenDto: RefreshTokenDTO) {
-    const { sub } = await this.jwtService.verifyAsync(
+    const { sub, id } = await this.jwtService.verifyAsync(
       refreshTokenDto.refreshToken,
       this.jwtConfiguration,
     );
@@ -199,16 +199,13 @@ export class RefreshTokensService {
       throw new Error('Usuário não encontrado ou inativo');
     }
 
-    const create = await this.CreateTokensEmployee(
-      findEmployee,
-      refreshTokenDto.refreshToken,
-    );
+    const create = await this.CreateTokensEmployee(findEmployee, id);
 
     return create;
   }
 
   async RefreshTokensUser(refreshTokenDto: RefreshTokenDTO) {
-    const { sub } = await this.jwtService.verifyAsync(
+    const { sub, id } = await this.jwtService.verifyAsync(
       refreshTokenDto.refreshToken,
       this.jwtConfiguration,
     );
@@ -222,10 +219,7 @@ export class RefreshTokensService {
       throw new Error('Usuário não encontrado');
     }
 
-    const create = await this.CreateTokensUser(
-      findUser,
-      refreshTokenDto.refreshToken,
-    );
+    const create = await this.CreateTokensUser(findUser, id);
 
     return create;
   }
