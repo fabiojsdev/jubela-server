@@ -1,6 +1,6 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { RefreshTokenGuard } from 'src/auth/guards/refresh-token.guard';
-import { Public } from 'src/auth/params/set-metadata';
 import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { RefreshTokensService } from './refresh-token.service';
 
