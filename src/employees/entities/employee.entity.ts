@@ -34,7 +34,7 @@ export class Employee {
   password_hash: string;
 
   @Column({ type: 'enum', enum: EmployeeRole })
-  role: EmployeeRole;
+  role: EmployeeRole[];
 
   @Column({ type: 'enum', enum: EmployeeSituation })
   situation: EmployeeSituation;

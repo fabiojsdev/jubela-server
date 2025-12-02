@@ -63,7 +63,7 @@ export class CreateEmployeeDTO {
   @IsEnum(EmployeeRole, {
     message: 'Permissão inválida',
   })
-  readonly role: EmployeeRole;
+  readonly role: EmployeeRole[];
 
   @IsNotEmpty({
     message: 'campo "situação" não preenchido',
