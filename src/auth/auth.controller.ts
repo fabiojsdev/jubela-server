@@ -11,7 +11,7 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
-import { GoogleAuthGuard } from './guards/guards.guard';
+import { GoogleAuthGuard } from './guards/google.guard';
 import { GoogleUser } from './interfaces/google-user';
 import { Public } from './params/set-metadata';
 

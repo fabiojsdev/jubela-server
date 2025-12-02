@@ -22,7 +22,7 @@ export class RefreshTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
-    const token = this.ExtractTokenFromHeader(request);
+    const token = request.cookies['refreshToken'];
 
     if (!token) {
       throw new UnauthorizedException('Não logadoooooo');
