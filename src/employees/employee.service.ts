@@ -137,8 +137,10 @@ export class EmployeesService {
       },
     });
 
-    if (tokenPayloadDTO.sub !== id && findEmployeeById.role === 'admin') {
-      throw new ForbiddenException('Ação não permitida');
+    for (let i = 0; i < findEmployeeById.role.length; i++) {
+      if (tokenPayloadDTO.sub !== id && findEmployeeById.role[i] === 'admin') {
+        throw new ForbiddenException('Ação não permitida');
+      }
     }
 
     if (!findEmployeeById) {
