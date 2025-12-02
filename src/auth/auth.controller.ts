@@ -48,11 +48,29 @@ export class AuthController {
   @Get('google/callback')
   async GoogleCallback(
     @Req() req: Request & { user: GoogleUser },
-    @Res() res: Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const createTokens = await this.authService.CreateTokensUser(
       req.user.id,
       req.user.email,
     );
+
+    res.cookie('accessToken', createTokens.accessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 15, // 15 minutos
+      path: '/',
+    });
+
+    res.cookie('refreshToken', createTokens.refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+      path: '/auth/refresh',
+    });
+
+    return { success: true, message: 'Autenticação concluída' };
   }
 }
