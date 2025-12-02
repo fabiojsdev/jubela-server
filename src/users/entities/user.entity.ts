@@ -23,10 +23,6 @@ export class User {
   @IsString()
   name: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  @IsString()
-  password_hash: string;
-
   // Este campo pode ser nulo porque o cliente pode criar uma conta e não comprar nada, ao menos inicialmente
   @OneToMany(() => Order, (order) => order.user, {
     eager: true,

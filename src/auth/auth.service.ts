@@ -64,27 +64,6 @@ export class AuthService {
     return create;
   }
 
-  async LoginUser(loginDTO: LoginDTO) {
-    const findUser = await this.userRepository.findOneBy({
-      email: loginDTO.email,
-    });
-
-    if (!findUser && !findUser) {
-      throw new UnauthorizedException('Email ou senha inválidos');
-    }
-
-    const passwordCompare = await this.hashingService.Compare(
-      loginDTO.password,
-      findUser.password_hash,
-    );
-
-    if (!passwordCompare) {
-      throw new UnauthorizedException('Email ou senha inválidos');
-    }
-
-    return this.CreateTokensUser(findUser);
-  }
-
   async LogoutEmployee(logoutDto: LogoutDTO) {
     const jwtBlacklistData = {
       email: logoutDto.email,
@@ -153,19 +132,21 @@ export class AuthService {
     };
   }
 
-  async CreateTokensUser(userData: User) {
+  async CreateTokensUser(userId: string, userEmail: string) {
     const accessToken = await this.SignJwtAsync<Partial<User>>(
-      userData.id,
+      userId,
       this.jwtConfiguration.jwtTtl,
-      { email: userData.email },
+      { email: userEmail },
     );
 
     const refreshToken = await this.SignJwtAsync<Partial<User>>(
-      userData.id,
+      userId,
       this.jwtConfiguration.jwtRefreshTtl,
     );
 
-    const create = await this.refreshTokenService.CreateUser(userData);
+    const findUser = await this.userService.FindByEmailForGoogle(userEmail);
+
+    const create = await this.refreshTokenService.CreateUser(findUser);
 
     if (!create) {
       throw new InternalServerErrorException(
