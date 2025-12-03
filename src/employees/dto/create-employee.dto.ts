@@ -62,6 +62,7 @@ export class CreateEmployeeDTO {
   })
   @IsEnum(EmployeeRole, {
     message: 'Permissão inválida',
+    each: true,
   })
   readonly role: EmployeeRole[];
 
