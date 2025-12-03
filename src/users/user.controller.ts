@@ -8,6 +8,7 @@ import {
   Query,
   UsePipes,
 } from '@nestjs/common';
+import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
@@ -22,6 +23,7 @@ import { UsersService } from './user.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Public()
   @Post()
   @UsePipes(ReqBodyPhoneNumberValidation)
   Create(@Body() body: CreateUserDTO) {

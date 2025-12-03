@@ -16,35 +16,30 @@ export class OrdersController {
 
   @Post()
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   Create(@Body() body: CreateOrderDTO) {
     return this.ordersService.Create(body);
   }
 
   @Get('search/price')
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByPrice(@Query() paginationByPriceDTO: PaginationByPriceDTO) {
     return this.ordersService.FindByPrice(paginationByPriceDTO);
   }
 
   @Get('search/item')
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByItem(@Query() paginationDTO: PaginationDTO) {
     return this.ordersService.FindByItem(paginationDTO);
   }
 
   @Get('search/user')
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByUser(@Query() paginationByUserDTO: PaginationByUserDTO) {
     return this.ordersService.FindByUser(paginationByUserDTO);
   }
 
   @Get('search/status')
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByStatus(@Query() paginationByStatusDTO: PaginationByStatusDTO) {
     return this.ordersService.FindByStatus(paginationByStatusDTO);
   }

@@ -26,14 +26,12 @@ export class ProductsController {
 
   @Post()
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   Create(@Body() body: CreateProductDTO) {
     return this.productsService.Create(body);
   }
 
   @Patch('update/:id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   Update(
     @Param('id') id: UpdateUuidDTO,
     @Body() updateProductDTO: UpdateProductDTO,
@@ -42,33 +40,25 @@ export class ProductsController {
   }
 
   @Get('search/sku/:sku')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindBySku(@Param('sku') sku: string) {
     return this.productsService.FindBySku(sku);
   }
 
   @Get('search/name/')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByName(@Query() paginationByNameDto: PaginationByNameDTO) {
     return this.productsService.FindByName(paginationByNameDto);
   }
 
   @Get('search/category/')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByRole(@Query() paginationDto: PaginationDTO) {
     return this.productsService.FindByCategory(paginationDto);
   }
 
   @Get('search/employee/')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
-  @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByEmployee(@Query() paginationByEmployeeDto: PaginationByEmployeeDTO) {
     return this.productsService.FindByEmployee(paginationByEmployeeDto);
   }
