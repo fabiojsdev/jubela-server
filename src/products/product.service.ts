@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
@@ -19,7 +21,20 @@ export class ProductsService {
     private readonly productsRepository: Repository<Product>,
   ) {}
 
-  async Create(createProductDTO: CreateProductDTO) {
+  async Create(
+    createProductDTO: CreateProductDTO,
+    files: Array<Express.Multer.File>,
+  ) {
+    files.forEach(async (file) => {
+      const extension = path.extname(file.originalname);
+
+      const fileName = `${file.originalname}${extension}`;
+
+      const fileFullPath = path.resolve(process.cwd(), 'pictures', fileName);
+
+      await fs.writeFile(fileFullPath, file.buffer);
+    });
+
     const productCreate = this.productsRepository.create(createProductDTO);
 
     const newProductData = await this.productsRepository.save(productCreate);

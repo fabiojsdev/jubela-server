@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseFilePipeBuilder,
   Patch,
   Post,
   Query,
@@ -31,10 +32,16 @@ export class ProductsController {
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(FilesInterceptor('files', 12))
   Create(
-    @UploadedFiles() files: Express.Multer.File,
+    @UploadedFiles(
+      new ParseFilePipeBuilder()
+        .addMaxSizeValidator({ maxSize: 2_000_000 })
+        .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
+        .build(),
+    )
+    files: Array<Express.Multer.File>,
     @Body() body: CreateProductDTO,
   ) {
-    return this.productsService.Create(body);
+    return this.productsService.Create(body, files);
   }
 
   @Patch('update/:id')
