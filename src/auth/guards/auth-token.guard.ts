@@ -31,13 +31,14 @@ export class AuthTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
-    const token = request.cookies['accessToken'];
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (isPublic) return true;
+
+    const token = request.cookies['accessToken'];
 
     if (!token) {
       throw new UnauthorizedException('Não logado');

@@ -33,7 +33,7 @@ export class Employee {
   @IsString()
   password_hash: string;
 
-  @Column({ type: 'enum', enum: EmployeeRole, default: [] })
+  @Column({ type: 'enum', enum: EmployeeRole })
   role: EmployeeRole[];
 
   @Column({ type: 'enum', enum: EmployeeSituation })
