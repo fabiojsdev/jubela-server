@@ -6,8 +6,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
@@ -26,7 +29,11 @@ export class ProductsController {
 
   @Post()
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  Create(@Body() body: CreateProductDTO) {
+  @UseInterceptors(FilesInterceptor('files', 12))
+  Create(
+    @UploadedFiles() files: Express.Multer.File,
+    @Body() body: CreateProductDTO,
+  ) {
     return this.productsService.Create(body);
   }
 
