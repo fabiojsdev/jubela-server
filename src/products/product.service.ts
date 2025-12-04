@@ -25,6 +25,8 @@ export class ProductsService {
     createProductDTO: CreateProductDTO,
     files: Array<Express.Multer.File>,
   ) {
+    const imagesString = [];
+
     files.forEach(async (file) => {
       const extension = path.extname(file.originalname);
 
@@ -33,9 +35,16 @@ export class ProductsService {
       const fileFullPath = path.resolve(process.cwd(), 'pictures', fileName);
 
       await fs.writeFile(fileFullPath, file.buffer);
+
+      images.push(fileName);
     });
 
-    const productCreate = this.productsRepository.create(createProductDTO);
+    const dataToSave = {
+      ...createProductDTO,
+      images: [...imagesString],
+    };
+
+    const productCreate = this.productsRepository.create(dataToSave);
 
     const newProductData = await this.productsRepository.save(productCreate);
 

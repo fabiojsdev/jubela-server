@@ -21,8 +21,29 @@ export class AuthController {
 
   @Public()
   @Post('employee')
-  LoginEmployee(@Body() loginDto: LoginDTO) {
-    return this.authService.LoginEmployee(loginDto);
+  async LoginEmployee(
+    @Res({ passthrough: true }) res: Response,
+    @Body() loginDto: LoginDTO,
+  ) {
+    const createTokens = await this.authService.LoginEmployee(loginDto);
+
+    res.cookie('accessToken', createTokens.accessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 15, // 15 minutos
+      path: '/',
+    });
+
+    res.cookie('refreshToken', createTokens.refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+      path: '/auth/refresh',
+    });
+
+    return { success: true, message: 'Autenticação concluída' };
   }
 
   @Public()
