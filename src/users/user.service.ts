@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
-import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
+import { UpdateUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';

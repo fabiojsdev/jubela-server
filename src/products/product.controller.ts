@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpStatus,
   Param,
   ParseFilePipeBuilder,
   Patch,
@@ -12,10 +14,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
-import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
+import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
@@ -47,10 +50,32 @@ export class ProductsController {
   @Patch('update/:id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   Update(
-    @Param('id') id: UpdateUuidDTO,
+    @Param('id') id: UrlUuidDTO,
     @Body() updateProductDTO: UpdateProductDTO,
   ) {
     return this.productsService.Update(id, updateProductDTO);
+  }
+
+  @Delete(':id')
+  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  Delete(@Param('id') id: UrlUuidDTO) {
+    this.productsService.Delete(id);
+    return { success: true, message: 'Produto deletado' };
+  }
+
+  @Public()
+  @Get()
+  async FindAll() {
+    const allProducts = await this.productsService.ListProducts();
+
+    if (allProducts.length < 1) {
+      return {
+        status: HttpStatus.NO_CONTENT,
+        message: 'Nenhum produto cadastrado ainda',
+      };
+    }
+
+    return allProducts;
   }
 
   @Get('search/sku/:sku')

@@ -6,9 +6,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { UpdateUuidDTO } from 'src/common/dto/update-uuid.dto';
+import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
+import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
@@ -56,10 +57,7 @@ export class ProductsService {
     };
   }
 
-  async Update(
-    productIdDTO: UpdateUuidDTO,
-    updateProductDTO: UpdateProductDTO,
-  ) {
+  async Update(productIdDTO: UrlUuidDTO, updateProductDTO: UpdateProductDTO) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sku, ...restOfProductData } = updateProductDTO;
     const id = productIdDTO.id;
@@ -86,6 +84,30 @@ export class ProductsService {
     }
 
     return this.productsRepository.save(productUpdate);
+  }
+
+  async Delete(deleteIdDTO: UrlUuidDTO) {
+    const deleteProduct = await this.productsRepository.delete(deleteIdDTO);
+
+    if (deleteProduct.affected < 1) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+
+    return 'Produto deletado';
+  }
+
+  async ListProducts(paginationAllProducts?: PaginationAllProductsDTO) {
+    const { limit, offset } = paginationAllProducts;
+
+    const findAll = await this.productsRepository.findAndCount({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+    });
+
+    return findAll;
   }
 
   async FindByName(paginationDTO: PaginationDTO) {
