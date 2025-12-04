@@ -18,7 +18,7 @@ import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { ReqBodyCpfValidation } from 'src/common/pipes/cpf-validation-body-request.pipe';
 import { ReqBodyPhoneNumberValidation } from 'src/common/pipes/phone-number-validation-body-request.pipe';
 import { FindByPhoneNumberValidation } from 'src/common/pipes/phone-number-validation.pipe';
-import { UpdateUuidDTO } from '../common/dto/url-uuid.dto';
+import { UrlUuidDTO } from '../common/dto/url-uuid.dto';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { SearchByEmailDTO } from './dto/search-email-employee.dto';
@@ -41,7 +41,7 @@ export class EmployeesController {
   @Patch('update/self/:id')
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   UpdateSelf(
-    @Param('id') id: UpdateUuidDTO,
+    @Param('id') id: UrlUuidDTO,
     @Body() updateEmployeeDTO: UpdateEmployeeDTO,
     @TokenPayloadParam() TokenPayloadDTO: TokenPayloadDTO,
   ) {
@@ -56,7 +56,7 @@ export class EmployeesController {
   @SetRoutePolicy(EmployeeRole.ADMIN)
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   UpdateAdmin(
-    @Param('id') id: UpdateUuidDTO,
+    @Param('id') id: UrlUuidDTO,
     @Body() updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {

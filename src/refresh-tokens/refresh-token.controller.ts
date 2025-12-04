@@ -1,7 +1,7 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { RefreshTokenGuard } from 'src/auth/guards/refresh-token.guard';
-import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { RefreshTokensService } from './refresh-token.service';
 
 @Public()
@@ -11,12 +11,14 @@ export class RefreshTokensController {
   constructor(private readonly refreshTokensService: RefreshTokensService) {}
 
   @Post('user')
-  RefreshTokensUser(@Body() refreshTokenDto: RefreshTokenDTO) {
-    return this.refreshTokensService.RefreshTokensUser(refreshTokenDto);
+  RefreshTokensUser(@Req() req: Request) {
+    const token = (req as any).refreshToken;
+    return this.refreshTokensService.RefreshTokensUser(token);
   }
 
   @Post('employee')
-  RefreshTokensEmployee(@Body() refreshTokenDto: RefreshTokenDTO) {
-    return this.refreshTokensService.RefreshTokensEmployee(refreshTokenDto);
+  RefreshTokensEmployee(@Req() req: Request) {
+    const token = (req as any).refreshToken;
+    return this.refreshTokensService.RefreshTokensEmployee(token);
   }
 }

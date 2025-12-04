@@ -12,7 +12,6 @@ import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
-import { RefreshTokenDTO } from './dto/refresh-token.dto';
 import { RefreshTokenEmployee } from './entities/refresh-token-employee.entity';
 import { RefreshTokenUser } from './entities/refresh-token-user.entity';
 
@@ -179,9 +178,9 @@ export class RefreshTokensService {
     }
   }
 
-  async RefreshTokensEmployee(refreshTokenDto: RefreshTokenDTO) {
+  async RefreshTokensEmployee(refreshToken: string) {
     const { sub, id } = await this.jwtService.verifyAsync(
-      refreshTokenDto.refreshToken,
+      refreshToken,
       this.jwtConfiguration,
     );
 
@@ -202,9 +201,9 @@ export class RefreshTokensService {
     return create;
   }
 
-  async RefreshTokensUser(refreshTokenDto: RefreshTokenDTO) {
+  async RefreshTokensUser(refreshToken: string) {
     const { sub, id } = await this.jwtService.verifyAsync(
-      refreshTokenDto.refreshToken,
+      refreshToken,
       this.jwtConfiguration,
     );
 

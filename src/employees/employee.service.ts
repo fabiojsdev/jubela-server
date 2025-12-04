@@ -10,7 +10,7 @@ import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Like, Repository } from 'typeorm';
-import { UpdateUuidDTO } from '../common/dto/url-uuid.dto';
+import { UrlUuidDTO } from '../common/dto/url-uuid.dto';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
 import { SearchByEmailDTO } from './dto/search-email-employee.dto';
@@ -60,7 +60,7 @@ export class EmployeesService {
 
   // Verificar se é um funcionário ou admin no guard ou middleware
   async UpdateSelf(
-    employeeIdDTO: UpdateUuidDTO,
+    employeeIdDTO: UrlUuidDTO,
     updateEmployeeDTO: UpdateEmployeeDTO,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
@@ -111,7 +111,7 @@ export class EmployeesService {
   }
 
   async UpdateAdmin(
-    employeeIdDTO: UpdateUuidDTO,
+    employeeIdDTO: UrlUuidDTO,
     updateEmployeeAdminDTO: UpdateEmployeeAdminDTO,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {

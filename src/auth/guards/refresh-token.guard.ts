@@ -8,7 +8,6 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { REQUEST_TOKEN_PAYLOAD_KEY } from '../auth.constants';
 import jwtConfig from '../config/jwt.config';
 
 @Injectable()
@@ -25,16 +24,13 @@ export class RefreshTokenGuard implements CanActivate {
     const token = request.cookies['refreshToken'];
 
     if (!token) {
-      throw new UnauthorizedException('Não logadoooooo');
+      throw new UnauthorizedException('Não logado');
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(
-        token,
-        this.jwtConfiguration,
-      );
+      await this.jwtService.verifyAsync(token, this.jwtConfiguration);
 
-      request[REQUEST_TOKEN_PAYLOAD_KEY] = payload;
+      (request as any).refreshToken = token;
 
       return true;
     } catch (error) {
