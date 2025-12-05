@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
@@ -18,6 +26,21 @@ export class OrdersController {
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
   Create(@Body() body: CreateOrderDTO) {
     return this.ordersService.Create(body);
+  }
+
+  @Get()
+  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
+  async ListOrders() {
+    const allOrders = await this.ordersService.ListOrders();
+
+    if (allOrders.length < 1) {
+      return {
+        status: HttpStatus.NO_CONTENT,
+        message: 'Nenhum produto cadastrado ainda',
+      };
+    }
+
+    return allOrders;
   }
 
   @Get('search/price')

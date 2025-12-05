@@ -65,7 +65,7 @@ export class ProductsController {
 
   @Public()
   @Get()
-  async FindAll() {
+  async ListProducts() {
     const allProducts = await this.productsService.ListProducts();
 
     if (allProducts.length < 1) {

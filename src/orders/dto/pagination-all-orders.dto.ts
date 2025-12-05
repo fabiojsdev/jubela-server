@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsInt, Max, Min } from 'class-validator';
 
-export class PaginationAllProductsDTO {
+export class PaginationAllOrdersDTO {
   @IsInt({
     message: 'Limite precisa ser um numero inteiro',
   })
