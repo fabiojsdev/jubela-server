@@ -29,20 +29,22 @@ export class ProductsService {
     const imagesString = [];
 
     files.forEach(async (file) => {
-      const extension = path.extname(file.originalname);
-
-      const fileName = `${file.originalname}${extension}`;
-
-      const fileFullPath = path.resolve(process.cwd(), 'pictures', fileName);
+      const fileFullPath = path.resolve(
+        process.cwd(),
+        'images',
+        file.originalname,
+      );
 
       await fs.writeFile(fileFullPath, file.buffer);
 
-      images.push(fileName);
+      imagesString.push(file.originalname);
     });
+
+    console.log(files);
 
     const dataToSave = {
       ...createProductDTO,
-      images: [...imagesString],
+      images: imagesString,
     };
 
     const productCreate = this.productsRepository.create(dataToSave);

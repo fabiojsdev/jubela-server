@@ -42,9 +42,11 @@ export class ProductsController {
         .build(),
     )
     files: Array<Express.Multer.File>,
-    @Body() body: CreateProductDTO,
+    @Body() body: any,
   ) {
-    return this.productsService.Create(body, files);
+    const jsonData: CreateProductDTO = JSON.parse(body.data);
+
+    return this.productsService.Create(jsonData, files);
   }
 
   @Patch('update/:id')
