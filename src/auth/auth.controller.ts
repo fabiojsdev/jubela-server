@@ -48,14 +48,16 @@ export class AuthController {
 
   @Public()
   @Post('logout/employee')
-  LogoutEmployee(@Body() logoutDto: LogoutDTO) {
-    return this.authService.LogoutEmployee(logoutDto);
+  async LogoutEmployee(@Body() logoutDto: LogoutDTO) {
+    await this.authService.LogoutEmployee(logoutDto);
+    return { success: true, message: 'Logout concluído' };
   }
 
   @Public()
   @Post('logout/user')
-  LogoutUser(@Body() logoutDto: LogoutDTO) {
-    return this.authService.LogoutUser(logoutDto);
+  async LogoutUser(@Body() logoutDto: LogoutDTO) {
+    await this.authService.LogoutUser(logoutDto);
+    return { success: true, message: 'Logout concluído' };
   }
 
   // Não precisa de métodos aqui, só o guard já basta

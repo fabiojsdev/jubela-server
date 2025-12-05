@@ -8,4 +8,8 @@ export class LogoutDTO {
   @IsNotEmpty()
   @IsJWT()
   token: string;
+
+  @IsNotEmpty()
+  @IsJWT()
+  refreshToken: string;
 }
