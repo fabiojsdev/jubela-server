@@ -31,7 +31,7 @@ export class AuthController {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
-      maxAge: 1000 * 60 * 15, // 15 minutos
+      maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
     });
 
@@ -82,7 +82,7 @@ export class AuthController {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
-      maxAge: 1000 * 60 * 15, // 15 minutos
+      maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
     });
 
