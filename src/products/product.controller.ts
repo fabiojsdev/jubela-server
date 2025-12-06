@@ -55,8 +55,15 @@ export class ProductsController {
   Update(
     @Param('id') id: UrlUuidDTO,
     @Body() updateProductDTO: UpdateProductDTO,
+    @UploadedFiles(
+      new ParseFilePipeBuilder()
+        .addMaxSizeValidator({ maxSize: 2_000_000 })
+        .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
+        .build(),
+    )
+    files: Array<Express.Multer.File>,
   ) {
-    return this.productsService.Update(id, updateProductDTO);
+    return this.productsService.Update(id, updateProductDTO, files);
   }
 
   @Delete(':id')

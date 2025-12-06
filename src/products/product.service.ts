@@ -27,6 +27,26 @@ export class ProductsService {
     createProductDTO: CreateProductDTO,
     files: Array<Express.Multer.File>,
   ) {
+    const imagesCreate = await this.FileCreate(files);
+
+    const dataToSave = {
+      ...createProductDTO,
+      images: imagesCreate,
+    };
+
+    const productCreate = this.productsRepository.create(dataToSave);
+
+    const newProductData = await this.productsRepository.save(productCreate);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { images, description, ...convenientData } = newProductData;
+
+    return {
+      ...convenientData,
+    };
+  }
+
+  async FileCreate(files: Array<Express.Multer.File>) {
     const imagesString = [];
 
     await Promise.all(
@@ -43,21 +63,7 @@ export class ProductsService {
       }),
     );
 
-    const dataToSave = {
-      ...createProductDTO,
-      images: imagesString,
-    };
-
-    const productCreate = this.productsRepository.create(dataToSave);
-
-    const newProductData = await this.productsRepository.save(productCreate);
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { images, description, ...convenientData } = newProductData;
-
-    return {
-      ...convenientData,
-    };
+    return imagesString;
   }
 
   async FileExists(path: string) {
@@ -111,7 +117,11 @@ export class ProductsService {
     }
   }
 
-  async Update(productIdDTO: UrlUuidDTO, updateProductDTO: UpdateProductDTO) {
+  async Update(
+    productIdDTO: UrlUuidDTO,
+    updateProductDTO: UpdateProductDTO,
+    files: Array<Express.Multer.File>,
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sku, ...restOfProductData } = updateProductDTO;
     const id = productIdDTO.id;
@@ -137,7 +147,25 @@ export class ProductsService {
       );
     }
 
-    return this.productsRepository.save(productUpdate);
+    await this.productsRepository.save(productUpdate);
+
+    const updateImages = await this.FileCreate(files);
+
+    const updateImagesString = await this.productsRepository
+      .createQueryBuilder()
+      .update()
+      .set({
+        images: () => `array_append("images", :image)`,
+      })
+      .where('id = :id', { id })
+      .setParameters({ newImage: updateImages })
+      .execute();
+
+    if (updateImagesString.affected < 1) {
+      throw new InternalServerErrorException(
+        'Erro ao tentar atualizar imagens',
+      );
+    }
   }
 
   async Delete(deleteIdDTO: UrlUuidDTO) {
