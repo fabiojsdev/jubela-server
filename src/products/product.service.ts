@@ -28,19 +28,19 @@ export class ProductsService {
   ) {
     const imagesString = [];
 
-    files.forEach(async (file) => {
-      const fileFullPath = path.resolve(
-        process.cwd(),
-        'images',
-        file.originalname,
-      );
+    await Promise.all(
+      files.map(async (file) => {
+        const fileFullPath = path.resolve(
+          process.cwd(),
+          'images',
+          file.originalname,
+        );
 
-      await fs.writeFile(fileFullPath, file.buffer);
+        await fs.writeFile(fileFullPath, file.buffer);
 
-      imagesString.push(file.originalname);
-    });
-
-    console.log(files);
+        imagesString.push(file.originalname);
+      }),
+    );
 
     const dataToSave = {
       ...createProductDTO,

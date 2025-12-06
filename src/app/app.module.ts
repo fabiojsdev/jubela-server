@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import * as path from 'path';
 import { AuthModule } from 'src/auth/auth.module';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { EmployeesModule } from 'src/employees/employee.module';
@@ -43,6 +45,10 @@ import { AppService } from './app.service';
     RefreshTokensModule,
     JWTBlacklistModule,
     LogsModule,
+    ServeStaticModule.forRoot({
+      rootPath: path.resolve(__dirname, '..', '..', 'images'),
+      serveRoot: '/images',
+    }),
   ],
   controllers: [AppController],
   providers: [

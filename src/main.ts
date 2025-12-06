@@ -9,7 +9,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   // app.enableCors({
-  //   origin: 'https://jubela-ecommerce.vercel.app/',
+  //   origin: 'https://jubela-ecommerce.vercel.app/' ou http://localhost:5173,
   //   credentials: true,
   // });
 
