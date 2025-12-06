@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { JWTBlacklistModule } from 'src/jwt-blacklist/jwt-blacklist.module';
+import { LogsModule } from 'src/logs-register/log.module';
 import { RefreshTokensModule } from 'src/refresh-tokens/refresh-token.module';
 import { User } from 'src/users/entities/user.entity';
 import { UsersModule } from 'src/users/user.module';
@@ -26,6 +27,7 @@ import { HashingServiceProtocol } from './hashing/hashing.service';
     RefreshTokensModule,
     JWTBlacklistModule,
     UsersModule,
+    LogsModule,
   ],
   controllers: [AuthController],
   providers: [

@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Employee } from 'src/employees/entities/employee.entity';
+import { LogsService } from 'src/logs-register/log.service';
 import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
 import { CreateUserDTO } from 'src/users/dto/create-user.dto';
 import { User } from 'src/users/entities/user.entity';
@@ -38,6 +39,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokensService,
     private readonly userService: UsersService,
+    private readonly logService: LogsService,
   ) {}
 
   async LoginEmployee(loginDTO: LoginDTO) {
@@ -126,6 +128,14 @@ export class AuthService {
       );
     }
 
+    const dataForLog = {
+      email: employeeData.email,
+      name: employeeData.name,
+      employee: employeeData,
+    };
+
+    await this.logService.CreateLogEmployee(dataForLog);
+
     return {
       accessToken,
       refreshToken,
@@ -153,6 +163,14 @@ export class AuthService {
         'Erro ao criar registro de refresh token',
       );
     }
+
+    const dataForLog = {
+      email: findUser.email,
+      name: findUser.name,
+      user: findUser,
+    };
+
+    await this.logService.CreateLogUser(dataForLog);
 
     return {
       accessToken,
