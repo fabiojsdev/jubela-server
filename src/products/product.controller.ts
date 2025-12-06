@@ -85,6 +85,12 @@ export class ProductsController {
     return allProducts;
   }
 
+  @Delete('images')
+  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  DeleteImages(images: string[]) {
+    return this.productsService.ImageDelete(images);
+  }
+
   @Get('search/sku/:sku')
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
   FindBySku(@Param('sku') sku: string) {

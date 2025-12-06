@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -57,6 +58,57 @@ export class ProductsService {
     return {
       ...convenientData,
     };
+  }
+
+  async FileExists(path: string) {
+    try {
+      await fs.access(path, fs.constants.F_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async FileUnlink(path: string) {
+    try {
+      await fs.unlink(path);
+      return 'Imagem excluída';
+    } catch (error) {
+      if (error.code === 'EBUSY' || error.code === 'EPERM') {
+        return 'Arquivo em uso';
+      } else if (error.code === 'ENOENT') {
+        return 'Arquivo já não existe';
+      } else {
+        return 'Erro desconhecido';
+      }
+    }
+  }
+
+  async ImageDelete(images: string[]) {
+    for (let i = 0; i < images.length; i++) {
+      const imageVerify = await this.FileExists(images[i]);
+
+      if (!imageVerify) {
+        throw new NotFoundException('Imagem não cadastrada');
+      }
+
+      const imageDelete = await this.FileUnlink(images[i]);
+
+      if (imageDelete !== 'Imagem excluída') {
+        switch (imageDelete) {
+          case 'Arquivo em uso':
+            throw new ConflictException(imageDelete);
+
+          case 'Arquivo já não existe':
+            throw new NotFoundException(imageDelete);
+
+          case 'Erro desconhecido':
+            throw new InternalServerErrorException(
+              'Erro ao tentar exlcuir imagem',
+            );
+        }
+      }
+    }
   }
 
   async Update(productIdDTO: UrlUuidDTO, updateProductDTO: UpdateProductDTO) {
