@@ -66,6 +66,12 @@ export class ProductsController {
     return this.productsService.Update(id, updateProductDTO, files);
   }
 
+  @Delete('images')
+  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  DeleteImages(@Body() body: any) {
+    return this.productsService.ImageDelete(body.images, body.productId);
+  }
+
   @Delete(':id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   Delete(@Param('id') id: UrlUuidDTO) {
@@ -90,12 +96,6 @@ export class ProductsController {
     }
 
     return allProducts;
-  }
-
-  @Delete('images')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  DeleteImages(@Body() body: any) {
-    return this.productsService.ImageDelete(body.images);
   }
 
   @Get('search/sku/:sku')

@@ -90,8 +90,11 @@ export class ProductsService {
     }
   }
 
-  async ImageDelete(images: string[]) {
-    console.log(images);
+  async ImageDelete(images: string[], productId: string) {
+    const findProduct = await this.FindById(productId);
+
+    await this.ImagesDeleteFromDb(findProduct.id, images);
+
     for (let i = 0; i < images.length; i++) {
       const imageVerify = await this.FileExists(images[i]);
 
@@ -116,6 +119,23 @@ export class ProductsService {
         }
       }
     }
+  }
+
+  async ImagesDeleteFromDb(id: string, images: string[]) {
+    await this.productsRepository
+      .createQueryBuilder()
+      .update()
+      .set({
+        images: () =>
+          `ARRAY(
+         SELECT unnest("images")
+         EXCEPT
+         SELECT unnest(:removeImages)
+       )`,
+      })
+      .where('id = :id', { id })
+      .setParameters({ removeTags: images })
+      .execute();
   }
 
   async Update(
@@ -177,6 +197,18 @@ export class ProductsService {
     }
 
     return 'Produto deletado';
+  }
+
+  async FindById(id: string) {
+    const productFindById = await this.productsRepository.findOneBy({
+      id,
+    });
+
+    if (!productFindById) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+
+    return productFindById;
   }
 
   async ListProducts(paginationAllProducts?: PaginationAllProductsDTO) {
