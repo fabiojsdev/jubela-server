@@ -38,7 +38,7 @@ export class ProductsService {
 
         await fs.writeFile(fileFullPath, file.buffer);
 
-        imagesString.push(file.originalname);
+        imagesString.push(`http://localhost:3000/images/${file.originalname}`);
       }),
     );
 
@@ -98,12 +98,6 @@ export class ProductsService {
     return 'Produto deletado';
   }
 
-  PutPathImages(images: string[]) {
-    return images.map((image) => {
-      return `http://localhost:3000/images/${image}`;
-    });
-  }
-
   async ListProducts(paginationAllProducts?: PaginationAllProductsDTO) {
     const { limit, offset } = paginationAllProducts;
 
@@ -115,18 +109,6 @@ export class ProductsService {
       },
       where: {},
     });
-
-    console.log(findAll);
-
-    // const putPath = findAll.map((item) => {
-    //   const withPath = this.PutPathImages(item['images']);
-
-    //   for (let i = 0; i < item['images'].length; i++) {
-    //     item['images'][i] = withPath;
-    //   }
-    // });
-
-    // console.log(putPath);
 
     return findAll;
   }
