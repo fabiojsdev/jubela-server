@@ -50,11 +50,12 @@ export class ProductsController {
     return this.productsService.Create(jsonData, files);
   }
 
-  @Patch('update/:id')
+  @Patch(':id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  @UseInterceptors(FilesInterceptor('files', 12))
   Update(
-    @Param('id') id: UrlUuidDTO,
-    @Body() updateProductDTO: UpdateProductDTO,
+    @Param('id') id: string,
+    @Body() body: any,
     @UploadedFiles(
       new ParseFilePipeBuilder()
         .addMaxSizeValidator({ maxSize: 2_000_000 })
@@ -63,7 +64,9 @@ export class ProductsController {
     )
     files: Array<Express.Multer.File>,
   ) {
-    return this.productsService.Update(id, updateProductDTO, files);
+    const jsonData: UpdateProductDTO = JSON.parse(body.data);
+
+    return this.productsService.Update(id, jsonData, files);
   }
 
   @Delete('images')

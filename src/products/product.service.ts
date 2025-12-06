@@ -59,6 +59,7 @@ export class ProductsService {
 
         await fs.writeFile(fileFullPath, file.buffer);
 
+        // MUDAR A URL EM PRODUÇÃO
         imagesString.push(`http://localhost:3000/images/${file.originalname}`);
       }),
     );
@@ -68,9 +69,10 @@ export class ProductsService {
 
   async FileExists(path: string) {
     try {
-      await fs.access(path, fs.constants.F_OK);
+      await fs.stat(path);
       return true;
-    } catch {
+    } catch (error) {
+      console.log(error);
       return false;
     }
   }
@@ -91,12 +93,22 @@ export class ProductsService {
   }
 
   async ImageDelete(images: string[], productId: string) {
+    console.log(images);
+    console.log(productId);
     const findProduct = await this.FindById(productId);
+    console.log(findProduct);
 
-    await this.ImagesDeleteFromDb(findProduct.id, images);
+    const deleteFromDb = await this.ImagesDeleteFromDb(findProduct.id, images);
+
+    if (!deleteFromDb) {
+      throw new InternalServerErrorException(
+        'Erro ao tentar excluir imagens do banco de dados',
+      );
+    }
 
     for (let i = 0; i < images.length; i++) {
       const imageVerify = await this.FileExists(images[i]);
+      console.log(imageVerify);
 
       if (!imageVerify) {
         throw new NotFoundException('Imagem não cadastrada');
@@ -122,30 +134,37 @@ export class ProductsService {
   }
 
   async ImagesDeleteFromDb(id: string, images: string[]) {
-    await this.productsRepository
-      .createQueryBuilder()
-      .update()
-      .set({
-        images: () =>
-          `ARRAY(
-         SELECT unnest("images")
-         EXCEPT
-         SELECT unnest(:removeImages)
-       )`,
-      })
-      .where('id = :id', { id })
-      .setParameters({ removeTags: images })
-      .execute();
+    try {
+      await this.productsRepository
+        .createQueryBuilder()
+        .update()
+        .set({
+          images: () => `ARRAY(
+          SELECT unnest("images")
+          EXCEPT
+          SELECT unnest(:removeImages::varchar[] )
+          )`,
+        })
+        .where('id = :id', { id })
+        .setParameters({ removeImages: images })
+        .execute();
+
+      return 'Imagens excluídas do banco de dados';
+    } catch (error) {
+      console.log({
+        message: error.message,
+        stack: error.stack,
+      });
+    }
   }
 
   async Update(
-    productIdDTO: UrlUuidDTO,
+    id: string,
     updateProductDTO: UpdateProductDTO,
     files: Array<Express.Multer.File>,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sku, ...restOfProductData } = updateProductDTO;
-    const id = productIdDTO.id;
 
     const productExists = this.productsRepository.findOne({
       where: {
@@ -172,20 +191,16 @@ export class ProductsService {
 
     const updateImages = await this.FileCreate(files);
 
-    const updateImagesString = await this.productsRepository
-      .createQueryBuilder()
-      .update()
-      .set({
-        images: () => `array_append("images", :image)`,
-      })
-      .where('id = :id', { id })
-      .setParameters({ newImage: updateImages })
-      .execute();
-
-    if (updateImagesString.affected < 1) {
-      throw new InternalServerErrorException(
-        'Erro ao tentar atualizar imagens',
-      );
+    for (const image of updateImages) {
+      await this.productsRepository
+        .createQueryBuilder()
+        .update()
+        .set({
+          images: () => `array_append("images", :newImage)`,
+        })
+        .where('id = :id', { id })
+        .setParameters({ newImage: image })
+        .execute();
     }
   }
 
