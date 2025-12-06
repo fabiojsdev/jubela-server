@@ -21,6 +21,7 @@ import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { CreateProductDTO } from './dto/create-product.dto';
+import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
@@ -67,8 +68,12 @@ export class ProductsController {
 
   @Public()
   @Get()
-  async ListProducts() {
-    const allProducts = await this.productsService.ListProducts();
+  async ListProducts(
+    @Query() paginationAllProductsDTO: PaginationAllProductsDTO,
+  ) {
+    const allProducts = await this.productsService.ListProducts(
+      paginationAllProductsDTO,
+    );
 
     if (allProducts.length < 1) {
       return {
