@@ -40,7 +40,7 @@ export class AuthController {
       secure: false,
       sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
-      path: '/auth/refresh',
+      path: '/refresh/employee',
     });
 
     return { success: true, message: 'Autenticação concluída' };
@@ -91,7 +91,7 @@ export class AuthController {
       secure: false,
       sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
-      path: '/auth/refresh',
+      path: '/refresh/user',
     });
 
     return { success: true, message: 'Autenticação concluída' };

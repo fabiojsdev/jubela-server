@@ -91,6 +91,7 @@ export class ProductsService {
   }
 
   async ImageDelete(images: string[]) {
+    console.log(images);
     for (let i = 0; i < images.length; i++) {
       const imageVerify = await this.FileExists(images[i]);
 

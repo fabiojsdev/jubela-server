@@ -94,8 +94,8 @@ export class ProductsController {
 
   @Delete('images')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  DeleteImages(images: string[]) {
-    return this.productsService.ImageDelete(images);
+  DeleteImages(@Body() body: any) {
+    return this.productsService.ImageDelete(body.images);
   }
 
   @Get('search/sku/:sku')
