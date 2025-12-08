@@ -17,9 +17,6 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'int' })
-  quantity: number;
-
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total_price: string;
 

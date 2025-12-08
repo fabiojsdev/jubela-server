@@ -4,13 +4,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import Decimal from 'decimal.js';
+import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
+import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { CreateOrderDTO } from './dto/create-order.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
 import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
+import { Items } from './entities/items.entity';
 import { Order } from './entities/order.entity';
 
 @Injectable()
@@ -18,19 +23,69 @@ export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
+
+    @InjectRepository(Items)
+    private readonly orderItemsRepository: Repository<Items>,
   ) {}
 
-  async Create(createOrderDTO: CreateOrderDTO) {
+  async Create(
+    createOrderDTO: CreateOrderDTO,
+    createOrderItemDTO: CreateOrderItemDTO[],
+  ) {
+    const decimal = new Decimal(0);
+
+    for (let i = 0; i < createOrderItemDTO.length; i++) {
+      decimal.add(createOrderItemDTO[i].price);
+    }
+
+    const orderData = {
+      total_price: Number(decimal),
+      desciption: createOrderDTO.description,
+      user: '',
+      items: [],
+      status: OrderStatus.WAITING_PAYMENT,
+    };
+
     const orderCreate = this.ordersRepository.create(createOrderDTO);
 
     const newOrderData = await this.ordersRepository.save(orderCreate);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { description, price, ...convenientData } = newOrderData;
+    for (let i = 0; i < createOrderItemDTO.length; i++) {
+      const itemData = {
+        product_name: createOrderItemDTO[i].product_name,
+        quantity: createOrderItemDTO[i].quantity,
+        price: createOrderItemDTO[i].price,
+        order: newOrderData,
+        product: createOrderItemDTO[i].product,
+      };
 
-    return {
-      ...convenientData,
-    };
+      const orderItemCreate = this.orderItemsRepository.create(itemData);
+
+      await this.orderItemsRepository.save(orderItemCreate);
+    }
+
+    // return this.ReturnItemsMPObject()
+  }
+
+  ReturnItemsMPObject(items: Items[], user: User) {
+    const itemsList = [];
+    for (let i = 0; i < items.length; i++) {
+      itemsList.push(
+        {
+          id: items[i].product,
+          title: items[i].product_name,
+          quantity: items[i].quantity,
+          currency_id: 'BRL',
+          unit_price: items[i].price,
+        },
+        {
+          email: user.email,
+          name: user.name,
+        },
+      );
+    }
+
+    return itemsList;
   }
 
   async ListOrders(paginationAllOrders?: PaginationAllOrdersDTO) {
@@ -57,7 +112,7 @@ export class OrdersService {
         id: 'desc',
       },
       where: {
-        price: value,
+        total_price: value,
       },
     });
 
@@ -84,7 +139,9 @@ export class OrdersService {
         id: 'desc',
       },
       where: {
-        item: value,
+        items: {
+          product_name: value,
+        },
       },
     });
 

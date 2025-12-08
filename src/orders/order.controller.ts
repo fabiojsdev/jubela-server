@@ -1,16 +1,7 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpStatus,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, HttpStatus, Query, UseGuards } from '@nestjs/common';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
-import { CreateOrderDTO } from './dto/create-order.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
 import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
@@ -21,12 +12,6 @@ import { OrdersService } from './order.service';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
-
-  @Post()
-  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  Create(@Body() body: CreateOrderDTO) {
-    return this.ordersService.Create(body);
-  }
 
   @Get()
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)

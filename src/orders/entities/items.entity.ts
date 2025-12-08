@@ -19,6 +19,9 @@ export class Items {
   @Column({ type: 'int' })
   quantity: number;
 
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  price: string;
+
   @ManyToOne(() => Order, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'order' })
   order: Order;
