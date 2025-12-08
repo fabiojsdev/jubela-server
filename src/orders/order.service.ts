@@ -8,7 +8,6 @@ import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
-import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
 import { Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
@@ -74,30 +73,27 @@ export class OrdersService {
 
     const findOrder = await this.FindById(newOrderData.id);
 
-    const createPreferenceObject = this.ReturnItemsMPObject(
-      findOrder.items,
-      findUser,
-    );
+    const createPreferenceObject = this.ReturnItemsMPObject(findOrder.items);
 
-    return createPreferenceObject;
+    return {
+      items: createPreferenceObject,
+      payer: {
+        email: findUser.email,
+        name: findUser.name,
+      },
+    };
   }
 
-  ReturnItemsMPObject(items: Items[], user: User) {
+  ReturnItemsMPObject(items: Items[]) {
     const itemsList = [];
     for (let i = 0; i < items.length; i++) {
-      itemsList.push(
-        {
-          id: items[i].product,
-          title: items[i].product_name,
-          quantity: items[i].quantity,
-          currency_id: 'BRL',
-          unit_price: items[i].price,
-        },
-        {
-          email: user.email,
-          name: user.name,
-        },
-      );
+      itemsList.push({
+        id: items[i].product.id,
+        title: items[i].product_name,
+        quantity: items[i].quantity,
+        currency_id: 'BRL',
+        unit_price: items[i].price,
+      });
     }
 
     return itemsList;

@@ -11,9 +11,11 @@ import { ConfigType } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
 import MercadoPagoConfig, { Payment } from 'mercadopago';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
-import { CreatePreferenceDto } from './dto/create-preference.dto';
+import { OrderDTO } from './dto/order.dto';
 
 @Controller('checkout')
 export class CheckoutController {
@@ -35,8 +37,14 @@ export class CheckoutController {
   }
 
   @Post('preference')
-  async create(@Body() preferenceDTO: CreatePreferenceDto) {
-    const pref = await this.checkoutService.CreatePreference(preferenceDTO);
+  async create(
+    @Body() orderDTO: OrderDTO,
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    const pref = await this.checkoutService.CreatePreference(
+      orderDTO,
+      tokenPayloadDTO,
+    );
     return {
       id: pref.id,
       init_point: pref.init_point,
