@@ -1,10 +1,12 @@
 export class CreatePreferenceDto {
   items: Array<{
-    id?: string;
+    id: string; // obrigatório
     title: string;
     description?: string;
+    picture_url?: string;
+    category_id?: string;
     quantity: number;
-    currency_id?: string; // ex: 'BRL' / 'ARS'
+    currency_id: string; // obrigatório
     unit_price: number;
   }>;
   payer?: {
