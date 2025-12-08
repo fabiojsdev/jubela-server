@@ -107,12 +107,12 @@ export class ProductsService {
     }
 
     for (let i = 0; i < images.length; i++) {
-      const imageVerify = await this.FileExists(images[i]);
-      console.log(imageVerify);
+      // const imageVerify = await this.FileExists(images[i]);
+      // console.log(imageVerify);
 
-      if (!imageVerify) {
-        throw new NotFoundException('Imagem não cadastrada');
-      }
+      // if (!imageVerify) {
+      //   throw new NotFoundException('Imagem não cadastrada');
+      // }
 
       const imageDelete = await this.FileUnlink(images[i]);
 
@@ -187,7 +187,7 @@ export class ProductsService {
       );
     }
 
-    await this.productsRepository.save(productUpdate);
+    const updatedData = await this.productsRepository.save(productUpdate);
 
     const updateImages = await this.FileCreate(files);
 
@@ -202,6 +202,10 @@ export class ProductsService {
         .setParameters({ newImage: image })
         .execute();
     }
+
+    return {
+      ...updatedData,
+    };
   }
 
   async Delete(deleteIdDTO: UrlUuidDTO) {
