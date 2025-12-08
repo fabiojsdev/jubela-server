@@ -89,6 +89,18 @@ export class UsersService {
     return employeeFindByEmail;
   }
 
+  async FindById(id: string) {
+    const employeeFindById = await this.usersRepository.findOneBy({
+      id,
+    });
+
+    if (!employeeFindById) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return employeeFindById;
+  }
+
   async FindByEmailForGoogle(email: string) {
     const employeeFindByEmail = await this.usersRepository.findOneBy({
       email,

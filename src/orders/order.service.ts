@@ -5,8 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { User } from 'src/users/entities/user.entity';
+import { UsersService } from 'src/users/user.service';
 import { Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { CreateOrderDTO } from './dto/create-order.dto';
@@ -26,11 +29,14 @@ export class OrdersService {
 
     @InjectRepository(Items)
     private readonly orderItemsRepository: Repository<Items>,
+
+    private readonly usersService: UsersService,
   ) {}
 
   async Create(
     createOrderDTO: CreateOrderDTO,
     createOrderItemDTO: CreateOrderItemDTO[],
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
     const decimal = new Decimal(0);
 
@@ -38,15 +44,17 @@ export class OrdersService {
       decimal.add(createOrderItemDTO[i].price);
     }
 
+    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+
     const orderData = {
-      total_price: Number(decimal),
+      total_price: decimal.toString(),
       desciption: createOrderDTO.description,
-      user: '',
+      user: findUser,
       items: [],
       status: OrderStatus.WAITING_PAYMENT,
     };
 
-    const orderCreate = this.ordersRepository.create(createOrderDTO);
+    const orderCreate = this.ordersRepository.create(orderData);
 
     const newOrderData = await this.ordersRepository.save(orderCreate);
 
@@ -64,7 +72,14 @@ export class OrdersService {
       await this.orderItemsRepository.save(orderItemCreate);
     }
 
-    // return this.ReturnItemsMPObject()
+    const findOrder = await this.FindById(newOrderData.id);
+
+    const createPreferenceObject = this.ReturnItemsMPObject(
+      findOrder.items,
+      findUser,
+    );
+
+    return createPreferenceObject;
   }
 
   ReturnItemsMPObject(items: Items[], user: User) {
@@ -86,6 +101,18 @@ export class OrdersService {
     }
 
     return itemsList;
+  }
+
+  async FindById(id: string) {
+    const orderFindById = await this.ordersRepository.findOneBy({
+      id,
+    });
+
+    if (!orderFindById) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+
+    return orderFindById;
   }
 
   async ListOrders(paginationAllOrders?: PaginationAllOrdersDTO) {

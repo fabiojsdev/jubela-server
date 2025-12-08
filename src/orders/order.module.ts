@@ -9,5 +9,6 @@ import { OrdersService } from './order.service';
   imports: [TypeOrmModule.forFeature([Order, Items])],
   controllers: [OrdersController],
   providers: [OrdersService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}
