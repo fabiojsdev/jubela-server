@@ -6,23 +6,22 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Items } from './items.entity';
 
 @Entity()
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  item: string;
-
   @Column({ type: 'int' })
   quantity: number;
 
   @Column({ type: 'numeric', precision: 10, scale: 2 })
-  price: string;
+  total_price: string;
 
   @Column({ type: 'varchar', length: 255 })
   description: string;
@@ -30,6 +29,11 @@ export class Order {
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'user' })
   user: User;
+
+  @OneToMany(() => Items, (item) => item.order, {
+    eager: true,
+  })
+  items: Items[];
 
   @Column({ type: 'enum', enum: OrderStatus })
   status: OrderStatus;

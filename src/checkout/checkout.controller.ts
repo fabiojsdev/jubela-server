@@ -40,6 +40,7 @@ export class CheckoutController {
     return {
       id: pref.id,
       init_point: pref.init_point,
+      // remover em prod
       sandbox_init_point: pref.sandbox_init_point,
     };
   }

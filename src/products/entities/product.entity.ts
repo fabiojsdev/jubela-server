@@ -1,10 +1,12 @@
 import { Employee } from 'src/employees/entities/employee.entity';
+import { Items } from 'src/orders/entities/items.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -38,6 +40,11 @@ export class Product {
   @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'employee' })
   employee: Employee;
+
+  @OneToMany(() => Items, (orderItem) => orderItem.product, {
+    eager: true,
+  })
+  orderItem: Items[];
 
   @CreateDateColumn()
   createdAt: Date;
