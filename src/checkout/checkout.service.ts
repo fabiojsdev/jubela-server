@@ -40,5 +40,8 @@ export class CheckoutService {
     const response = await this.preference.create({
       body: preferenceBody,
     });
+
+    this.logger.debug('Resposta MP:' + JSON.stringify(response));
+    return response;
   }
 }

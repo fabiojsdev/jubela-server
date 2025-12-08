@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app/app.module';
 
@@ -14,6 +15,14 @@ async function bootstrap() {
   // });
 
   app.use(cookieParser());
+
+  app.use(
+    bodyParser.json({
+      verify: (req: any, _res, buf: Buffer) => {
+        req.rawBody = buf.toString();
+      },
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 3000);
 }
