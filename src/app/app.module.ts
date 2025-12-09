@@ -32,6 +32,9 @@ import { AppService } from './app.service';
           url: appConfigParam.database.url,
           autoLoadEntities: appConfigParam.database.autoLoadEntities,
           synchronize: appConfigParam.database.synchronize,
+          ssl: {
+            rejectUnauthorized: false,
+          },
         };
       },
     }),
