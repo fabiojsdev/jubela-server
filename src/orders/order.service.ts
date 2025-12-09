@@ -28,7 +28,6 @@ export class OrdersService {
 
     @InjectRepository(Items)
     private readonly orderItemsRepository: Repository<Items>,
-
     private readonly usersService: UsersService,
   ) {}
 
