@@ -17,7 +17,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migration:generate": "npm run build && typeorm-ts-node-commonjs migration:generate ./src/migrations/auto-migration -d ./typeorm.config.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d ./typeorm.config.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ./typeorm.config.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -34,6 +37,7 @@
     "class-validator": "^0.14.2",
     "cookie-parser": "^1.4.7",
     "decimal.js": "^10.6.0",
+    "dotenv": "^17.2.3",
     "mercadopago": "^2.11.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
