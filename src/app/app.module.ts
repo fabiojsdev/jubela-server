@@ -28,7 +28,7 @@ import { AppService } from './app.service';
       inject: [appConfig.KEY],
       useFactory: async (appConfigParam: ConfigType<typeof appConfig>) => {
         return {
-          type: appConfigParam.database.type,
+          type: 'postgres',
           url: appConfigParam.database.url,
           autoLoadEntities: appConfigParam.database.autoLoadEntities,
           synchronize: appConfigParam.database.synchronize,
