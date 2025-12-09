@@ -19,9 +19,7 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot(),
     ConfigModule.forFeature(appConfig),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule.forFeature(appConfig)],
@@ -29,7 +27,11 @@ import { AppService } from './app.service';
       useFactory: async (appConfigParam: ConfigType<typeof appConfig>) => {
         return {
           type: 'postgres',
-          url: appConfigParam.database.url,
+          host: appConfigParam.database.host,
+          port: appConfigParam.database.port,
+          username: appConfigParam.database.username,
+          database: appConfigParam.database.database,
+          password: appConfigParam.database.password,
           autoLoadEntities: appConfigParam.database.autoLoadEntities,
           synchronize: appConfigParam.database.synchronize,
         };
