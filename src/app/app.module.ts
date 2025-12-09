@@ -19,7 +19,9 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ConfigModule.forFeature(appConfig),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule.forFeature(appConfig)],
@@ -27,11 +29,7 @@ import { AppService } from './app.service';
       useFactory: async (appConfigParam: ConfigType<typeof appConfig>) => {
         return {
           type: appConfigParam.database.type,
-          host: appConfigParam.database.host,
-          port: appConfigParam.database.port,
-          username: appConfigParam.database.username,
-          database: appConfigParam.database.database,
-          password: appConfigParam.database.password,
+          url: appConfigParam.database.url,
           autoLoadEntities: appConfigParam.database.autoLoadEntities,
           synchronize: appConfigParam.database.synchronize,
         };

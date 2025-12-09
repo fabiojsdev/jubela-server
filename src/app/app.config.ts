@@ -8,6 +8,7 @@ export default registerAs('app', () => ({
     username: process.env.DATABASE_USERNAME,
     database: process.env.DATABASE_NAME,
     password: process.env.DATABASE_PASSWORD,
+    url: process.env.DATABASE_URL,
     autoLoadEntities: Boolean(process.env.DATABASE_AUTOLOADENTITIES),
     synchronize: Boolean(process.env.DATABASE_SYNCHRONIZE),
   },
