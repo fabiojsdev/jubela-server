@@ -12,4 +12,5 @@ export enum OrderStatus {
   WAITING_PICKUP = 'Aguardando retirada',
   RETURNED = 'Devolvido',
   LOST = 'Extraviado',
+  IN_PROCESS = 'Em analise',
 }

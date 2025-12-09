@@ -2,17 +2,23 @@ import {
   Body,
   Controller,
   Inject,
+  InternalServerErrorException,
   Logger,
+  NotFoundException,
   Post,
   Req,
   Res,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
 import MercadoPagoConfig, { Payment } from 'mercadopago';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
+import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { Order } from 'src/orders/entities/order.entity';
+import { Repository } from 'typeorm';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
 import { OrderDTO } from './dto/order.dto';
@@ -27,6 +33,8 @@ export class CheckoutController {
     private readonly mercadoPagoConfiguration: ConfigType<
       typeof mercadopagoConfig
     >,
+    @InjectRepository(Order)
+    private readonly ordersRepository: Repository<Order>,
     private readonly checkoutService: CheckoutService,
   ) {
     const client = new MercadoPagoConfig({
@@ -82,7 +90,41 @@ export class CheckoutController {
         const payment = await this.paymentApi.get({ id: data.id });
         this.logger.log('Pagamento encontrado: ' + JSON.stringify(payment));
 
-        // Aqui você atualiza o status do pedido no banco
+        const orderId = payment.external_reference;
+        const status = payment.status;
+        let sendStatus: OrderStatus;
+
+        switch (status) {
+          case 'approved':
+            sendStatus = OrderStatus.APPROVED;
+            break;
+          case 'pending':
+            sendStatus = OrderStatus.WAITING_PAYMENT;
+            break;
+          case 'in_process':
+            sendStatus = OrderStatus.IN_PROCESS;
+            break;
+          case 'rejected':
+            sendStatus = OrderStatus.REJECTED;
+            break;
+          case 'canceled':
+            sendStatus = OrderStatus.CANCELED;
+            break;
+        }
+
+        if (status === '') {
+          throw new InternalServerErrorException(
+            'Erro ao atualizar status do pedido. Webhook',
+          );
+        }
+
+        const updateOrder = await this.ordersRepository.update(orderId, {
+          status: sendStatus,
+        });
+
+        if (!updateOrder) {
+          throw new NotFoundException('Pedido não encontrado. Webhook');
+        }
       }
 
       res.status(200).send('OK');
