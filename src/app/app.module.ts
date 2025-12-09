@@ -27,13 +27,13 @@ import { AppService } from './app.service';
       useFactory: async (appConfigParam: ConfigType<typeof appConfig>) => {
         return {
           type: 'postgres',
-          host: appConfigParam.database.host,
-          port: appConfigParam.database.port,
-          username: appConfigParam.database.username,
-          database: appConfigParam.database.database,
-          password: appConfigParam.database.password,
-          autoLoadEntities: appConfigParam.database.autoLoadEntities,
-          synchronize: appConfigParam.database.synchronize,
+          host: appConfigParam.host,
+          port: appConfigParam.port,
+          username: appConfigParam.username,
+          database: appConfigParam.database,
+          password: appConfigParam.password,
+          autoLoadEntities: appConfigParam.autoLoadEntities,
+          synchronize: appConfigParam.synchronize,
         };
       },
     }),
