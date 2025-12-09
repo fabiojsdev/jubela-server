@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -24,7 +23,6 @@ export class LogEmployee {
   name: string;
 
   @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'employee' })
   employee: Employee;
 
   @CreateDateColumn()

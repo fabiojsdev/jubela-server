@@ -4,7 +4,6 @@ import {
   CreateDateColumn,
   Entity,
   Generated,
-  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -23,7 +22,6 @@ export class RefreshTokenUser {
   is_valid: boolean;
 
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'user' })
   user: User;
 
   @CreateDateColumn()

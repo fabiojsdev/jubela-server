@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -38,7 +37,6 @@ export class Product {
   sku: string;
 
   @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'employee' })
   employee: Employee;
 
   @OneToMany(() => Items, (orderItem) => orderItem.product, {
