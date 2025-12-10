@@ -13,7 +13,8 @@ async function bootstrap() {
   app.enableCors({
     origin: 'https://jubela-ecommerce.vercel.app/',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   app.use(helmet());
