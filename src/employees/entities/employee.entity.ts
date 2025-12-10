@@ -56,9 +56,7 @@ export class Employee {
   @IsString()
   address: string;
 
-  @OneToMany(() => Product, (product) => product.employee, {
-    eager: true,
-  })
+  @OneToMany(() => Product, (product) => product.employee)
   products: Product[];
 
   @OneToMany(() => RefreshTokenEmployee, (token) => token.employee)

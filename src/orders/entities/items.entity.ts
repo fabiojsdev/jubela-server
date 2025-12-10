@@ -19,6 +19,6 @@ export class Items {
   @ManyToOne(() => Order, { onDelete: 'RESTRICT' })
   order: Order;
 
-  @ManyToOne(() => Product, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Product, { onDelete: 'RESTRICT', nullable: true })
   product: Product;
 }

@@ -16,7 +16,9 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
@@ -43,11 +45,15 @@ export class ProductsController {
         .build(),
     )
     files: Array<Express.Multer.File>,
+
+    @TokenPayloadParam()
+    tokenPayloadDTO: TokenPayloadDTO,
+
     @Body() body: any,
   ) {
     const jsonData: CreateProductDTO = JSON.parse(body.data);
 
-    return this.productsService.Create(jsonData, files);
+    return this.productsService.Create(jsonData, files, tokenPayloadDTO);
   }
 
   @Patch(':id')

@@ -5,9 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import Decimal from 'decimal.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
+import { EmployeesService } from 'src/employees/employee.service';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
@@ -21,20 +24,35 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+    private readonly employeesService: EmployeesService,
   ) {}
 
   async Create(
     createProductDTO: CreateProductDTO,
     files: Array<Express.Multer.File>,
+    tokenPayloadDTO: TokenPayloadDTO,
   ) {
+    const { sub } = tokenPayloadDTO;
+
     const imagesCreate = await this.FileCreate(files);
 
-    const dataToSave = {
-      ...createProductDTO,
+    const findEmployee = await this.employeesService.FindById(sub);
+
+    const decimalPrice = new Decimal(createProductDTO.price);
+
+    const createProductData = {
+      name: createProductDTO.name,
+      category: createProductDTO.category,
+      description: createProductDTO.description,
+      price: decimalPrice.toString(),
       images: imagesCreate,
+      quantity: createProductDTO.quantity,
+      sku: createProductDTO.sku,
+      employee: findEmployee,
+      order: null,
     };
 
-    const productCreate = this.productsRepository.create(dataToSave);
+    const productCreate = this.productsRepository.create(createProductData);
 
     const newProductData = await this.productsRepository.save(productCreate);
 
