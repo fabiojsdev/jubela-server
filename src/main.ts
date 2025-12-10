@@ -10,10 +10,10 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
-  app.enableCors({
-    origin: 'https://jubela-ecommerce.vercel.app/',
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: 'https://jubela-ecommerce.vercel.app/',
+  //   credentials: true,
+  // });
 
   app.use(helmet());
   app.use(cookieParser());
