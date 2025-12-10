@@ -29,16 +29,16 @@ export class AuthController {
 
     res.cookie('accessToken', createTokens.accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
     });
 
     res.cookie('refreshToken', createTokens.refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/employee',
     });
@@ -80,16 +80,16 @@ export class AuthController {
 
     res.cookie('accessToken', createTokens.accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
     });
 
     res.cookie('refreshToken', createTokens.refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/user',
     });
