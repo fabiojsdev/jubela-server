@@ -28,10 +28,9 @@ export class CheckoutService {
   }
 
   async CreatePreference(orderDTO: OrderDTO, tokenPayloadDTO: TokenPayloadDTO) {
-    const { order, orderItems } = orderDTO;
+    const { orderItems } = orderDTO;
 
     const createOrder = await this.ordersService.Create(
-      order,
       orderItems,
       tokenPayloadDTO,
     );

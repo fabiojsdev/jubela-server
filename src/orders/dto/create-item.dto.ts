@@ -7,7 +7,6 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Product } from 'src/products/entities/product.entity';
-import { Order } from '../entities/order.entity';
 
 export class CreateOrderItemDTO {
   @IsNotEmpty({
@@ -39,14 +38,6 @@ export class CreateOrderItemDTO {
     no_symbols: true,
   })
   readonly price: string;
-
-  @IsNotEmpty({
-    message: 'Campo "pedido" não preenchido',
-  })
-  @IsUUID(4, {
-    message: 'O campo "pedido deve ser um uuid"',
-  })
-  readonly order: Order;
 
   @IsNotEmpty({
     message: 'Campo "produto" não preenchido',

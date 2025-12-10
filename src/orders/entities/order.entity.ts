@@ -19,9 +19,6 @@ export class Order {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total_price: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  description: string;
-
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   user: User;
 

@@ -11,7 +11,6 @@ import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { UsersService } from 'src/users/user.service';
 import { Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
-import { CreateOrderDTO } from './dto/create-order.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
@@ -32,7 +31,6 @@ export class OrdersService {
   ) {}
 
   async Create(
-    createOrderDTO: CreateOrderDTO,
     createOrderItemDTO: CreateOrderItemDTO[],
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
@@ -46,7 +44,6 @@ export class OrdersService {
 
     const orderData = {
       total_price: decimal.toString(),
-      desciption: createOrderDTO.description,
       user: findUser,
       items: [],
       status: OrderStatus.WAITING_PAYMENT,
