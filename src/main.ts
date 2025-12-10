@@ -10,10 +10,25 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
+  const allowedOrigins = [
+    'https://jubela-client.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+
   app.enableCors({
-    origin: ['https://jubela-client.vercel.app'],
+    origin: (origin, callback) => {
+      // permite chamadas sem origin (Postman/curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     maxAge: 3600,
   });
