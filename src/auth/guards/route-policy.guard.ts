@@ -38,7 +38,7 @@ export class RoutePolicyGuard implements CanActivate {
       throw new UnauthorizedException('Somente funcionários');
     }
 
-    if (role === EmployeeRole.ADMIN) return true;
+    if (role.includes(EmployeeRole.ADMIN)) return true;
 
     if (!role.includes(routePolicyRequired)) {
       throw new UnauthorizedException(

@@ -11,10 +11,9 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   app.enableCors({
-    origin: ['https://jubela-ecommerce.vercel.app'],
+    origin: ['https://jubela-client.vercel.app'],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    exposedHeaders: ['Set-Cookie'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     maxAge: 3600,
   });
