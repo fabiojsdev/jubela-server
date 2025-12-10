@@ -139,6 +139,9 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      email: employeeData.email,
+      name: employeeData.name,
+      id: employeeData.id,
     };
   }
 
@@ -175,6 +178,9 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      email: findUser.email,
+      name: findUser.name,
+      id: findUser.id,
     };
   }
 

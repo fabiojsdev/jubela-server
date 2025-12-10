@@ -43,7 +43,13 @@ export class AuthController {
       path: '/refresh/employee',
     });
 
-    return { success: true, message: 'Autenticação concluída' };
+    return {
+      success: true,
+      message: 'Autenticação concluída',
+      email: createTokens.email,
+      name: createTokens.name,
+      id: createTokens.id,
+    };
   }
 
   @Public()
@@ -94,6 +100,12 @@ export class AuthController {
       path: '/refresh/user',
     });
 
-    return { success: true, message: 'Autenticação concluída' };
+    return {
+      success: true,
+      message: 'Autenticação concluída',
+      email: createTokens.email,
+      name: createTokens.name,
+      id: createTokens.id,
+    };
   }
 }

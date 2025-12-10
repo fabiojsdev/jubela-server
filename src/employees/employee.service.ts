@@ -176,6 +176,19 @@ export class EmployeesService {
     return employeeFindByEmail;
   }
 
+  async FindById(id: string) {
+    const employeeFindByEmail = await this.employeeRepository.findOneBy({
+      id,
+      situation: EmployeeSituation.EMPLOYED,
+    });
+
+    if (!employeeFindByEmail) {
+      throw new NotFoundException('Funcionário não encontrado');
+    }
+
+    return employeeFindByEmail;
+  }
+
   async FindByName(paginationByNameDTO: PaginationByNameDTO) {
     const { limit, offset, value } = paginationByNameDTO;
 
