@@ -11,7 +11,5 @@ export default registerAs('app', () => {
     autoLoadEntities: Boolean(process.env.DATABASE_AUTOLOADENTITIES),
     synchronize: Boolean(process.env.DATABASE_SYNCHRONIZE),
   };
-
-  console.log(database);
   return database;
 });
