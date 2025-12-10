@@ -6,11 +6,12 @@ import {
   Patch,
   Post,
   Query,
-  UsePipes
+  UseGuards,
+  UsePipes,
 } from '@nestjs/common';
-import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
@@ -25,8 +26,7 @@ import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
 import { EmployeesService } from './employee.service';
 
-@Public()
-// @UseGuards(RoutePolicyGuard)
+@UseGuards(RoutePolicyGuard)
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
