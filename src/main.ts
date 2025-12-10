@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
@@ -9,11 +10,12 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
-  // app.enableCors({
-  //   origin: 'https://jubela-ecommerce.vercel.app/' ou http://localhost:5173,
-  //   credentials: true,
-  // });
+  app.enableCors({
+    origin: 'https://jubela-ecommerce.vercel.app/',
+    credentials: true,
+  });
 
+  app.use(helmet());
   app.use(cookieParser());
 
   app.use(

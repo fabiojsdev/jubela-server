@@ -60,7 +60,9 @@ export class ProductsService {
         await fs.writeFile(fileFullPath, file.buffer);
 
         // MUDAR A URL EM PRODUÇÃO
-        imagesString.push(`http://localhost:3000/images/${file.originalname}`);
+        imagesString.push(
+          `https://jubela-server-api.onrender.com/images/${file.originalname}`,
+        );
       }),
     );
 
