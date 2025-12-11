@@ -253,7 +253,7 @@ export class ProductsService {
   async ListProducts(paginationAllProducts?: PaginationAllProductsDTO) {
     const { limit, offset } = paginationAllProducts;
 
-    const findAll = await this.productsRepository.findAndCount({
+    const [items, total] = await this.productsRepository.findAndCount({
       take: limit,
       skip: offset,
       order: {
@@ -262,22 +262,23 @@ export class ProductsService {
       where: {},
     });
 
-    return findAll;
+    return [total, items];
   }
 
   async FindByName(paginationDTO: PaginationDTO) {
     const { limit, offset, value } = paginationDTO;
 
-    const productFindByName = await this.productsRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
-      },
-      where: {
-        name: Like(`${value}%`),
-      },
-    });
+    const [productFindByName, total] =
+      await this.productsRepository.findAndCount({
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'desc',
+        },
+        where: {
+          name: Like(`${value}%`),
+        },
+      });
 
     if (!productFindByName) {
       throw new InternalServerErrorException(
@@ -289,22 +290,23 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return productFindByName;
+    return [total, productFindByName];
   }
 
   async FindByCategory(paginationDTO: PaginationDTO) {
     const { limit, offset, value } = paginationDTO;
 
-    const productFindByName = await this.productsRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
-      },
-      where: {
-        name: Like(`${value}%`),
-      },
-    });
+    const [productFindByName, total] =
+      await this.productsRepository.findAndCount({
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'desc',
+        },
+        where: {
+          name: Like(`${value}%`),
+        },
+      });
 
     if (!productFindByName) {
       throw new InternalServerErrorException(
@@ -316,7 +318,7 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return productFindByName;
+    return [total, productFindByName];
   }
 
   async FindBySku(sku: string) {
@@ -334,30 +336,31 @@ export class ProductsService {
   async FindByEmployee(paginationByEmployeeDTO: PaginationByEmployeeDTO) {
     const { limit, offset, value } = paginationByEmployeeDTO;
 
-    const productFindByEmployee = await this.productsRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
-      },
-      where: {
-        employee: {
-          id: value,
+    const [productFindByEmployee, total] =
+      await this.productsRepository.findAndCount({
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'desc',
         },
-      },
-      relations: {
-        employee: true,
-      },
-      select: {
-        employee: {
-          id: true,
-          name: true,
-          email: true,
-          situation: true,
-          role: true,
+        where: {
+          employee: {
+            id: value,
+          },
         },
-      },
-    });
+        relations: {
+          employee: true,
+        },
+        select: {
+          employee: {
+            id: true,
+            name: true,
+            email: true,
+            situation: true,
+            role: true,
+          },
+        },
+      });
 
     if (!productFindByEmployee) {
       throw new InternalServerErrorException(
@@ -369,6 +372,6 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return productFindByEmployee;
+    return [total, productFindByEmployee];
   }
 }
