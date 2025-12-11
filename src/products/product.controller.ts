@@ -36,7 +36,7 @@ export class ProductsController {
 
   @Post()
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @UseInterceptors(FilesInterceptor('files', 12))
+  @UseInterceptors(FilesInterceptor('files', 4))
   Create(
     @UploadedFiles(
       new ParseFilePipeBuilder()
@@ -58,7 +58,7 @@ export class ProductsController {
 
   @Patch(':id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @UseInterceptors(FilesInterceptor('files', 12))
+  @UseInterceptors(FilesInterceptor('files', 4))
   Update(
     @Param('id') id: string,
     @Body() body: any,
@@ -77,8 +77,12 @@ export class ProductsController {
 
   @Delete('images')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  DeleteImages(@Body() body: any) {
-    return this.productsService.ImageDelete(body.images, body.productId);
+  async DeleteImages(@Body() body: any) {
+    const deleteImage = await this.productsService.ImageDelete(
+      body.images,
+      body.productId,
+    );
+    return { success: true, message: deleteImage };
   }
 
   @Delete(':id')

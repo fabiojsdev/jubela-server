@@ -113,8 +113,6 @@ export class ProductsService {
   }
 
   async ImageDelete(images: string[], productId: string) {
-    console.log(images);
-    console.log(productId);
     const findProduct = await this.FindById(productId);
     console.log(findProduct);
 
@@ -126,15 +124,24 @@ export class ProductsService {
       );
     }
 
+    const fileFullPath = path.resolve(process.cwd(), 'images');
+
     for (let i = 0; i < images.length; i++) {
-      // const imageVerify = await this.FileExists(images[i]);
-      // console.log(imageVerify);
+      const imageName = images[i].split('/').pop();
 
-      // if (!imageVerify) {
-      //   throw new NotFoundException('Imagem não cadastrada');
-      // }
+      const imageFullPath = path.join(fileFullPath, imageName);
 
-      const imageDelete = await this.FileUnlink(images[i]);
+      if (!imageFullPath.startsWith(fileFullPath)) {
+        throw new Error('Path traversal detectado');
+      }
+
+      const imageVerify = await this.FileExists(imageFullPath);
+
+      if (!imageVerify) {
+        throw new NotFoundException('Imagem não cadastrada');
+      }
+
+      const imageDelete = await this.FileUnlink(imageFullPath);
 
       if (imageDelete !== 'Imagem excluída') {
         switch (imageDelete) {
@@ -150,6 +157,8 @@ export class ProductsService {
             );
         }
       }
+
+      return imageDelete;
     }
   }
 
@@ -173,7 +182,6 @@ export class ProductsService {
     } catch (error) {
       console.log({
         message: error.message,
-        stack: error.stack,
       });
     }
   }
@@ -229,6 +237,10 @@ export class ProductsService {
   }
 
   async Delete(deleteIdDTO: UrlUuidDTO) {
+    const findProduct = await this.FindById(deleteIdDTO.id);
+
+    await this.ImageDelete(findProduct.images, deleteIdDTO.id);
+
     const deleteProduct = await this.productsRepository.delete(deleteIdDTO);
 
     if (deleteProduct.affected < 1) {
