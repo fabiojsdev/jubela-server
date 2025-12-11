@@ -110,7 +110,7 @@ export class OrdersService {
   async ListOrders(paginationAllOrders?: PaginationAllOrdersDTO) {
     const { limit, offset } = paginationAllOrders;
 
-    const findAll = await this.ordersRepository.findAndCount({
+    const [findAll, total] = await this.ordersRepository.findAndCount({
       take: limit,
       skip: offset,
       order: {
@@ -118,13 +118,13 @@ export class OrdersService {
       },
     });
 
-    return findAll;
+    return [total, findAll];
   }
 
   async FindByPrice(paginationByPriceDTO: PaginationByPriceDTO) {
     const { limit, offset, value } = paginationByPriceDTO;
 
-    const orderFindByName = await this.ordersRepository.find({
+    const [orderFindByName, total] = await this.ordersRepository.findAndCount({
       take: limit,
       skip: offset,
       order: {
@@ -145,13 +145,13 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return orderFindByName;
+    return [total, orderFindByName];
   }
 
   async FindByItem(paginationDTO: PaginationDTO) {
     const { limit, offset, value } = paginationDTO;
 
-    const orderFindByName = await this.ordersRepository.find({
+    const [orderFindByName, total] = await this.ordersRepository.findAndCount({
       take: limit,
       skip: offset,
       order: {
@@ -174,22 +174,24 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return orderFindByName;
+    return [orderFindByName, total];
   }
 
   async FindByStatus(paginationByStatusDTO: PaginationByStatusDTO) {
     const { limit, offset, value } = paginationByStatusDTO;
 
-    const orderFindByStatus = await this.ordersRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
+    const [orderFindByStatus, total] = await this.ordersRepository.findAndCount(
+      {
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'desc',
+        },
+        where: {
+          status: value,
+        },
       },
-      where: {
-        status: value,
-      },
-    });
+    );
 
     if (!orderFindByStatus) {
       throw new InternalServerErrorException(
@@ -201,13 +203,13 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return orderFindByStatus;
+    return [total, orderFindByStatus];
   }
 
   async FindByUser(paginationByUserDTO: PaginationByUserDTO) {
     const { limit, offset, value } = paginationByUserDTO;
 
-    const orderFindByUser = await this.ordersRepository.find({
+    const [orderFindByUser, total] = await this.ordersRepository.findAndCount({
       take: limit,
       skip: offset,
       order: {
@@ -240,6 +242,6 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return orderFindByUser;
+    return [total, orderFindByUser];
   }
 }

@@ -114,7 +114,6 @@ export class ProductsService {
 
   async ImageDelete(images: string[], productId: string) {
     const findProduct = await this.FindById(productId);
-    console.log(findProduct);
 
     const deleteFromDb = await this.ImagesDeleteFromDb(findProduct.id, images);
 

@@ -116,7 +116,7 @@ export class UsersService {
   async FindByName(paginationByNameDTO: PaginationByNameDTO) {
     const { limit, offset, value } = paginationByNameDTO;
 
-    const userFindByName = await this.usersRepository.find({
+    const [userFindByName, total] = await this.usersRepository.findAndCount({
       take: limit,
       skip: offset,
       order: {
@@ -137,6 +137,6 @@ export class UsersService {
       throw new NotFoundException('Usuários não encontrados');
     }
 
-    return userFindByName;
+    return [userFindByName, total];
   }
 }

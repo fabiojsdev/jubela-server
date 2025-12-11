@@ -192,17 +192,18 @@ export class EmployeesService {
   async FindByName(paginationByNameDTO: PaginationByNameDTO) {
     const { limit, offset, value } = paginationByNameDTO;
 
-    const employeeFindByName = await this.employeeRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
-      },
-      where: {
-        name: Like(`${value}%`),
-        situation: EmployeeSituation.EMPLOYED,
-      },
-    });
+    const [employeeFindByName, total] =
+      await this.employeeRepository.findAndCount({
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'desc',
+        },
+        where: {
+          name: Like(`${value}%`),
+          situation: EmployeeSituation.EMPLOYED,
+        },
+      });
 
     if (!employeeFindByName) {
       throw new InternalServerErrorException(
@@ -214,7 +215,7 @@ export class EmployeesService {
       throw new NotFoundException('Funcionários não encontrados');
     }
 
-    return employeeFindByName;
+    return [total, employeeFindByName];
   }
 
   async FindByPhoneNumber(phoneNumber: string) {
@@ -233,17 +234,18 @@ export class EmployeesService {
   async FindByRole(paginationByRoleDTO: PaginationByRoleDTO) {
     const { limit, offset, value } = paginationByRoleDTO;
 
-    const employeeFindByRole = await this.employeeRepository.find({
-      take: limit,
-      skip: offset,
-      order: {
-        id: 'desc',
-      },
-      where: {
-        role: value,
-        situation: EmployeeSituation.EMPLOYED,
-      },
-    });
+    const [employeeFindByRole, total] =
+      await this.employeeRepository.findAndCount({
+        take: limit,
+        skip: offset,
+        order: {
+          id: 'desc',
+        },
+        where: {
+          role: value,
+          situation: EmployeeSituation.EMPLOYED,
+        },
+      });
 
     if (!employeeFindByRole) {
       throw new InternalServerErrorException(
@@ -255,6 +257,6 @@ export class EmployeesService {
       throw new NotFoundException('Funcionários não encontrados');
     }
 
-    return employeeFindByRole;
+    return [total, employeeFindByRole];
   }
 }
