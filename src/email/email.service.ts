@@ -1,30 +1,25 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import emailConfig from './config/email.config';
 
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
-  constructor(
-    @Inject(emailConfig.KEY)
-    private readonly emailConfiguration: ConfigType<typeof emailConfig>,
-  ) {
+  constructor() {
     this.transporter = nodemailer.createTransport({
-      host: emailConfiguration.host,
-      port: parseInt(emailConfiguration.port, 10),
+      host: process.env.HOST,
+      port: parseInt(process.env.PORT_EMAIL, 10),
       secure: false, // true em prod
       auth: {
-        user: emailConfiguration.from,
-        pass: emailConfiguration.password,
+        user: process.env.FROM_EMAIL,
+        pass: process.env.PASSSWORD,
       },
     });
   }
 
   async SendEmail(to: string, subject: string, content: string) {
     const mailOptions = {
-      from: `Não responda <${this.emailConfiguration.from}>`,
+      from: `Não responda <${process.env.FROM_EMAIL}>`,
       to,
       subject,
       text: content,
