@@ -118,7 +118,7 @@ export class OrdersService {
       },
     });
 
-    return [total, findAll];
+    return [total, ...findAll];
   }
 
   async FindByPrice(paginationByPriceDTO: PaginationByPriceDTO) {
@@ -145,7 +145,7 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return [total, orderFindByName];
+    return [total, ...orderFindByName];
   }
 
   async FindByItem(paginationDTO: PaginationDTO) {
@@ -174,7 +174,7 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return [orderFindByName, total];
+    return [total, ...orderFindByName];
   }
 
   async FindByStatus(paginationByStatusDTO: PaginationByStatusDTO) {
@@ -203,7 +203,7 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return [total, orderFindByStatus];
+    return [total, ...orderFindByStatus];
   }
 
   async FindByUser(paginationByUserDTO: PaginationByUserDTO) {
@@ -242,6 +242,6 @@ export class OrdersService {
       throw new NotFoundException('Pedidos não encontrados');
     }
 
-    return [total, orderFindByUser];
+    return [total, ...orderFindByUser];
   }
 }

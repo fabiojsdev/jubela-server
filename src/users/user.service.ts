@@ -137,6 +137,6 @@ export class UsersService {
       throw new NotFoundException('Usuários não encontrados');
     }
 
-    return [userFindByName, total];
+    return [total, ...userFindByName];
   }
 }

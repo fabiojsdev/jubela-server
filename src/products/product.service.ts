@@ -273,7 +273,7 @@ export class ProductsService {
       where: {},
     });
 
-    return [total, items];
+    return [total, ...items];
   }
 
   async FindByName(paginationDTO: PaginationDTO) {
@@ -301,7 +301,7 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return [total, productFindByName];
+    return [total, ...productFindByName];
   }
 
   async FindByCategory(paginationDTO: PaginationDTO) {
@@ -329,7 +329,7 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return [total, productFindByName];
+    return [total, ...productFindByName];
   }
 
   async FindBySku(sku: string) {
@@ -383,6 +383,6 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return [total, productFindByEmployee];
+    return [total, ...productFindByEmployee];
   }
 }

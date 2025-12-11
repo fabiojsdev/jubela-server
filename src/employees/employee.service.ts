@@ -127,7 +127,7 @@ export class EmployeesService {
       address: updateEmployeeAdminDTO.address,
     };
 
-    if (tokenPayloadDTO.role !== 'admin') {
+    if (!tokenPayloadDTO.role.includes('admin')) {
       throw new ForbiddenException('Ação não permitida');
     }
 
@@ -215,7 +215,7 @@ export class EmployeesService {
       throw new NotFoundException('Funcionários não encontrados');
     }
 
-    return [total, employeeFindByName];
+    return [total, ...employeeFindByName];
   }
 
   async FindByPhoneNumber(phoneNumber: string) {
@@ -257,6 +257,6 @@ export class EmployeesService {
       throw new NotFoundException('Funcionários não encontrados');
     }
 
-    return [total, employeeFindByRole];
+    return [total, ...employeeFindByRole];
   }
 }
