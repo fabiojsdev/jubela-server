@@ -16,6 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
 import MercadoPagoConfig, { Payment } from 'mercadopago';
+import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
@@ -65,6 +66,7 @@ export class CheckoutController {
     };
   }
 
+  @Public()
   @Post('webhooks/mercadopago')
   async Handle(@Req() req: RawBodyRequest<Request>, @Res() res: Response) {
     try {
