@@ -3,6 +3,7 @@ import {
   Controller,
   HttpStatus,
   Inject,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   Post,
@@ -19,6 +20,7 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Order } from 'src/orders/entities/order.entity';
+import { Product } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
@@ -36,6 +38,7 @@ export class CheckoutController {
     >,
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
+    private readonly productsRepository: Repository<Product>,
     private readonly checkoutService: CheckoutService,
   ) {
     const client = new MercadoPagoConfig({
@@ -46,7 +49,7 @@ export class CheckoutController {
   }
 
   @Post('preference')
-  async create(
+  async Create(
     @Body() orderDTO: OrderDTO,
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
@@ -207,6 +210,7 @@ export class CheckoutController {
     try {
       await this.ordersRepository.update(order.id, {
         status: OrderStatus.APPROVED,
+        paidAt: new Date(),
       });
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
@@ -244,6 +248,33 @@ export class CheckoutController {
 
       await this.ordersRepository.update(order.id, {
         status: newStatus,
+      });
+
+      order.items.forEach(async (item) => {
+        const findProduct = await this.productsRepository.findOneBy({
+          id: item.product.id,
+        });
+
+        if (!findProduct) {
+          throw new NotFoundException(
+            `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+          );
+        }
+
+        const updatedProductQuantity = (findProduct.quantity += item.quantity);
+
+        const updateProductQuantity = await this.productsRepository.update(
+          findProduct.id,
+          {
+            quantity: updatedProductQuantity,
+          },
+        );
+
+        if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+          throw new InternalServerErrorException(
+            `Erro ao tentar devolver unidades de produto ${item.quantity} ao estoque`,
+          );
+        }
       });
 
       this.logger.log(`❌ Pedido ${order.id} ${newStatus} - estoque liberado`);

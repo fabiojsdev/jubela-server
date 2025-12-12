@@ -51,6 +51,7 @@ export class OrdersService {
       user: findUser,
       items: [],
       status: OrderStatus.WAITING_PAYMENT,
+      paidAt: null,
     };
 
     const orderCreate = this.ordersRepository.create(orderData);
@@ -65,6 +66,30 @@ export class OrdersService {
         order: newOrderData,
         product: createOrderItemDTO[i].product,
       };
+
+      const findProduct = await this.productsRepository.findOneBy({
+        id: createOrderItemDTO[i].product.id,
+      });
+
+      if (!findProduct) {
+        throw new NotFoundException('Produto não encontrado');
+      }
+
+      const quantityUpdate =
+        findProduct.quantity - createOrderItemDTO[i].quantity;
+
+      const productQuantityUpdate = await this.productsRepository.update(
+        createOrderItemDTO[i].product.id,
+        {
+          quantity: quantityUpdate,
+        },
+      );
+
+      if (!productQuantityUpdate || productQuantityUpdate.affected < 1) {
+        throw new InternalServerErrorException(
+          `Erro ao atualizar quantidade do produto ${createOrderItemDTO[i].product_name}`,
+        );
+      }
 
       const orderItemCreate = this.orderItemsRepository.create(itemData);
 
