@@ -1,12 +1,24 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
+
+  app.useBodyParser('json', {
+    limit: '2mb',
+  });
+
+  app.useBodyParser('urlencoded', {
+    limit: '2mb',
+    extended: true,
+  });
 
   app.useGlobalPipes(new ValidationPipe());
 

@@ -1,11 +1,12 @@
 import {
   Body,
   Controller,
+  HttpStatus,
   Inject,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   Post,
+  RawBodyRequest,
   Req,
   Res,
 } from '@nestjs/common';
@@ -62,75 +63,216 @@ export class CheckoutController {
   }
 
   @Post('webhooks/mercadopago')
-  async Handle(@Req() req: Request, @Res() res: Response) {
+  async Handle(@Req() req: RawBodyRequest<Request>, @Res() res: Response) {
     try {
-      const signature = req.headers['x-signature'] as string;
-      const rawBody = (req as any).rawBody ?? JSON.stringify(req.body);
-      const secret = process.env.MP_WEBHOOK_SECRET!;
+      const xSignature = req.headers['x-signature'] as string;
+      const xRequestedId = req.headers['x-request-id'] as string;
+      const dataId = req.body?.data?.id;
 
-      // Validação HMAC
-      const expected = crypto
-        .createHmac('sha256', secret)
-        .update(rawBody)
-        .digest('base64');
+      this.logger.log('Webhook recebido:', JSON.stringify(req.body));
 
-      if (
-        !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
-      ) {
-        this.logger.warn('Assinatura inválida no webhook');
-        return res.status(401).send('Invalid signature');
+      if (!xSignature || !xRequestedId || !dataId) {
+        this.logger.warn('Headers ou data.id ausentes no webhook');
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'Daods ou cabeçalhos necessários não fornecidos',
+        });
       }
 
-      this.logger.log('Webhook recebido: ' + JSON.stringify(req.body));
+      const isValid = this.ValidateSignature(xSignature, xRequestedId, dataId);
+
+      if (!isValid) {
+        this.logger.warn('Assinatura inválida no webhook');
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          error: 'Invalid signature',
+        });
+      }
 
       const { data, type } = req.body;
 
-      // Exemplo: pagamento
       if (type === 'payment' && data?.id) {
-        const payment = await this.paymentApi.get({ id: data.id });
-        this.logger.log('Pagamento encontrado: ' + JSON.stringify(payment));
-
-        const orderId = payment.external_reference;
-        const status = payment.status;
-        let sendStatus: OrderStatus;
-
-        switch (status) {
-          case 'approved':
-            sendStatus = OrderStatus.APPROVED;
-            break;
-          case 'pending':
-            sendStatus = OrderStatus.WAITING_PAYMENT;
-            break;
-          case 'in_process':
-            sendStatus = OrderStatus.IN_PROCESS;
-            break;
-          case 'rejected':
-            sendStatus = OrderStatus.REJECTED;
-            break;
-          case 'canceled':
-            sendStatus = OrderStatus.CANCELED;
-            break;
-        }
-
-        if (status === '') {
-          throw new InternalServerErrorException(
-            'Erro ao atualizar status do pedido. Webhook',
-          );
-        }
-
-        const updateOrder = await this.ordersRepository.update(orderId, {
-          status: sendStatus,
-        });
-
-        if (!updateOrder) {
-          throw new NotFoundException('Pedido não encontrado. Webhook');
-        }
+        await this.ProcessPaymentNotification(data.id);
       }
 
-      res.status(200).send('OK');
-    } catch (err) {
-      this.logger.error(err);
-      res.status(500).send('Webhook error');
+      return res.status(HttpStatus.OK).json({ success: true });
+    } catch (error) {
+      this.logger.error('Erro ao processar webhook:', error.message);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: 'Webhook processing failed',
+      });
     }
+  }
+
+  private ValidateSignature(
+    signature: string,
+    requestId: string,
+    dataId: string,
+  ): boolean {
+    try {
+      const parts = signature.split(',');
+      let ts = '';
+      let hash = '';
+
+      parts.forEach((part) => {
+        const [key, value] = part.split('=');
+
+        if (key && value) {
+          if (key.trim() === 'ts') ts = value;
+          if (key.trim() === 'v1') hash = value;
+        }
+      });
+
+      if (!ts || !hash) {
+        this.logger.warn('Formato de assinatura inválido');
+        return false;
+      }
+
+      const currentTime = Math.floor(Date.now() / 1000);
+      const requestTime = parseInt(ts);
+      const timeDiff = Math.abs(currentTime - requestTime);
+
+      if (timeDiff > 300) {
+        // 5 minutos de tolerância
+        this.logger.warn(`Webhook com timestamp expirado. Diff: ${timeDiff}s`);
+        return false;
+      }
+
+      const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+      const secret = this.mercadoPagoConfiguration.webhookSecret;
+      const expectedHash = crypto
+        .createHmac('sha256', secret)
+        .update(manifest)
+        .digest('hex');
+
+      return crypto.timingSafeEqual(
+        Buffer.from(hash),
+        Buffer.from(expectedHash),
+      );
+    } catch (error) {
+      this.logger.error('Erro ao validar assinatura:', error.message);
+      return false;
+    }
+  }
+
+  private async ProcessPaymentNotification(paymentId: string) {
+    try {
+      const payment = await this.paymentApi.get({ id: paymentId });
+
+      this.logger.log('Pagamento encontrado:', JSON.stringify(payment));
+
+      const orderId = payment.external_reference;
+      const status = payment.status;
+
+      const order = await this.ordersRepository.findOne({
+        where: {
+          id: orderId,
+        },
+        relations: ['orderItems, orderItems.product'],
+      });
+
+      if (!order) {
+        throw new NotFoundException(
+          `Pedido ${orderId} não encontrado. Webhook`,
+        );
+      }
+
+      switch (status) {
+        case 'approved':
+          await this.HandleApprovedPayment(order);
+
+        case 'rejected':
+        case 'cancelled':
+          await this.HandleRejectedPayment(order, status);
+
+        case 'pending':
+          await this.HandlePendingPayment(order);
+
+        case 'in_process':
+          await this.HandleInProcessPayment(order);
+
+        default:
+          this.logger.warn(`Status desconhecido: ${status}`);
+      }
+    } catch (error) {
+      this.logger.error('Erro ao processar notificação de pagamento:', error);
+      throw error;
+    }
+  }
+
+  private async HandleApprovedPayment(order: Order) {
+    if (order.status === OrderStatus.APPROVED) {
+      this.logger.log(`Pedido ${order.id} já foi processado anteriormente`);
+      return;
+    }
+
+    try {
+      await this.ordersRepository.update(order.id, {
+        status: OrderStatus.APPROVED,
+      });
+
+      this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
+
+      // Aqui você pode adicionar:
+      // - Enviar email de confirmação
+      // - Notificar sistema de fulfillment
+      // - Gerar nota fiscal
+    } catch (error) {
+      this.logger.error(
+        `Erro ao processar pedido aprovado ${order.id}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  private async HandleRejectedPayment(order: Order, status: string) {
+    if (
+      order.status === OrderStatus.REJECTED ||
+      order.status === OrderStatus.CANCELED
+    ) {
+      this.logger.log(`Pedido ${order.id} já foi cancelado anteriormente`);
+      return;
+    }
+
+    try {
+      let newStatus: OrderStatus;
+
+      if (status === 'rejected') {
+        newStatus = OrderStatus.REJECTED;
+      } else {
+        newStatus = OrderStatus.CANCELED;
+      }
+
+      await this.ordersRepository.update(order.id, {
+        status: newStatus,
+      });
+
+      this.logger.log(`❌ Pedido ${order.id} ${newStatus} - estoque liberado`);
+    } catch (error) {
+      this.logger.error(
+        `Erro ao processar pedido rejeitado ${order.id}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  private async HandlePendingPayment(order: Order) {
+    if (order.status === OrderStatus.WAITING_PAYMENT) return;
+
+    await this.ordersRepository.update(order.id, {
+      status: OrderStatus.WAITING_PAYMENT,
+    });
+
+    this.logger.log(`⏳ Pedido ${order.id} aguardando pagamento`);
+  }
+
+  private async HandleInProcessPayment(order: Order): Promise<void> {
+    if (order.status === OrderStatus.IN_PROCESS) return;
+
+    await this.ordersRepository.update(order.id, {
+      status: OrderStatus.IN_PROCESS,
+    });
+
+    this.logger.log(`🔄 Pedido ${order.id} em processamento`);
   }
 }

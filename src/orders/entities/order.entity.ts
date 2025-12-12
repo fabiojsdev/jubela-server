@@ -30,6 +30,9 @@ export class Order {
   @Column({ type: 'enum', enum: OrderStatus })
   status: OrderStatus;
 
+  @Column({ type: 'timestamp', nullable: true, name: 'paid_at' })
+  paidAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -44,7 +44,12 @@ export class CheckoutService {
       },
       auto_return: 'approved',
       notification_url:
-        this.mercadoPagoConfiguration.appUrlBackend + '/webhooks/mercadopago',
+        this.mercadoPagoConfiguration.appUrlBackend +
+        'checkout/webhooks/mercadopago',
+      statement_descriptor: 'Jubela Ecommerce',
+      expires: true,
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
     };
 
     const response = await this.preference.create({

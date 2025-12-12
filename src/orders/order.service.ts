@@ -8,6 +8,7 @@ import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { Product } from 'src/products/entities/product.entity';
 import { UsersService } from 'src/users/user.service';
 import { Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
@@ -24,6 +25,9 @@ export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
+
+    @InjectRepository(Product)
+    private readonly productsRepository: Repository<Product>,
 
     @InjectRepository(Items)
     private readonly orderItemsRepository: Repository<Items>,
