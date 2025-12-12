@@ -50,7 +50,7 @@ export class OrdersService {
       total_price: decimal.toString(),
       user: findUser,
       items: [],
-      status: OrderStatus.WAITING_PAYMENT,
+      status: OrderStatus.PENDING,
       paidAt: null,
     };
 

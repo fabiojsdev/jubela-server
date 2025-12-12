@@ -2,6 +2,7 @@ export enum OrderStatus {
   CANCELED = 'Cancelado',
   APPROVED = 'Aprovado',
   WAITING_PAYMENT = 'Aguardando pagamento',
+  PENDING = 'Pendente',
   REJECTED = 'Rejeitado',
   PAYMENT_REVIEW = 'Pagamento em análise',
   SEPARATED = 'Separado',
