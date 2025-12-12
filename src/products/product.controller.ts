@@ -117,14 +117,14 @@ export class ProductsController {
     return this.productsService.FindBySku(sku);
   }
 
+  @Public()
   @Get('search/name/')
-  @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
   FindByName(@Query() paginationByNameDto: PaginationByNameDTO) {
     return this.productsService.FindByName(paginationByNameDto);
   }
 
+  @Public()
   @Get('search/category/')
-  @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
   FindByRole(@Query() paginationDto: PaginationDTO) {
     return this.productsService.FindByCategory(paginationDto);
   }
