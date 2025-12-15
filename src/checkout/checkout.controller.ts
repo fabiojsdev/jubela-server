@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  Param,
   Post,
   RawBodyRequest,
   Req,
@@ -27,6 +28,7 @@ import { Repository } from 'typeorm';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
 import { OrderDTO } from './dto/order.dto';
+import { RefundDTO } from './dto/refund.dto';
 
 @Controller('checkout')
 export class CheckoutController {
@@ -66,6 +68,30 @@ export class CheckoutController {
       // remover em prod
       sandbox_init_point: pref.sandbox_init_point,
     };
+  }
+
+  @Post('orders/:orderId/refund')
+  async refundOrder(
+    @Param('orderId') orderId: string,
+    @Body() refundDto: RefundDTO,
+    @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
+  ) {
+    try {
+      const result = await this.checkoutService.RefundOrder(
+        orderId,
+        refundDto,
+        tokenPayload,
+      );
+
+      return {
+        success: true,
+        message: 'Estorno processado com sucesso',
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error(`Erro ao processar estorno: ${error.message}`);
+      throw error;
+    }
   }
 
   @Public()

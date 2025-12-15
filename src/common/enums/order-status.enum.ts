@@ -14,4 +14,5 @@ export enum OrderStatus {
   RETURNED = 'Devolvido',
   LOST = 'Extraviado',
   IN_PROCESS = 'Em analise',
+  REFUNDED = 'devolvido',
 }
