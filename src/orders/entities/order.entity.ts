@@ -33,6 +33,9 @@ export class Order {
   @Column({ type: 'timestamp', nullable: true, name: 'paid_at' })
   paidAt: Date;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  paymentId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
