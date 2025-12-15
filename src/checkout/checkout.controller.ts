@@ -20,6 +20,7 @@ import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { EmailService } from 'src/email/email.service';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
@@ -41,6 +42,7 @@ export class CheckoutController {
     private readonly ordersRepository: Repository<Order>,
     private readonly productsRepository: Repository<Product>,
     private readonly checkoutService: CheckoutService,
+    private readonly emaillSerive: EmailService,
   ) {
     const client = new MercadoPagoConfig({
       accessToken: mercadoPagoConfiguration.accessToken,
@@ -217,10 +219,7 @@ export class CheckoutController {
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
 
-      // Aqui você pode adicionar:
-      // - Enviar email de confirmação
-      // - Notificar sistema de fulfillment
-      // - Gerar nota fiscal
+      await this.emaillSerive.SendEmail(order.user.email, 'Pagamento aprovado');
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido aprovado ${order.id}:`,

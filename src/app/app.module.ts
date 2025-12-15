@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import * as path from 'path';
 import { AuthModule } from 'src/auth/auth.module';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
+import { EmailModule } from 'src/email/email.module';
 import { EmployeesModule } from 'src/employees/employee.module';
 import { JWTBlacklistModule } from 'src/jwt-blacklist/jwt-blacklist.module';
 import { LogsModule } from 'src/logs-register/log.module';
@@ -45,6 +46,7 @@ import { AppService } from './app.service';
     RefreshTokensModule,
     JWTBlacklistModule,
     LogsModule,
+    EmailModule,
     ServeStaticModule.forRoot({
       rootPath: path.resolve(__dirname, '..', '..', 'images'),
       serveRoot: '/images',

@@ -8,18 +8,19 @@ export class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
       host: process.env.HOST,
+      service: process.env.SERVICE,
       port: parseInt(process.env.PORT_EMAIL, 10),
-      secure: false, // true em prod
+      secure: true, // true em prod
       auth: {
         user: process.env.FROM_EMAIL,
-        pass: process.env.PASSSWORD,
+        pass: process.env.PASS,
       },
     });
   }
 
-  async SendEmail(to: string, subject: string, content: string) {
+  async SendEmail(to: string, subject: string, content?: string) {
     const mailOptions = {
-      from: `Não responda <${process.env.FROM_EMAIL}>`,
+      from: process.env.FROM_EMAIL,
       to,
       subject,
       text: content,
