@@ -1,4 +1,5 @@
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { RefundReason } from 'src/common/enums/refund-reason.enum';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -30,8 +31,14 @@ export class Order {
   @Column({ type: 'enum', enum: OrderStatus })
   status: OrderStatus;
 
+  @Column({ type: 'enum', enum: RefundReason, name: 'refund_reason' })
+  refundReason: RefundReason;
+
   @Column({ type: 'timestamp', nullable: true, name: 'paid_at' })
   paidAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'refunded_at' })
+  refundedAt: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentId: string;

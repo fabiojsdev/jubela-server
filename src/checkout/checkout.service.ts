@@ -3,16 +3,23 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import * as mercadopago from 'mercadopago';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrdersService } from 'src/orders/order.service';
+import { Product } from 'src/products/entities/product.entity';
+import { Repository } from 'typeorm';
 import mercadopagoConfig from './config/mercadopago.config';
 import { OrderDTO } from './dto/order.dto';
+import { RefundDTO } from './dto/refund.dto';
 
 @Injectable()
 export class CheckoutService {
@@ -27,6 +34,8 @@ export class CheckoutService {
     private readonly mercadoPagoConfiguration: ConfigType<
       typeof mercadopagoConfig
     >,
+    @InjectRepository(Product)
+    private readonly productsRepository: Repository<Product>,
     private readonly ordersService: OrdersService,
   ) {
     this.client = new mercadopago.MercadoPagoConfig({
@@ -43,7 +52,7 @@ export class CheckoutService {
 
   async RefundOrder(
     orderId: string,
-    refundDTO: any,
+    refundDTO: RefundDTO,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
     const findOrder = await this.ordersService.FindById(orderId);
@@ -58,6 +67,52 @@ export class CheckoutService {
     }
 
     this.ValidateRefundEligibility(findOrder);
+
+    const idmptKey = randomUUID();
+
+    try {
+      const refund = await this.paymentRefundClient.create({
+        payment_id: findOrder.paymentId,
+        body: {
+          amount: refundDTO.amount,
+        },
+        requestOptions: {
+          idempotencyKey: idmptKey,
+        },
+      });
+
+      this.logger.log(`Estorno criado no MP: ${refund.id}`);
+
+      findOrder.items.forEach(async (item) => {
+        const findProduct = await this.productsRepository.findOneBy({
+          id: item.product.id,
+        });
+
+        if (!findProduct) {
+          throw new NotFoundException(
+            `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+          );
+        }
+
+        const updatedProductQuantity = (findProduct.quantity += item.quantity);
+
+        const updateProductQuantity = await this.productsRepository.update(
+          findProduct.id,
+          {
+            quantity: updatedProductQuantity,
+          },
+        );
+
+        if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+          throw new InternalServerErrorException(
+            `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
+          );
+        }
+      });
+    } catch (error) {
+      this.logger.error('Erro ao processar estorno no MP:', error);
+      throw new BadRequestException(this.translateMPError(error.message));
+    }
   }
 
   private ValidateRefundEligibility(order: Order) {
@@ -107,5 +162,24 @@ export class CheckoutService {
 
     this.logger.debug('Resposta MP:' + JSON.stringify(response));
     return response;
+  }
+
+  private translateMPError(errorMessage: string): string {
+    const errors = {
+      payment_too_old_to_be_refunded:
+        'Pagamento muito antigo para estorno (máx 180 dias)',
+      refund_not_found: 'Estorno não encontrado',
+      invalid_payment_status_to_refund:
+        'Status do pagamento não permite estorno',
+      insufficient_amount: 'Saldo insuficiente na conta Mercado Pago',
+    };
+
+    for (const [key, message] of Object.entries(errors)) {
+      if (errorMessage.toLowerCase().includes(key.toLowerCase())) {
+        return message;
+      }
+    }
+
+    return 'Erro ao processar operação no Mercado Pago';
   }
 }

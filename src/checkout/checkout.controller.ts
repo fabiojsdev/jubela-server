@@ -208,6 +208,10 @@ export class CheckoutController {
         );
       }
 
+      await this.ordersRepository.update(orderId, {
+        paymentId: payment.id.toString(),
+      });
+
       switch (status) {
         case 'approved':
           await this.HandleApprovedPayment(order);
@@ -299,7 +303,7 @@ export class CheckoutController {
 
         if (!updateProductQuantity || updateProductQuantity.affected < 1) {
           throw new InternalServerErrorException(
-            `Erro ao tentar devolver unidades de produto ${item.quantity} ao estoque`,
+            `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
           );
         }
       });
