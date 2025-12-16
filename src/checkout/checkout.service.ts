@@ -19,6 +19,7 @@ import { OrdersService } from 'src/orders/order.service';
 import { Product } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
 import mercadopagoConfig from './config/mercadopago.config';
+import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
 import { RefundDTO } from './dto/refund.dto';
 
@@ -188,6 +189,59 @@ export class CheckoutService {
       };
     } catch (error) {
       this.logger.error('Erro no estorno parcial:', error);
+      throw new BadRequestException(this.translateMPError(error.message));
+    }
+  }
+
+  async CancelOrder(
+    orderId: string,
+    cancelDTO: CancelDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    const findOrder = await this.ordersService.FindById(orderId);
+
+    if (
+      findOrder.user.id !== tokenPayloadDTO.sub &&
+      !tokenPayloadDTO.role?.includes('admin')
+    ) {
+      throw new ForbiddenException(
+        'Você não tem permissão para estornar este pedido',
+      );
+    }
+
+    try {
+      await this.paymentClient.cancel({
+        id: findOrder.paymentId,
+      });
+
+      findOrder.items.forEach(async (item) => {
+        const findProduct = await this.productsRepository.findOneBy({
+          id: item.product.id,
+        });
+
+        if (!findProduct) {
+          throw new NotFoundException(
+            `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+          );
+        }
+
+        const updatedProductQuantity = (findProduct.quantity += item.quantity);
+
+        const updateProductQuantity = await this.productsRepository.update(
+          findProduct.id,
+          {
+            quantity: updatedProductQuantity,
+          },
+        );
+
+        if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+          throw new InternalServerErrorException(
+            `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
+          );
+        }
+      });
+    } catch (error) {
+      this.logger.error('Erro ao cancelar:', error);
       throw new BadRequestException(this.translateMPError(error.message));
     }
   }

@@ -34,10 +34,18 @@ export class Order {
   @Column({
     type: 'enum',
     enum: RefundReason,
-    name: 'refund_reason',
+    name: 'refund_reason_code',
     nullable: true,
   })
-  refundReason: RefundReason;
+  refundReasonCode: RefundReason;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'refund_reason',
+  })
+  refundReason: string;
 
   @Column({ type: 'timestamp', nullable: true, name: 'paid_at' })
   paidAt: Date;
@@ -45,8 +53,25 @@ export class Order {
   @Column({ type: 'timestamp', nullable: true, name: 'refunded_at' })
   refundedAt: Date;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, name: 'refund_amount' })
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    name: 'refund_amount',
+    nullable: true,
+  })
   refundAmount: string;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'canceled_at' })
+  canceledAt: Date;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'cancel_reason',
+  })
+  cancelReason: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentId: string;

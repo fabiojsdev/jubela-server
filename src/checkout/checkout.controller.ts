@@ -8,6 +8,7 @@ import {
   Logger,
   NotFoundException,
   Param,
+  Patch,
   Post,
   RawBodyRequest,
   Req,
@@ -28,6 +29,7 @@ import { Product } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
+import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
 import { RefundDTO } from './dto/refund.dto';
 
@@ -122,6 +124,30 @@ export class CheckoutController {
       };
     } catch (error) {
       this.logger.error(`Erro ao processar estorno parcial: ${error.message}`);
+      throw error;
+    }
+  }
+
+  @Patch('orders/:orderId/cancel')
+  async cancelOrder(
+    @Param('orderId') orderId: string,
+    @Body() cancelDto: CancelDTO,
+    @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
+  ) {
+    try {
+      const result = await this.checkoutService.CancelOrder(
+        orderId,
+        cancelDto,
+        tokenPayload,
+      );
+
+      return {
+        success: true,
+        message: 'Pedido cancelado com sucesso',
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error(`Erro ao cancelar pedido: ${error.message}`);
       throw error;
     }
   }
