@@ -36,6 +36,9 @@ export class CheckoutService {
     >,
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+
+    @InjectRepository(Order)
+    private readonly ordersRepository: Repository<Order>,
     private readonly ordersService: OrdersService,
   ) {
     this.client = new mercadopago.MercadoPagoConfig({
@@ -109,6 +112,21 @@ export class CheckoutService {
           );
         }
       });
+
+      await this.ordersRepository.update(orderId, {
+        status: OrderStatus.REFUNDED,
+        refundedAt: new Date(),
+        refundReason: refundDTO.reasonCode,
+      });
+
+      this.logger.log(`✅ Estorno total processado: Order ${orderId}`);
+
+      return {
+        refundId: refund.id,
+        amount: refund.amount,
+        status: refund.status,
+        orderId,
+      };
     } catch (error) {
       this.logger.error('Erro ao processar estorno no MP:', error);
       throw new BadRequestException(this.translateMPError(error.message));

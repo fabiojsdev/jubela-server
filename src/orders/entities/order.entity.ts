@@ -31,7 +31,12 @@ export class Order {
   @Column({ type: 'enum', enum: OrderStatus })
   status: OrderStatus;
 
-  @Column({ type: 'enum', enum: RefundReason, name: 'refund_reason' })
+  @Column({
+    type: 'enum',
+    enum: RefundReason,
+    name: 'refund_reason',
+    nullable: true,
+  })
   refundReason: RefundReason;
 
   @Column({ type: 'timestamp', nullable: true, name: 'paid_at' })
