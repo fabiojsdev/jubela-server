@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpStatus,
@@ -90,6 +91,37 @@ export class CheckoutController {
       };
     } catch (error) {
       this.logger.error(`Erro ao processar estorno: ${error.message}`);
+      throw error;
+    }
+  }
+
+  @Post('orders/:orderId/refund-partial')
+  async refundPartial(
+    @Param('orderId') orderId: string,
+    @Body() refundDto: RefundDTO,
+    @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
+  ) {
+    try {
+      // Validar se tem amount
+      if (!refundDto.amount || refundDto.amount <= 0) {
+        throw new BadRequestException(
+          'Valor do estorno parcial deve ser maior que zero',
+        );
+      }
+
+      const result = await this.checkoutService.RefundOrderPartial(
+        orderId,
+        refundDto,
+        tokenPayload,
+      );
+
+      return {
+        success: true,
+        message: 'Estorno parcial processado com sucesso',
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error(`Erro ao processar estorno parcial: ${error.message}`);
       throw error;
     }
   }

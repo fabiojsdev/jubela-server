@@ -11,8 +11,8 @@ export enum OrderStatus {
   OUT_FOR_DELIVERY = 'Saiu para entrega',
   DELIVERED = 'Entregue',
   WAITING_PICKUP = 'Aguardando retirada',
-  RETURNED = 'Devolvido',
   LOST = 'Extraviado',
   IN_PROCESS = 'Em analise',
-  REFUNDED = 'devolvido',
+  REFUNDED = 'Devolvido',
+  PARTIAL_REFUND = 'Parcialmente devolvido',
 }

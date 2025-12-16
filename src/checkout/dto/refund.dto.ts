@@ -1,5 +1,6 @@
 import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { RefundReason } from 'src/common/enums/refund-reason.enum';
+import { Items } from 'src/orders/entities/items.entity';
 
 export class RefundDTO {
   @IsOptional()
@@ -14,4 +15,7 @@ export class RefundDTO {
   @IsOptional()
   @IsEnum(RefundReason)
   reasonCode?: RefundReason;
+
+  @IsOptional()
+  items?: Items[];
 }

@@ -10,6 +10,7 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
+import Decimal from 'decimal.js';
 import * as mercadopago from 'mercadopago';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
@@ -65,7 +66,7 @@ export class CheckoutService {
       !tokenPayloadDTO.role?.includes('admin')
     ) {
       throw new ForbiddenException(
-        'Você não tem permissão para acessar este pedido',
+        'Você não tem permissão para estornar este pedido',
       );
     }
 
@@ -129,6 +130,64 @@ export class CheckoutService {
       };
     } catch (error) {
       this.logger.error('Erro ao processar estorno no MP:', error);
+      throw new BadRequestException(this.translateMPError(error.message));
+    }
+  }
+
+  async RefundOrderPartial(
+    orderId: string,
+    refundDTO: RefundDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    const findOrder = await this.ordersService.FindById(orderId);
+
+    if (
+      findOrder.user.id !== tokenPayloadDTO.sub &&
+      !tokenPayloadDTO.role?.includes('admin')
+    ) {
+      throw new ForbiddenException(
+        'Você não tem permissão para estornar este pedido',
+      );
+    }
+
+    this.ValidateRefundEligibility(findOrder);
+
+    const idmptKey = randomUUID();
+
+    try {
+      const refund = await this.paymentRefundClient.create({
+        payment_id: findOrder.paymentId,
+        body: {
+          amount: refundDTO.amount,
+        },
+        requestOptions: {
+          idempotencyKey: idmptKey,
+        },
+      });
+
+      const decimal = new Decimal(refundDTO.amount);
+
+      await this.ordersRepository.update(findOrder.id, {
+        status: OrderStatus.PARTIAL_REFUND,
+        refundAmount: decimal.toString(),
+        refundReason: refundDTO.reasonCode,
+      });
+
+      // Email
+      // await this.emailService.sendPartialRefundEmail(order, refundDto.amount!);
+
+      this.logger.log(
+        `✅ Estorno parcial processado: Order ${orderId} - R$ ${refundDTO.amount}`,
+      );
+
+      return {
+        refundId: refund.id,
+        amount: refund.amount,
+        status: refund.status,
+        orderId,
+      };
+    } catch (error) {
+      this.logger.error('Erro no estorno parcial:', error);
       throw new BadRequestException(this.translateMPError(error.message));
     }
   }

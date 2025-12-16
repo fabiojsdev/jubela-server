@@ -45,6 +45,9 @@ export class Order {
   @Column({ type: 'timestamp', nullable: true, name: 'refunded_at' })
   refundedAt: Date;
 
+  @Column({ type: 'numeric', precision: 10, scale: 2, name: 'refund_amount' })
+  refundAmount: string;
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentId: string;
 
