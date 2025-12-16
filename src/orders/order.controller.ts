@@ -1,6 +1,8 @@
 import { Controller, Get, HttpStatus, Query, UseGuards } from '@nestjs/common';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
+import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
@@ -14,9 +16,8 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  async ListOrders() {
-    const allOrders = await this.ordersService.ListOrders();
+  async ListOrders(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
+    const allOrders = await this.ordersService.ListOrders(tokenPayloadDTO);
 
     if (allOrders.length < 1) {
       return {
@@ -29,15 +30,22 @@ export class OrdersController {
   }
 
   @Get('search/price')
-  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  FindByPrice(@Query() paginationByPriceDTO: PaginationByPriceDTO) {
-    return this.ordersService.FindByPrice(paginationByPriceDTO);
+  FindByPrice(
+    @Query() paginationByPriceDTO: PaginationByPriceDTO,
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    return this.ordersService.FindByPrice(
+      paginationByPriceDTO,
+      tokenPayloadDTO,
+    );
   }
 
   @Get('search/item')
-  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
-  FindByItem(@Query() paginationDTO: PaginationDTO) {
-    return this.ordersService.FindByItem(paginationDTO);
+  FindByItem(
+    @Query() paginationDTO: PaginationDTO,
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    return this.ordersService.FindByItem(paginationDTO, tokenPayloadDTO);
   }
 
   @Get('search/user')

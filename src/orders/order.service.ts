@@ -2,11 +2,13 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
+import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Product } from 'src/products/entities/product.entity';
 import { UsersService } from 'src/users/user.service';
@@ -136,7 +138,20 @@ export class OrdersService {
     return orderFindById;
   }
 
-  async ListOrders(paginationAllOrders?: PaginationAllOrdersDTO) {
+  async ListOrders(
+    tokenPayloadDTO: TokenPayloadDTO,
+    paginationAllOrders?: PaginationAllOrdersDTO,
+  ) {
+    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+
+    if (
+      !findUser &&
+      !tokenPayloadDTO.role.includes(EmployeeRole.READ_ORDERS) &&
+      !!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)
+    ) {
+      throw new UnauthorizedException('Ação não permitida');
+    }
+
     const { limit, offset } = paginationAllOrders;
 
     const [findAll, total] = await this.ordersRepository.findAndCount({
@@ -150,7 +165,20 @@ export class OrdersService {
     return [total, ...findAll];
   }
 
-  async FindByPrice(paginationByPriceDTO: PaginationByPriceDTO) {
+  async FindByPrice(
+    paginationByPriceDTO: PaginationByPriceDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+
+    if (
+      !findUser &&
+      !tokenPayloadDTO.role.includes(EmployeeRole.READ_ORDERS) &&
+      !!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)
+    ) {
+      throw new UnauthorizedException('Ação não permitida');
+    }
+
     const { limit, offset, value } = paginationByPriceDTO;
 
     const [orderFindByName, total] = await this.ordersRepository.findAndCount({
@@ -177,7 +205,20 @@ export class OrdersService {
     return [total, ...orderFindByName];
   }
 
-  async FindByItem(paginationDTO: PaginationDTO) {
+  async FindByItem(
+    paginationDTO: PaginationDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+
+    if (
+      !findUser &&
+      !tokenPayloadDTO.role.includes(EmployeeRole.READ_ORDERS) &&
+      !!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)
+    ) {
+      throw new UnauthorizedException('Ação não permitida');
+    }
+
     const { limit, offset, value } = paginationDTO;
 
     const [orderFindByName, total] = await this.ordersRepository.findAndCount({
