@@ -209,6 +209,15 @@ export class CheckoutService {
       );
     }
 
+    if (
+      findOrder.status !== OrderStatus.WAITING_PAYMENT &&
+      findOrder.status !== OrderStatus.IN_PROCESS
+    ) {
+      throw new BadRequestException(
+        'Só é possível cancelar pagamentos pendentes ou em processo',
+      );
+    }
+
     try {
       await this.paymentClient.cancel({
         id: findOrder.paymentId,
@@ -240,6 +249,23 @@ export class CheckoutService {
           );
         }
       });
+
+      await this.ordersRepository.update(orderId, {
+        status: OrderStatus.CANCELED,
+        cancelReason: cancelDTO.reason,
+        canceledAt: new Date(),
+      });
+
+      // Email
+      // await this.emailService.sendCancellationEmail(order);
+
+      this.logger.log(`✅ Pedido cancelado: ${orderId}`);
+
+      return {
+        orderId,
+        status: 'cancelled',
+        message: 'Pedido cancelado com sucesso',
+      };
     } catch (error) {
       this.logger.error('Erro ao cancelar:', error);
       throw new BadRequestException(this.translateMPError(error.message));
