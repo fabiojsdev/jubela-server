@@ -14,6 +14,7 @@ import Decimal from 'decimal.js';
 import * as mercadopago from 'mercadopago';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { Items } from 'src/orders/entities/items.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrdersService } from 'src/orders/order.service';
 import { Product } from 'src/products/entities/product.entity';
@@ -21,6 +22,7 @@ import { Repository } from 'typeorm';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
+import { PartialRefundItemDTO } from './dto/refund-item.dto';
 import { RefundDTO } from './dto/refund.dto';
 
 @Injectable()
@@ -41,6 +43,9 @@ export class CheckoutService {
 
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
+
+    @InjectRepository(Items)
+    private readonly ItemsRepository: Repository<Items>,
     private readonly ordersService: OrdersService,
   ) {
     this.client = new mercadopago.MercadoPagoConfig({
@@ -190,6 +195,35 @@ export class CheckoutService {
     } catch (error) {
       this.logger.error('Erro no estorno parcial:', error);
       throw new BadRequestException(this.translateMPError(error.message));
+    }
+  }
+
+  async ValidateAndCalculateRefund(
+    order: Order,
+    refundItems: PartialRefundItemDTO[],
+  ) {
+    for (const refundItem of refundItems) {
+      const orderItem = await this.ItemsRepository.findOne({
+        where: {
+          id: refundItem.orderItemId,
+          order: { id: order.id }, // Garantir que pertence a este pedido
+        },
+        relations: ['products'],
+      });
+
+      if (!orderItem) {
+        throw new NotFoundException(
+          `Item ${refundItem.product_name}, de id ${refundItem.orderItemId} do pedido ${order.id} não encontrado`,
+        );
+      }
+
+      if (refundItem.quantity > orderItem.quantity) {
+        throw new BadRequestException(
+          `Quantidade de devolução (${refundItem.quantity}) ` +
+            `maior que quantidade comprada (${orderItem.quantity}) ` +
+            `para produto ${orderItem.product.name}`,
+        );
+      }
     }
   }
 
