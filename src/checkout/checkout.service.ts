@@ -202,6 +202,15 @@ export class CheckoutService {
     order: Order,
     refundItems: PartialRefundItemDTO[],
   ) {
+    const refundDetails = {
+      totalAmount: new Decimal(0),
+      items: [] as Array<{
+        item: Items;
+        quantity: number;
+        amount: Decimal;
+      }>,
+    };
+
     for (const refundItem of refundItems) {
       const orderItem = await this.ItemsRepository.findOne({
         where: {
@@ -224,7 +233,21 @@ export class CheckoutService {
             `para produto ${orderItem.product.name}`,
         );
       }
+
+      const itemPrice = new Decimal(orderItem.price);
+      const itemRefundAmount = itemPrice.mul(refundItem.quantity);
+
+      refundDetails.items.push({
+        item: orderItem,
+        quantity: refundItem.quantity,
+        amount: itemPrice,
+      });
+
+      refundDetails.totalAmount =
+        refundDetails.totalAmount.add(itemRefundAmount);
     }
+
+    return refundDetails;
   }
 
   async CancelOrder(
