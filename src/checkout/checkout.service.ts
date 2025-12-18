@@ -177,13 +177,51 @@ export class CheckoutService {
         },
       });
 
-      // const decimal = new Decimal(refundDTO.amount);
+      partialRefundDTO.items.forEach(async (item) => {
+        const findProduct = await this.productsRepository.findOneBy({
+          id: item.productId,
+        });
 
-      // await this.ordersRepository.update(findOrder.id, {
-      //   status: OrderStatus.PARTIAL_REFUND,
-      //   refundAmount: decimal.toString(),
-      //   refundReason: refundDTO.reasonCode,
-      // });
+        if (!findProduct) {
+          throw new NotFoundException(
+            `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+          );
+        }
+
+        const updatedProductQuantity = (findProduct.quantity += item.quantity);
+
+        const updateProductQuantity = await this.productsRepository.update(
+          findProduct.id,
+          {
+            quantity: updatedProductQuantity,
+          },
+        );
+
+        if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+          throw new InternalServerErrorException(
+            `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
+          );
+        }
+      });
+
+      const refundTotal = new Decimal(findOrder.refundAmount);
+      const totalAmount = new Decimal(refundDetails.totalAmount);
+
+      const compare = refundTotal.greaterThan(totalAmount);
+
+      if (compare !== true) {
+        await this.ordersRepository.update(findOrder.id, {
+          status: OrderStatus.REFUNDED,
+          refundAmount: totalAmount.toString(),
+        });
+      } else {
+        const sumValues = refundTotal.add(totalAmount);
+
+        await this.ordersRepository.update(findOrder.id, {
+          status: OrderStatus.PARTIAL_REFUND,
+          refundAmount: sumValues.toString(),
+        });
+      }
 
       // Email
       // await this.emailService.sendPartialRefundEmail(order, refundDto.amount!);
@@ -197,6 +235,15 @@ export class CheckoutService {
         amount: refund.amount,
         status: refund.status,
         orderId,
+        itemsRefunded: refundDetails.items.length,
+        details: refundDetails.items.map((item) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          productName: item.item.product_name;
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          quantity: item.item.quantity;
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          amount: item.amount;
+        }),
       };
     } catch (error) {
       this.logger.error('Erro no estorno parcial:', error);
