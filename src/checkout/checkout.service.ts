@@ -207,7 +207,7 @@ export class CheckoutService {
       items: [] as Array<{
         item: Items;
         quantity: number;
-        amount: Decimal;
+        amount: number;
       }>,
     };
 
@@ -240,14 +240,17 @@ export class CheckoutService {
       refundDetails.items.push({
         item: orderItem,
         quantity: refundItem.quantity,
-        amount: itemPrice,
+        amount: itemRefundAmount.toNumber(),
       });
 
       refundDetails.totalAmount =
         refundDetails.totalAmount.add(itemRefundAmount);
     }
 
-    return refundDetails;
+    return {
+      totalAmount: refundDetails.totalAmount.toNumber(),
+      items: refundDetails.items,
+    };
   }
 
   async CancelOrder(
