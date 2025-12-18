@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpStatus,
@@ -31,6 +30,7 @@ import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
+import { PartialRefundDTO } from './dto/partial-refund.dto';
 import { RefundDTO } from './dto/refund.dto';
 
 @Controller('checkout')
@@ -100,20 +100,13 @@ export class CheckoutController {
   @Post('orders/:orderId/refund-partial')
   async refundPartial(
     @Param('orderId') orderId: string,
-    @Body() refundDto: RefundDTO,
+    @Body() partialRefunDTO: PartialRefundDTO,
     @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
   ) {
     try {
-      // Validar se tem amount
-      if (!refundDto.amount || refundDto.amount <= 0) {
-        throw new BadRequestException(
-          'Valor do estorno parcial deve ser maior que zero',
-        );
-      }
-
       const result = await this.checkoutService.RefundOrderPartial(
         orderId,
-        refundDto,
+        partialRefunDTO,
         tokenPayload,
       );
 

@@ -22,6 +22,7 @@ import { Repository } from 'typeorm';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
+import { PartialRefundDTO } from './dto/partial-refund.dto';
 import { PartialRefundItemDTO } from './dto/refund-item.dto';
 import { RefundDTO } from './dto/refund.dto';
 
@@ -142,7 +143,7 @@ export class CheckoutService {
 
   async RefundOrderPartial(
     orderId: string,
-    refundDTO: RefundDTO,
+    partialRefundDTO: PartialRefundDTO,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
     const findOrder = await this.ordersService.FindById(orderId);
@@ -158,32 +159,37 @@ export class CheckoutService {
 
     this.ValidateRefundEligibility(findOrder);
 
+    const refundDetails = await this.ValidateAndCalculateRefund(
+      findOrder,
+      partialRefundDTO.items,
+    );
+
     const idmptKey = randomUUID();
 
     try {
       const refund = await this.paymentRefundClient.create({
         payment_id: findOrder.paymentId,
         body: {
-          amount: refundDTO.amount,
+          amount: refundDetails.totalAmount,
         },
         requestOptions: {
           idempotencyKey: idmptKey,
         },
       });
 
-      const decimal = new Decimal(refundDTO.amount);
+      // const decimal = new Decimal(refundDTO.amount);
 
-      await this.ordersRepository.update(findOrder.id, {
-        status: OrderStatus.PARTIAL_REFUND,
-        refundAmount: decimal.toString(),
-        refundReason: refundDTO.reasonCode,
-      });
+      // await this.ordersRepository.update(findOrder.id, {
+      //   status: OrderStatus.PARTIAL_REFUND,
+      //   refundAmount: decimal.toString(),
+      //   refundReason: refundDTO.reasonCode,
+      // });
 
       // Email
       // await this.emailService.sendPartialRefundEmail(order, refundDto.amount!);
 
       this.logger.log(
-        `✅ Estorno parcial processado: Order ${orderId} - R$ ${refundDTO.amount}`,
+        `✅ Estorno parcial processado: Pedido ${orderId} - Total R$ ${refundDetails.totalAmount}`,
       );
 
       return {

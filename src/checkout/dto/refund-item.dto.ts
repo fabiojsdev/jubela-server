@@ -8,6 +8,9 @@ export class PartialRefundItemDTO {
   @Min(1)
   quantity: number; // Quantidade que está sendo devolvida
 
+  @IsUUID()
+  productId: string;
+
   @IsString()
   product_name: string;
 }
