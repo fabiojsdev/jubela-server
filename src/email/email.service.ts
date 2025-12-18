@@ -18,7 +18,14 @@ export class EmailService {
     });
   }
 
-  async SendEmail(to: string, subject: string, content?: string) {
+  async SendEmail(
+    to: string,
+    subject: string,
+    content?: string,
+    variables?: any,
+  ) {
+    // Usar no template
+    console.log(variables);
     const mailOptions = {
       from: process.env.FROM_EMAIL,
       to,

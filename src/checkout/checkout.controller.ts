@@ -300,7 +300,17 @@ export class CheckoutController {
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
 
-      await this.emaillSerive.SendEmail(order.user.email, 'Pagamento aprovado');
+      await this.emaillSerive.SendEmail(
+        order.user.email,
+        `Pagamento do pedido ${order.id} aprovado`,
+        'Texto falando que foi aprovado e etc...',
+      );
+
+      await this.emaillSerive.SendEmail(
+        process.env.FROM_EMAIL,
+        `Pagamento do pedido ${order.id} feito pelo cliente ${order.user.email} aprovado`,
+        'Texto falando que foi aprovado e etc...',
+      );
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido aprovado ${order.id}:`,
@@ -360,6 +370,18 @@ export class CheckoutController {
       });
 
       this.logger.log(`❌ Pedido ${order.id} ${newStatus} - estoque liberado`);
+
+      await this.emaillSerive.SendEmail(
+        order.user.email,
+        `Pagamento do pedido ${order.id} rejeitado`,
+        'Texto falando que foi rejeitado e etc...',
+      );
+
+      await this.emaillSerive.SendEmail(
+        process.env.FROM_EMAIL,
+        `Pagamento do pedido ${order.id} feito pelo cliente ${order.user.email} rejeitado`,
+        'Texto falando que foi rejeitado e etc...',
+      );
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido rejeitado ${order.id}:`,
@@ -377,6 +399,22 @@ export class CheckoutController {
     });
 
     this.logger.log(`⏳ Pedido ${order.id} aguardando pagamento`);
+
+    setTimeout(async () => {
+      if (order.status !== OrderStatus.WAITING_PAYMENT) return;
+
+      await this.emaillSerive.SendEmail(
+        order.user.email,
+        `Aguardando pagamento do pedido ${order.id}`,
+        'Texto falando que tá aguardando o pagamento e etc...',
+      );
+
+      await this.emaillSerive.SendEmail(
+        process.env.FROM_EMAIL,
+        `Aguardando pagamento do pedido ${order.id} feito pelo cliente ${order.user.email}`,
+        'Texto falando que tá aguardando o pagamento e etc...',
+      );
+    }, 600000);
   }
 
   private async HandleInProcessPayment(order: Order): Promise<void> {
@@ -385,6 +423,18 @@ export class CheckoutController {
     await this.ordersRepository.update(order.id, {
       status: OrderStatus.IN_PROCESS,
     });
+
+    await this.emaillSerive.SendEmail(
+      order.user.email,
+      `Pagamento do pedido ${order.id} em análise`,
+      'Texto falando que o pagamento está em análise e etc...',
+    );
+
+    await this.emaillSerive.SendEmail(
+      process.env.FROM_EMAIL,
+      `Pagamento do pedido ${order.id} feito pelo cliente ${order.user.email} em análise`,
+      'Texto falando que o pagamento está em análise e etc...',
+    );
 
     this.logger.log(`🔄 Pedido ${order.id} em processamento`);
   }

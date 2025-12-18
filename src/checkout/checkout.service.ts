@@ -14,6 +14,7 @@ import Decimal from 'decimal.js';
 import * as mercadopago from 'mercadopago';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { EmailService } from 'src/email/email.service';
 import { Items } from 'src/orders/entities/items.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrdersService } from 'src/orders/order.service';
@@ -48,6 +49,7 @@ export class CheckoutService {
     @InjectRepository(Items)
     private readonly ItemsRepository: Repository<Items>,
     private readonly ordersService: OrdersService,
+    private readonly emailsService: EmailService,
   ) {
     this.client = new mercadopago.MercadoPagoConfig({
       accessToken: mercadoPagoConfiguration.accessToken,
@@ -129,12 +131,28 @@ export class CheckoutService {
 
       this.logger.log(`✅ Estorno total processado: Order ${orderId}`);
 
-      return {
+      const returnObject = {
         refundId: refund.id,
         amount: refund.amount,
         status: refund.status,
         orderId,
       };
+
+      await this.emailsService.SendEmail(
+        findOrder.user.email,
+        `Devolução do pedido ${orderId} realizada com sucesso`,
+        'Texto falando que foi devolvido e etc...',
+        returnObject,
+      );
+
+      await this.emailsService.SendEmail(
+        process.env.FROM_EMAIL,
+        `Devolução do pedido ${orderId} feita pelo cliente ${findOrder.user.email}`,
+        'Texto falando que foi devolvido e etc...',
+        returnObject,
+      );
+
+      return returnObject;
     } catch (error) {
       this.logger.error('Erro ao processar estorno no MP:', error);
       throw new BadRequestException(this.translateMPError(error.message));
@@ -223,14 +241,7 @@ export class CheckoutService {
         });
       }
 
-      // Email
-      // await this.emailService.sendPartialRefundEmail(order, refundDto.amount!);
-
-      this.logger.log(
-        `✅ Estorno parcial processado: Pedido ${orderId} - Total R$ ${refundDetails.totalAmount}`,
-      );
-
-      return {
+      const returnObject = {
         refundId: refund.id,
         amount: refund.amount,
         status: refund.status,
@@ -245,6 +256,26 @@ export class CheckoutService {
           amount: item.amount;
         }),
       };
+
+      await this.emailsService.SendEmail(
+        findOrder.user.email,
+        `Devolução dos itens ${partialRefundDTO.items} pedido ${orderId} feita pelo cliente ${findOrder.user.email}`,
+        'Texto falando que foi devolvido e etc...',
+        returnObject,
+      );
+
+      await this.emailsService.SendEmail(
+        process.env.FROM_EMAIL,
+        `Devolução dos itens ${partialRefundDTO.items} pedido ${orderId} realizada com sucesso`,
+        'Texto falando que foi devolvido e etc...',
+        returnObject,
+      );
+
+      this.logger.log(
+        `✅ Estorno parcial processado: Pedido ${orderId} - Total R$ ${refundDetails.totalAmount}`,
+      );
+
+      return returnObject;
     } catch (error) {
       this.logger.error('Erro no estorno parcial:', error);
       throw new BadRequestException(this.translateMPError(error.message));
@@ -369,16 +400,29 @@ export class CheckoutService {
         canceledAt: new Date(),
       });
 
-      // Email
-      // await this.emailService.sendCancellationEmail(order);
-
-      this.logger.log(`✅ Pedido cancelado: ${orderId}`);
-
-      return {
+      const returnObject = {
         orderId,
         status: 'cancelled',
         message: 'Pedido cancelado com sucesso',
       };
+
+      await this.emailsService.SendEmail(
+        findOrder.user.email,
+        `Pedido ${orderId} cancelado com sucesso`,
+        'Texto falando que foi cancelado e etc...',
+        returnObject,
+      );
+
+      await this.emailsService.SendEmail(
+        findOrder.user.email,
+        `Pedido ${orderId}, do cliente ${findOrder.user.email} cancelado`,
+        'Texto falando que foi cancelado e etc...',
+        returnObject,
+      );
+
+      this.logger.log(`✅ Pedido cancelado: ${orderId}`);
+
+      return returnObject;
     } catch (error) {
       this.logger.error('Erro ao cancelar:', error);
       throw new BadRequestException(this.translateMPError(error.message));
