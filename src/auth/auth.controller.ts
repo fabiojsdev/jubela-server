@@ -8,12 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { GoogleUser } from '../interfaces/google-user';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/set-metadata.decorator';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
 import { GoogleAuthGuard } from './guards/google.guard';
-import { GoogleUser } from './interfaces/google-user';
 
 @Controller('auth')
 export class AuthController {

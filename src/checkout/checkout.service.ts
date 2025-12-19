@@ -138,19 +138,7 @@ export class CheckoutService {
         orderId,
       };
 
-      await this.emailsService.SendEmail(
-        findOrder.user.email,
-        `Devolução do pedido ${orderId} realizada com sucesso`,
-        'Texto falando que foi devolvido e etc...',
-        returnObject,
-      );
-
-      await this.emailsService.SendEmail(
-        process.env.FROM_EMAIL,
-        `Devolução do pedido ${orderId} feita pelo cliente ${findOrder.user.email}`,
-        'Texto falando que foi devolvido e etc...',
-        returnObject,
-      );
+      await this.emailsService.SendRefundProcessedEmail(findOrder);
 
       return returnObject;
     } catch (error) {
@@ -248,27 +236,20 @@ export class CheckoutService {
         orderId,
         itemsRefunded: refundDetails.items.length,
         details: refundDetails.items.map((item) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          productName: item.item.product_name;
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          quantity: item.item.quantity;
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          amount: item.amount;
+          const items = {
+            productName: item.item.product_name,
+            quantity: item.item.quantity,
+            amount: item.amount,
+          };
+
+          return items;
         }),
       };
 
-      await this.emailsService.SendEmail(
-        findOrder.user.email,
-        `Devolução dos itens ${partialRefundDTO.items} pedido ${orderId} feita pelo cliente ${findOrder.user.email}`,
-        'Texto falando que foi devolvido e etc...',
-        returnObject,
-      );
-
-      await this.emailsService.SendEmail(
-        process.env.FROM_EMAIL,
-        `Devolução dos itens ${partialRefundDTO.items} pedido ${orderId} realizada com sucesso`,
-        'Texto falando que foi devolvido e etc...',
-        returnObject,
+      await this.emailsService.SendPartialRefundEmail(
+        findOrder,
+        returnObject.amount,
+        returnObject.details,
       );
 
       this.logger.log(
@@ -406,18 +387,9 @@ export class CheckoutService {
         message: 'Pedido cancelado com sucesso',
       };
 
-      await this.emailsService.SendEmail(
-        findOrder.user.email,
-        `Pedido ${orderId} cancelado com sucesso`,
-        'Texto falando que foi cancelado e etc...',
-        returnObject,
-      );
-
-      await this.emailsService.SendEmail(
-        findOrder.user.email,
-        `Pedido ${orderId}, do cliente ${findOrder.user.email} cancelado`,
-        'Texto falando que foi cancelado e etc...',
-        returnObject,
+      await this.emailsService.SendOrderCanceledEmail(
+        findOrder,
+        cancelDTO.reason,
       );
 
       this.logger.log(`✅ Pedido cancelado: ${orderId}`);

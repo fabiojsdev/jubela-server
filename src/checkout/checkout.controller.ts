@@ -74,7 +74,7 @@ export class CheckoutController {
   }
 
   @Post('orders/:orderId/refund')
-  async refundOrder(
+  async RefundOrder(
     @Param('orderId') orderId: string,
     @Body() refundDto: RefundDTO,
     @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
@@ -98,7 +98,7 @@ export class CheckoutController {
   }
 
   @Post('orders/:orderId/refund-partial')
-  async refundPartial(
+  async RefundPartial(
     @Param('orderId') orderId: string,
     @Body() partialRefunDTO: PartialRefundDTO,
     @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
@@ -122,7 +122,7 @@ export class CheckoutController {
   }
 
   @Patch('orders/:orderId/cancel')
-  async cancelOrder(
+  async CancelOrder(
     @Param('orderId') orderId: string,
     @Body() cancelDto: CancelDTO,
     @TokenPayloadParam() tokenPayload: TokenPayloadDTO,
@@ -300,17 +300,7 @@ export class CheckoutController {
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
 
-      await this.emaillSerive.SendEmail(
-        order.user.email,
-        `Pagamento do pedido ${order.id} aprovado`,
-        'Texto falando que foi aprovado e etc...',
-      );
-
-      await this.emaillSerive.SendEmail(
-        process.env.FROM_EMAIL,
-        `Pagamento do pedido ${order.id} feito pelo cliente ${order.user.email} aprovado`,
-        'Texto falando que foi aprovado e etc...',
-      );
+      await this.emaillSerive.SendPaymentApprovedEmail(order);
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido aprovado ${order.id}:`,
@@ -371,17 +361,7 @@ export class CheckoutController {
 
       this.logger.log(`❌ Pedido ${order.id} ${newStatus} - estoque liberado`);
 
-      await this.emaillSerive.SendEmail(
-        order.user.email,
-        `Pagamento do pedido ${order.id} rejeitado`,
-        'Texto falando que foi rejeitado e etc...',
-      );
-
-      await this.emaillSerive.SendEmail(
-        process.env.FROM_EMAIL,
-        `Pagamento do pedido ${order.id} feito pelo cliente ${order.user.email} rejeitado`,
-        'Texto falando que foi rejeitado e etc...',
-      );
+      await this.emaillSerive.SendPaymentRejectedEmail(order);
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido rejeitado ${order.id}:`,
@@ -403,17 +383,7 @@ export class CheckoutController {
     setTimeout(async () => {
       if (order.status !== OrderStatus.WAITING_PAYMENT) return;
 
-      await this.emaillSerive.SendEmail(
-        order.user.email,
-        `Aguardando pagamento do pedido ${order.id}`,
-        'Texto falando que tá aguardando o pagamento e etc...',
-      );
-
-      await this.emaillSerive.SendEmail(
-        process.env.FROM_EMAIL,
-        `Aguardando pagamento do pedido ${order.id} feito pelo cliente ${order.user.email}`,
-        'Texto falando que tá aguardando o pagamento e etc...',
-      );
+      await this.emaillSerive.SendPaymentInProcessEmail(order);
     }, 600000);
   }
 
@@ -424,17 +394,7 @@ export class CheckoutController {
       status: OrderStatus.IN_PROCESS,
     });
 
-    await this.emaillSerive.SendEmail(
-      order.user.email,
-      `Pagamento do pedido ${order.id} em análise`,
-      'Texto falando que o pagamento está em análise e etc...',
-    );
-
-    await this.emaillSerive.SendEmail(
-      process.env.FROM_EMAIL,
-      `Pagamento do pedido ${order.id} feito pelo cliente ${order.user.email} em análise`,
-      'Texto falando que o pagamento está em análise e etc...',
-    );
+    await this.emaillSerive.SendPaymentPendingEmail(order);
 
     this.logger.log(`🔄 Pedido ${order.id} em processamento`);
   }
