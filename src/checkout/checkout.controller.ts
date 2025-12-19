@@ -300,7 +300,8 @@ export class CheckoutController {
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
 
-      await this.emaillSerive.SendPaymentApprovedEmail(order);
+      await this.emaillSerive.SendPaymentApprovedEmail(order, false);
+      await this.emaillSerive.SendPaymentApprovedEmail(order, true);
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido aprovado ${order.id}:`,
@@ -361,7 +362,7 @@ export class CheckoutController {
 
       this.logger.log(`❌ Pedido ${order.id} ${newStatus} - estoque liberado`);
 
-      await this.emaillSerive.SendPaymentRejectedEmail(order);
+      await this.emaillSerive.SendPaymentRejectedEmail(order, false);
     } catch (error) {
       this.logger.error(
         `Erro ao processar pedido rejeitado ${order.id}:`,
@@ -383,7 +384,7 @@ export class CheckoutController {
     setTimeout(async () => {
       if (order.status !== OrderStatus.WAITING_PAYMENT) return;
 
-      await this.emaillSerive.SendPaymentInProcessEmail(order);
+      await this.emaillSerive.SendPaymentInProcessEmail(order, false);
     }, 600000);
   }
 
@@ -394,7 +395,7 @@ export class CheckoutController {
       status: OrderStatus.IN_PROCESS,
     });
 
-    await this.emaillSerive.SendPaymentPendingEmail(order);
+    await this.emaillSerive.SendPaymentPendingEmail(order, false);
 
     this.logger.log(`🔄 Pedido ${order.id} em processamento`);
   }

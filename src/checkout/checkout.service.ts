@@ -138,7 +138,8 @@ export class CheckoutService {
         orderId,
       };
 
-      await this.emailsService.SendRefundProcessedEmail(findOrder);
+      await this.emailsService.SendRefundProcessedEmail(findOrder, false);
+      await this.emailsService.SendRefundProcessedEmail(findOrder, true);
 
       return returnObject;
     } catch (error) {
@@ -249,6 +250,14 @@ export class CheckoutService {
       await this.emailsService.SendPartialRefundEmail(
         findOrder,
         returnObject.amount,
+        false,
+        returnObject.details,
+      );
+
+      await this.emailsService.SendPartialRefundEmail(
+        findOrder,
+        returnObject.amount,
+        true,
         returnObject.details,
       );
 
@@ -389,6 +398,7 @@ export class CheckoutService {
 
       await this.emailsService.SendOrderCanceledEmail(
         findOrder,
+        false,
         cancelDTO.reason,
       );
 

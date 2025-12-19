@@ -36,11 +36,17 @@ export class EmailService {
   async SendOrderStatusEmail(
     order: Order,
     status: OrderStatus,
+    forEnterprise: boolean,
     additionalData?: any,
   ) {
     try {
       // Preparar dados baseados no status
-      const emailData = this.PrepareEmailData(order, status, additionalData);
+      const emailData = this.PrepareEmailData(
+        order,
+        status,
+        forEnterprise,
+        additionalData,
+      );
 
       // Renderizar template
       const html = await this.RenderTemplate(emailData);
@@ -73,6 +79,7 @@ export class EmailService {
   private PrepareEmailData(
     order: Order,
     status: OrderStatus,
+    forEnterprise: boolean,
     additionalData?: any,
   ): EmailTemplateData & { subject: string } {
     const baseData: EmailTemplateData = {
@@ -99,7 +106,10 @@ export class EmailService {
         return {
           ...baseData,
           subject: `✅ Pagamento Confirmado - Pedido #${order.id}`,
-          statusMessage: 'Seu pagamento foi aprovado com sucesso!',
+          statusMessage:
+            forEnterprise === true
+              ? `Pagamento feito pelo cliente ${order.user.email} aprovado`
+              : 'Seu pagamento foi aprovado com sucesso!',
           actionMessage: 'Seu pedido está sendo preparado para envio.',
           additionalInfo:
             'Você receberá um email com o código de rastreamento em breve.',
@@ -149,7 +159,10 @@ export class EmailService {
         return {
           ...baseData,
           subject: `💰 Estorno Processado - Pedido #${order.id}`,
-          statusMessage: 'O estorno do seu pedido foi processado com sucesso.',
+          statusMessage:
+            forEnterprise === true
+              ? `Estorno do cliente ${order.user.email} processado.`
+              : 'O estorno do seu pedido foi processado com sucesso.',
           actionMessage: 'O valor será creditado em 5-10 dias úteis.',
           // precisa ser Decimal?
           additionalInfo: `Valor estornado: ${this.FormatCurrency(Number(order.refundAmount))}`,
@@ -159,7 +172,10 @@ export class EmailService {
         return {
           ...baseData,
           subject: `💰 Estorno Parcial Processado - Pedido #${order.id}`,
-          statusMessage: 'Um estorno parcial foi processado para o seu pedido.',
+          statusMessage:
+            forEnterprise === true
+              ? `Estorno parcial do cliente ${order.user.email} processado com sucesso`
+              : 'Um estorno parcial foi processado para o seu pedido.',
           actionMessage: 'O valor será creditado em 5-10 dias úteis.',
           refundAmount: this.FormatCurrency(additionalData?.refundAmount || 0),
           refundedItems: additionalData?.refundedItems?.map((item) => ({
@@ -180,43 +196,83 @@ export class EmailService {
     }
   }
 
-  async SendPaymentApprovedEmail(order: Order) {
-    return this.SendOrderStatusEmail(order, OrderStatus.APPROVED);
+  async SendPaymentApprovedEmail(order: Order, forEnterprise: boolean) {
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.APPROVED,
+      forEnterprise,
+    );
   }
 
-  async SendPaymentRejectedEmail(order: Order, reason?: string) {
-    return this.SendOrderStatusEmail(order, OrderStatus.REJECTED, { reason });
+  async SendPaymentRejectedEmail(
+    order: Order,
+    forEnterprise: boolean,
+    reason?: string,
+  ) {
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.REJECTED,
+      forEnterprise,
+      { reason },
+    );
   }
 
-  async SendPaymentPendingEmail(order: Order) {
-    return this.SendOrderStatusEmail(order, OrderStatus.WAITING_PAYMENT);
+  async SendPaymentPendingEmail(order: Order, forEnterprise: boolean) {
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.WAITING_PAYMENT,
+      forEnterprise,
+    );
   }
 
-  async SendPaymentInProcessEmail(order: Order) {
-    return this.SendOrderStatusEmail(order, OrderStatus.IN_PROCESS);
+  async SendPaymentInProcessEmail(order: Order, forEnterprise: boolean) {
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.IN_PROCESS,
+      forEnterprise,
+    );
   }
 
-  async SendOrderCanceledEmail(order: Order, reason?: string) {
-    return this.SendOrderStatusEmail(order, OrderStatus.CANCELED, { reason });
+  async SendOrderCanceledEmail(
+    order: Order,
+    forEnterprise: boolean,
+    reason?: string,
+  ) {
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.CANCELED,
+      forEnterprise,
+      { reason },
+    );
   }
 
-  async SendRefundProcessedEmail(order: Order) {
-    return this.SendOrderStatusEmail(order, OrderStatus.REFUNDED);
+  async SendRefundProcessedEmail(order: Order, forEnterprise: boolean) {
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.REFUNDED,
+      forEnterprise,
+    );
   }
 
   async SendPartialRefundEmail(
     order: Order,
     refundAmount: number,
+    forEnterprise: boolean,
     refundedItems: Array<{
       productName: string;
       quantity: number;
       amount: number;
     }>,
   ) {
-    return this.SendOrderStatusEmail(order, OrderStatus.PARTIAL_REFUND, {
-      refundAmount,
-      refundedItems,
-    });
+    return this.SendOrderStatusEmail(
+      order,
+      OrderStatus.PARTIAL_REFUND,
+      forEnterprise,
+      {
+        refundAmount,
+        refundedItems,
+      },
+    );
   }
 
   private async RenderTemplate(data: any) {
