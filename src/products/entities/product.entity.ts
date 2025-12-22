@@ -33,6 +33,9 @@ export class Product {
   @Column({ type: 'int' })
   quantity: number;
 
+  @Column({ type: 'int', nullable: true })
+  lowStock: number;
+
   @Column({ type: 'varchar', length: 255 })
   sku: string;
 

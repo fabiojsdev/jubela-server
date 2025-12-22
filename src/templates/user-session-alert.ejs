@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Alerta de Segurança</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 30px auto;
+        background: #ffffff;
+        padding: 24px;
+        border-radius: 6px;
+      }
+
+      h1 {
+        color: #333333;
+      }
+
+      .alert {
+        background-color: #e67e22;
+        color: #ffffff;
+        padding: 16px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+      }
+
+      p {
+        color: #555555;
+        line-height: 1.5;
+      }
+
+      .actions a {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 10px 16px;
+        background-color: #2c3e50;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+
+      .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #888888;
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Alerta de segurança</h1>
+
+      <div class="alert">
+        Identificamos uma atividade incomum na sua conta
+      </div>
+
+      <p>
+        Por segurança, encerramos suas sessões ativas na nossa aplicação.
+      </p>
+
+      <p>
+        Para continuar utilizando sua conta, faça login novamente usando
+        o provedor que você utiliza (Google, Apple, etc).
+      </p>
+
+      <div class="actions">
+        <a href="<%= loginUrl %>" target="_blank">
+          Fazer login novamente
+        </a>
+      </div>
+
+      <p style="margin-top: 20px;">
+        Caso você não reconheça essa atividade, recomendamos verificar
+        a segurança da sua conta no provedor de login.
+      </p>
+
+      <div class="footer">
+        <p>Este é um email automático. Não responda.</p>
+      </div>
+    </div>
+  </body>
+</html>

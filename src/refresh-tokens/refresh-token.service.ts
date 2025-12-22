@@ -9,6 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import jwtConfig from 'src/auth/config/jwt.config';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
+import { RTAlertEmployeeDTO } from 'src/email/dto/rt-alert-employee.dto';
+import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -33,6 +35,7 @@ export class RefreshTokensService {
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
+    private readonly emailsService: EmailService,
   ) {}
 
   async CreateEmployee(sub: Employee) {
@@ -89,7 +92,7 @@ export class RefreshTokensService {
     sub: Employee,
   ) {
     if (refreshTokenData.is_valid !== true) {
-      return this.RevokeAllEmployee(sub, false);
+      return this.RevokeAllEmployee(sub, false, refreshTokenData.token_id);
     } else {
       return 'Token válido. Sem incidentes';
     }
@@ -122,7 +125,7 @@ export class RefreshTokensService {
     return findUsedRefreshToken;
   }
 
-  async RevokeAllEmployee(sub: Employee, isLogout: boolean) {
+  async RevokeAllEmployee(sub: Employee, isLogout: boolean, tokenId?: string) {
     try {
       const findAllUserRT = await this.RTEmployeeRepository.find({
         where: {
@@ -137,9 +140,25 @@ export class RefreshTokensService {
           is_valid: false,
         });
       }
-      // Mandar um email de alerta também
 
       if (isLogout) return;
+
+      const date = new Date();
+      const day = date.getDay().toString();
+      const month = date.getMonth().toString();
+      const year = date.getFullYear().toString();
+      const hour = date.getHours().toString();
+      const minutes = date.getMinutes().toString();
+
+      const alertData: RTAlertEmployeeDTO = {
+        email: sub.email,
+        userId: sub.id,
+        tokenId,
+        occurredAt: `${day}/${month}/${year} - ${hour}:${minutes}`,
+      };
+
+      await this.emailsService.SendRTAlertEmployees(alertData, true);
+      await this.emailsService.SendRTAlertEmployees(alertData, false);
 
       throw new Error('Acessos revogados, contate o suporte');
     } catch (error) {

@@ -25,6 +25,7 @@ export class Order {
 
   @OneToMany(() => Items, (item) => item.order, {
     eager: true,
+    nullable: true,
   })
   items: Items[];
 

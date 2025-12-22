@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -10,6 +11,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
+import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
@@ -25,6 +27,7 @@ export class ProductsService {
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly employeesService: EmployeesService,
+    private readonly emailService: EmailService,
   ) {}
 
   async Create(
@@ -274,6 +277,21 @@ export class ProductsService {
     });
 
     return [total, ...items];
+  }
+
+  async StockCheck(productId: string) {
+    const findProduct = await this.productsRepository.findOneBy({
+      id: productId,
+    });
+
+    const { quantity, lowStock } = findProduct;
+
+    if (quantity < 1) {
+      throw new BadRequestException('Produto esgotado');
+    }
+
+    if (quantity <= lowStock) {
+    }
   }
 
   async FindByName(paginationDTO: PaginationDTO) {

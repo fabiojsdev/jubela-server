@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Alerta de Estoque</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 30px auto;
+        background: #ffffff;
+        padding: 24px;
+        border-radius: 6px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        margin: 0;
+        color: #333333;
+      }
+
+      .alert {
+        padding: 16px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        color: #ffffff;
+      }
+
+      .alert.low {
+        background-color: #f39c12;
+      }
+
+      .alert.out {
+        background-color: #e74c3c;
+      }
+
+      .product-info p {
+        margin: 6px 0;
+        color: #555555;
+      }
+
+      .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #888888;
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1><%= storeName %></h1>
+      </div>
+
+      <% if (productRanOut) { %>
+        <div class="alert out">
+          <strong>Produto esgotado</strong>
+        </div>
+        <p>O produto abaixo está <strong>sem estoque</strong>:</p>
+      <% } else { %>
+        <div class="alert low">
+          <strong>Estoque baixo</strong>
+        </div>
+        <p>O produto abaixo está com <strong>estoque baixo</strong>:</p>
+      <% } %>
+
+      <div class="product-info">
+        <p><strong>Produto:</strong> <%= productName %></p>
+        <p><strong>SKU:</strong> <%= sku %></p>
+        <p><strong>Quantidade em estoque:</strong> <%= stock %></p>
+        <% if (minimumStock) { %>
+          <p><strong>Estoque mínimo configurado:</strong> <%= minimumStock %></p>
+        <% } %>
+      </div>
+
+      <% if (adminUrl) { %>
+        <p style="margin-top: 20px;">
+          <a href="<%= adminUrl %>" target="_blank">
+            Acessar painel para reposição
+          </a>
+        </p>
+      <% } %>
+
+      <div class="footer">
+        <p>Este é um email automático. Não responda.</p>
+      </div>
+    </div>
+  </body>
+</html>

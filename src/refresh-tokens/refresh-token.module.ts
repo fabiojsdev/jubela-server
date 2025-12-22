@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmailModule } from 'src/email/email.module';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
 import { RefreshTokenEmployee } from './entities/refresh-token-employee.entity';
@@ -15,6 +16,7 @@ import { RefreshTokensService } from './refresh-token.service';
       Employee,
       User,
     ]),
+    EmailModule,
   ],
   controllers: [RefreshTokensController],
   providers: [RefreshTokensService],
