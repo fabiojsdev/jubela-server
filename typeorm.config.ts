@@ -1,7 +1,10 @@
 import * as dotenv from 'dotenv';
+import { join } from 'path';
 import { DataSource } from 'typeorm';
 
 dotenv.config();
+
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export default new DataSource({
   type: 'postgres',
@@ -10,11 +13,14 @@ export default new DataSource({
   username: process.env.DATABASE_USERNAME,
   database: process.env.DATABASE_NAME,
   password: process.env.DATABASE_PASSWORD,
-  entities: [
-    `${__dirname}/dist/**/*.entity{.ts,.js}`,
-    `${__dirname}/src/**/*.entity{.ts,.js}`,
-  ],
-  migrations: [`${__dirname}/migrations/*{.ts,.js}`],
+  entities: isDevelopment
+    ? [join(__dirname, 'src/**/*.entity.ts')]
+    : [join(__dirname, 'dist/**/*.entity.js')],
+
+  migrations: isDevelopment
+    ? [join(__dirname, 'migrations/*.ts')]
+    : [join(__dirname, 'dist/migrations/*.js')],
+
   synchronize: false,
   logging: true,
 });
