@@ -5,7 +5,7 @@ import { join } from 'path';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailTemplateData } from 'src/interfaces/email-template';
 import { Order } from 'src/orders/entities/order.entity';
-import { RTAlertEmployeeDTO } from './dto/rt-alert-employee.dto';
+import { RTAlertDTO } from './dto/rt-alert.dto';
 
 @Injectable()
 export class EmailService {
@@ -34,16 +34,43 @@ export class EmailService {
     });
   }
 
-  async SendRTAlertEmployees(
-    alertData: RTAlertEmployeeDTO,
-    forSupportTeam: boolean,
-  ) {
+  async SendRTAlertEmployees(alertData: RTAlertDTO, forSupportTeam: boolean) {
     try {
       // Renderizar template
       const html = await this.RenderTemplate(
         'refresh-token-alert-employees',
         alertData,
       );
+
+      // Enviar email
+      const info = await this.transporter.sendMail({
+        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        to: forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email,
+        subject: 'Alerta de segurança',
+        html,
+      });
+
+      this.logger.log(
+        `Email enviado: ${info.messageId} para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}`,
+      );
+
+      return {
+        success: true,
+        messageId: info.messageId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Erro ao enviar email para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async SendRTAlertUsers(alertData: RTAlertDTO, forSupportTeam: boolean) {
+    try {
+      // Renderizar template
+      const html = await this.RenderTemplate('user-session-alert', alertData);
 
       // Enviar email
       const info = await this.transporter.sendMail({

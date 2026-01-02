@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import jwtConfig from 'src/auth/config/jwt.config';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
-import { RTAlertEmployeeDTO } from 'src/email/dto/rt-alert-employee.dto';
+import { RTAlertDTO } from 'src/email/dto/rt-alert.dto';
 import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -100,7 +100,7 @@ export class RefreshTokensService {
 
   async RefreshTokenVerifyUser(refreshTokenData: RefreshTokenUser, sub: User) {
     if (refreshTokenData.is_valid !== true) {
-      return this.RevokeAllUser(sub, false);
+      return this.RevokeAllUser(sub, false, refreshTokenData.token_id);
     } else {
       return 'Token válido. Sem incidentes';
     }
@@ -150,7 +150,7 @@ export class RefreshTokensService {
       const hour = date.getHours().toString();
       const minutes = date.getMinutes().toString();
 
-      const alertData: RTAlertEmployeeDTO = {
+      const alertData: RTAlertDTO = {
         email: sub.email,
         userId: sub.id,
         tokenId,
@@ -169,7 +169,7 @@ export class RefreshTokensService {
     }
   }
 
-  async RevokeAllUser(sub: User, isLogout: boolean) {
+  async RevokeAllUser(sub: User, isLogout: boolean, tokenId?: string) {
     try {
       const findAllUserRT = await this.RTUserRepository.find({
         where: {
@@ -184,9 +184,27 @@ export class RefreshTokensService {
           is_valid: false,
         });
       }
-      // Mandar um email de alerta também
 
       if (isLogout) return;
+
+      const date = new Date();
+      const day = date.getDay().toString();
+      const month = date.getMonth().toString();
+      const year = date.getFullYear().toString();
+      const hour = date.getHours().toString();
+      const minutes = date.getMinutes().toString();
+
+      // A URL DO LOGIN PODE SER OUTRA, NÃO ESTA
+      const alertData: RTAlertDTO = {
+        email: sub.email,
+        userId: sub.id,
+        tokenId,
+        occurredAt: `${day}/${month}/${year} - ${hour}:${minutes}`,
+        loginUrl: 'https://jubela-client.vercel.app/login',
+      };
+
+      await this.emailsService.SendRTAlertUsers(alertData, true);
+      await this.emailsService.SendRTAlertUsers(alertData, false);
 
       throw new Error('Acessos revogados, contate o suporte');
     } catch (error) {
