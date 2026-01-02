@@ -8,6 +8,7 @@ import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
+import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { LogsService } from 'src/logs-register/log.service';
 import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
@@ -40,6 +41,7 @@ export class AuthService {
     private readonly refreshTokenService: RefreshTokensService,
     private readonly userService: UsersService,
     private readonly logService: LogsService,
+    private readonly emailsService: EmailService,
   ) {}
 
   async LoginEmployee(loginDTO: LoginDTO) {
@@ -134,7 +136,9 @@ export class AuthService {
       employee: employeeData,
     };
 
-    await this.logService.CreateLogEmployee(dataForLog);
+    const createLog = await this.logService.CreateLogEmployee(dataForLog);
+
+    if (!createLog) await this.emailsService.LogIssue('Funcionários');
 
     return {
       accessToken,
@@ -173,7 +177,9 @@ export class AuthService {
       user: findUser,
     };
 
-    await this.logService.CreateLogUser(dataForLog);
+    const createLog = await this.logService.CreateLogUser(dataForLog);
+
+    if (!createLog) await this.emailsService.LogIssue('usuários');
 
     return {
       accessToken,

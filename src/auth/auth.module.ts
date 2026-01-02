@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmailModule } from 'src/email/email.module';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { JWTBlacklistModule } from 'src/jwt-blacklist/jwt-blacklist.module';
 import { LogsModule } from 'src/logs-register/log.module';
@@ -28,6 +29,7 @@ import { HashingServiceProtocol } from './hashing/hashing.service';
     JWTBlacklistModule,
     UsersModule,
     LogsModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [

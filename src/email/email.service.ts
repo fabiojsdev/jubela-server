@@ -70,6 +70,31 @@ export class EmailService {
     }
   }
 
+  async LogIssue(userOrEmployeeLog: string) {
+    try {
+      const info = await this.transporter.sendMail({
+        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        to: process.env.FROM_EMAIL,
+        subject: `Erro ao criar logs de ${userOrEmployeeLog}`,
+      });
+
+      this.logger.log(
+        `Email enviado: ${info.messageId} para ${process.env.FROM_EMAIL}`,
+      );
+
+      return {
+        success: true,
+        messageId: info.messageId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Erro ao enviar email para ${process.env.FROM_EMAIL}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   async SendOrderStatusEmail(
     order: Order,
     status: OrderStatus,
