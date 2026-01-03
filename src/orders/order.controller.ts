@@ -15,37 +15,64 @@ import { OrdersService } from './order.service';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Get()
-  async ListOrders(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
-    const allOrders = await this.ordersService.ListOrders(tokenPayloadDTO);
+  @Get('employees')
+  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
+  async ListOrders() {
+    const allOrders = await this.ordersService.ListOrdersEmployees();
 
     if (allOrders.length < 1) {
       return {
         status: HttpStatus.NO_CONTENT,
-        message: 'Nenhum produto cadastrado ainda',
+        message: 'Nenhum pedido realizado ainda',
       };
     }
 
     return allOrders;
   }
 
-  @Get('search/price')
-  FindByPrice(
+  @Get()
+  async ListOrdersUsers(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
+    const allOrders = await this.ordersService.ListOrdersUsers(tokenPayloadDTO);
+
+    if (allOrders.length < 1) {
+      return {
+        status: HttpStatus.NO_CONTENT,
+        message: 'Nenhum pedido realizado ainda',
+      };
+    }
+
+    return allOrders;
+  }
+
+  @Get('search/price/employees')
+  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
+  FindByPriceEmployees(@Query() paginationByPriceDTO: PaginationByPriceDTO) {
+    return this.ordersService.FindByPriceEmployees(paginationByPriceDTO);
+  }
+
+  @Get('search/price/users')
+  FindByPriceUsers(
     @Query() paginationByPriceDTO: PaginationByPriceDTO,
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    return this.ordersService.FindByPrice(
+    return this.ordersService.FindByPriceUsers(
       paginationByPriceDTO,
       tokenPayloadDTO,
     );
   }
 
-  @Get('search/item')
+  @Get('search/item/employees')
+  @SetRoutePolicy(EmployeeRole.READ_ORDERS)
+  FindByItemEmployees(@Query() paginationDTO: PaginationDTO) {
+    return this.ordersService.FindByItemEmployees(paginationDTO);
+  }
+
+  @Get('search/item/users')
   FindByItem(
     @Query() paginationDTO: PaginationDTO,
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    return this.ordersService.FindByItem(paginationDTO, tokenPayloadDTO);
+    return this.ordersService.FindByItemUsers(paginationDTO, tokenPayloadDTO);
   }
 
   @Get('search/user')

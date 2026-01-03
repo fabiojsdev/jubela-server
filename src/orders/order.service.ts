@@ -12,7 +12,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
-import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Product } from 'src/products/entities/product.entity';
 import { ProductsService } from 'src/products/product.service';
@@ -220,20 +219,7 @@ export class OrdersService {
     return orderFindById;
   }
 
-  async ListOrders(
-    tokenPayloadDTO: TokenPayloadDTO,
-    paginationAllOrders?: PaginationAllOrdersDTO,
-  ) {
-    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
-
-    if (
-      !findUser &&
-      !tokenPayloadDTO.role.includes(EmployeeRole.READ_ORDERS) &&
-      !!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)
-    ) {
-      throw new UnauthorizedException('Ação não permitida');
-    }
-
+  async ListOrdersEmployees(paginationAllOrders?: PaginationAllOrdersDTO) {
     const { limit, offset } = paginationAllOrders;
 
     const [findAll, total] = await this.ordersRepository.findAndCount({
@@ -247,20 +233,33 @@ export class OrdersService {
     return [total, ...findAll];
   }
 
-  async FindByPrice(
-    paginationByPriceDTO: PaginationByPriceDTO,
+  async ListOrdersUsers(
     tokenPayloadDTO: TokenPayloadDTO,
+    paginationAllOrders?: PaginationAllOrdersDTO,
   ) {
     const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
 
-    if (
-      !findUser &&
-      !tokenPayloadDTO.role.includes(EmployeeRole.READ_ORDERS) &&
-      !!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)
-    ) {
+    if (!findUser) {
       throw new UnauthorizedException('Ação não permitida');
     }
 
+    const { limit, offset } = paginationAllOrders;
+
+    const [findAll, total] = await this.ordersRepository.findAndCount({
+      where: {
+        user: findUser,
+      },
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+    });
+
+    return [total, ...findAll];
+  }
+
+  async FindByPriceEmployees(paginationByPriceDTO: PaginationByPriceDTO) {
     const { limit, offset, value } = paginationByPriceDTO;
 
     const [orderFindByName, total] = await this.ordersRepository.findAndCount({
@@ -287,17 +286,79 @@ export class OrdersService {
     return [total, ...orderFindByName];
   }
 
-  async FindByItem(
+  async FindByPriceUsers(
+    paginationByPriceDTO: PaginationByPriceDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
+  ) {
+    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+
+    if (!findUser) {
+      throw new UnauthorizedException('Ação não permitida');
+    }
+
+    const { limit, offset, value } = paginationByPriceDTO;
+
+    const [orderFindByName, total] = await this.ordersRepository.findAndCount({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        total_price: value,
+        user: findUser,
+      },
+    });
+
+    if (!orderFindByName) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por pedidos',
+      );
+    }
+
+    if (orderFindByName.length < 1) {
+      throw new NotFoundException('Pedidos não encontrados');
+    }
+
+    return [total, ...orderFindByName];
+  }
+
+  async FindByItemEmployees(paginationDTO: PaginationDTO) {
+    const { limit, offset, value } = paginationDTO;
+
+    const [orderFindByName, total] = await this.ordersRepository.findAndCount({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'desc',
+      },
+      where: {
+        items: {
+          product_name: value,
+        },
+      },
+    });
+
+    if (!orderFindByName) {
+      throw new InternalServerErrorException(
+        'Erro desconhecido ao tentar pesquisar por pedidos',
+      );
+    }
+
+    if (orderFindByName.length < 1) {
+      throw new NotFoundException('Pedidos não encontrados');
+    }
+
+    return [total, ...orderFindByName];
+  }
+
+  async FindByItemUsers(
     paginationDTO: PaginationDTO,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
     const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
 
-    if (
-      !findUser &&
-      !tokenPayloadDTO.role.includes(EmployeeRole.READ_ORDERS) &&
-      !!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)
-    ) {
+    if (!findUser) {
       throw new UnauthorizedException('Ação não permitida');
     }
 
@@ -313,6 +374,7 @@ export class OrdersService {
         items: {
           product_name: value,
         },
+        user: findUser,
       },
     });
 
