@@ -295,7 +295,7 @@ export class CheckoutController {
     try {
       await this.ordersRepository.update(order.id, {
         status: OrderStatus.APPROVED,
-        paidAt: new Date(),
+        paidAt: Date.now(),
       });
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
@@ -380,12 +380,6 @@ export class CheckoutController {
     });
 
     this.logger.log(`⏳ Pedido ${order.id} aguardando pagamento`);
-
-    setTimeout(async () => {
-      if (order.status !== OrderStatus.WAITING_PAYMENT) return;
-
-      await this.emaillSerive.SendPaymentInProcessEmail(order, false);
-    }, 600000);
   }
 
   private async HandleInProcessPayment(order: Order): Promise<void> {
@@ -395,7 +389,7 @@ export class CheckoutController {
       status: OrderStatus.IN_PROCESS,
     });
 
-    await this.emaillSerive.SendPaymentPendingEmail(order, false);
+    // await this.emaillSerive.SendPaymentPendingEmail(order, false);
 
     this.logger.log(`🔄 Pedido ${order.id} em processamento`);
   }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as path from 'path';
@@ -47,6 +48,7 @@ import { AppService } from './app.service';
     JWTBlacklistModule,
     LogsModule,
     EmailModule,
+    ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
       rootPath: path.resolve(__dirname, '..', '..', 'images'),
       serveRoot: '/images',

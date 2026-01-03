@@ -1,9 +1,13 @@
 import {
+  forwardRef,
+  Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -11,8 +15,9 @@ import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Product } from 'src/products/entities/product.entity';
+import { ProductsService } from 'src/products/product.service';
 import { UsersService } from 'src/users/user.service';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
@@ -34,6 +39,10 @@ export class OrdersService {
     @InjectRepository(Items)
     private readonly orderItemsRepository: Repository<Items>,
     private readonly usersService: UsersService,
+
+    @Inject(forwardRef(() => ProductsService))
+    private readonly productsService: ProductsService,
+    private readonly logger: Logger,
   ) {}
 
   async Create(
@@ -76,6 +85,12 @@ export class OrdersService {
       if (!findProduct) {
         throw new NotFoundException('Produto não encontrado');
       }
+
+      await this.productsService.StockCheck(
+        createOrderItemDTO[i].product.id,
+        createOrderItemDTO[i].quantity,
+        newOrderData.id,
+      );
 
       const quantityUpdate =
         findProduct.quantity - createOrderItemDTO[i].quantity;
@@ -124,6 +139,73 @@ export class OrdersService {
     }
 
     return itemsList;
+  }
+
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async StockRelease() {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+    const expiredOrders = await this.ordersRepository.find({
+      where: {
+        status: OrderStatus.PENDING,
+        createdAt: LessThan(thirtyMinutesAgo),
+      },
+      relations: ['items', 'items.product'],
+    });
+
+    if (expiredOrders.length === 0) {
+      this.logger.log('✅ Nenhuma reserva expirada');
+      return;
+    }
+
+    this.logger.log(`📋 Processando ${expiredOrders.length} pedidos expirados`);
+
+    for (const order of expiredOrders) {
+      try {
+        // Liberar estoque
+        order.items.forEach(async (item) => {
+          const findProduct = await this.productsRepository.findOneBy({
+            id: item.product.id,
+          });
+
+          if (!findProduct) {
+            throw new NotFoundException(
+              `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+            );
+          }
+
+          const updatedProductQuantity = (findProduct.quantity +=
+            item.quantity);
+
+          const updateProductQuantity = await this.productsRepository.update(
+            findProduct.id,
+            {
+              quantity: updatedProductQuantity,
+            },
+          );
+
+          if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+            throw new InternalServerErrorException(
+              `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
+            );
+          }
+        });
+
+        // Cancelar pedido
+        await this.ordersRepository.update(order.id, {
+          status: OrderStatus.CANCELED,
+          cancelReason: 'Expirado (30 minutos sem pagamento)',
+          canceledAt: Date.now(),
+        });
+
+        this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
+      } catch (error) {
+        this.logger.error(
+          `❌ Erro ao processar pedido ${order.id} do cliente ${order.user}`,
+          error,
+        );
+      }
+    }
   }
 
   async FindById(id: string) {

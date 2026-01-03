@@ -13,6 +13,7 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
+import { Order } from 'src/orders/entities/order.entity';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
@@ -24,6 +25,9 @@ import { Product } from './entities/product.entity';
 @Injectable()
 export class ProductsService {
   constructor(
+    @InjectRepository(Order)
+    private readonly ordersRepository: Repository<Order>,
+
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly employeesService: EmployeesService,
@@ -279,18 +283,33 @@ export class ProductsService {
     return [total, ...items];
   }
 
-  async StockCheck(productId: string) {
+  async StockCheck(productId: string, orderQuantity: number, orderId: string) {
+    const orderDelete = await this.ordersRepository.delete(orderId);
+
+    if (orderDelete.affected < 1) {
+      throw new InternalServerErrorException(
+        `Erro ao deletar pedido ${orderId}`,
+      );
+    }
+
     const findProduct = await this.productsRepository.findOneBy({
       id: productId,
     });
 
     const { quantity, lowStock } = findProduct;
 
-    if (quantity < 1) {
-      throw new BadRequestException('Produto esgotado');
-    }
+    switch (true) {
+      case quantity < 1:
+        throw new BadRequestException(`Produto ${findProduct.name} esgotado`);
 
-    if (quantity <= lowStock) {
+      case orderQuantity > quantity:
+        throw new BadRequestException(
+          `Estoque do produto  ${findProduct.name} insuficiente`,
+        );
+
+      case quantity <= lowStock && quantity >= orderQuantity:
+        await this.emailService.LowStockWarn(findProduct.id, findProduct.name);
+        break;
     }
   }
 

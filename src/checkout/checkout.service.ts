@@ -125,7 +125,7 @@ export class CheckoutService {
 
       await this.ordersRepository.update(orderId, {
         status: OrderStatus.REFUNDED,
-        refundedAt: new Date(),
+        refundedAt: Date.now(),
         refundReason: refundDTO.reasonCode,
       });
 
@@ -387,7 +387,7 @@ export class CheckoutService {
       await this.ordersRepository.update(orderId, {
         status: OrderStatus.CANCELED,
         cancelReason: cancelDTO.reason,
-        canceledAt: new Date(),
+        canceledAt: Date.now(),
       });
 
       const returnObject = {
@@ -396,11 +396,11 @@ export class CheckoutService {
         message: 'Pedido cancelado com sucesso',
       };
 
-      await this.emailsService.SendOrderCanceledEmail(
-        findOrder,
-        false,
-        cancelDTO.reason,
-      );
+      // await this.emailsService.SendOrderCanceledEmail(
+      //   findOrder,
+      //   false,
+      //   cancelDTO.reason,
+      // );
 
       this.logger.log(`✅ Pedido cancelado: ${orderId}`);
 

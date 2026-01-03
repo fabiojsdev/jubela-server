@@ -122,6 +122,8 @@ export class EmailService {
     }
   }
 
+  async LowStockWarn(productId: string, productName: string) {}
+
   async SendOrderStatusEmail(
     order: Order,
     status: OrderStatus,
@@ -215,23 +217,23 @@ export class EmailService {
             'Entre em contato com seu banco para mais informações.',
         };
 
-      case OrderStatus.WAITING_PAYMENT:
-        return {
-          ...baseData,
-          subject: `⏳ Aguardando Pagamento - Pedido #${order.id}`,
-          statusMessage: 'Estamos aguardando a confirmação do seu pagamento.',
-          actionMessage: 'Complete o pagamento para prosseguir.',
-          additionalInfo: 'O pedido expira em 30 minutos se não for pago.',
-        };
+      // case OrderStatus.WAITING_PAYMENT:
+      //   return {
+      //     ...baseData,
+      //     subject: `⏳ Aguardando Pagamento - Pedido #${order.id}`,
+      //     statusMessage: 'Estamos aguardando a confirmação do seu pagamento.',
+      //     actionMessage: 'Complete o pagamento para prosseguir.',
+      //     additionalInfo: 'O pedido expira em 30 minutos se não for pago.',
+      //   };
 
-      case OrderStatus.IN_PROCESS:
-        return {
-          ...baseData,
-          subject: `🔄 Pagamento em Análise - Pedido #${order.id}`,
-          statusMessage: 'Seu pagamento está sendo analisado.',
-          actionMessage: 'Isso pode levar alguns minutos.',
-          additionalInfo: 'Você receberá um email assim que for aprovado.',
-        };
+      // case OrderStatus.IN_PROCESS:
+      //   return {
+      //     ...baseData,
+      //     subject: `🔄 Pagamento em Análise - Pedido #${order.id}`,
+      //     statusMessage: 'Seu pagamento está sendo analisado.',
+      //     actionMessage: 'Isso pode levar alguns minutos.',
+      //     additionalInfo: 'Você receberá um email assim que for aprovado.',
+      //   };
 
       case OrderStatus.CANCELED:
         return {
@@ -306,34 +308,34 @@ export class EmailService {
     );
   }
 
-  async SendPaymentPendingEmail(order: Order, forEnterprise: boolean) {
-    return this.SendOrderStatusEmail(
-      order,
-      OrderStatus.WAITING_PAYMENT,
-      forEnterprise,
-    );
-  }
+  // async SendPaymentPendingEmail(order: Order, forEnterprise: boolean) {
+  //   return this.SendOrderStatusEmail(
+  //     order,
+  //     OrderStatus.WAITING_PAYMENT,
+  //     forEnterprise,
+  //   );
+  // }
 
-  async SendPaymentInProcessEmail(order: Order, forEnterprise: boolean) {
-    return this.SendOrderStatusEmail(
-      order,
-      OrderStatus.IN_PROCESS,
-      forEnterprise,
-    );
-  }
+  // async SendPaymentInProcessEmail(order: Order, forEnterprise: boolean) {
+  //   return this.SendOrderStatusEmail(
+  //     order,
+  //     OrderStatus.IN_PROCESS,
+  //     forEnterprise,
+  //   );
+  // }
 
-  async SendOrderCanceledEmail(
-    order: Order,
-    forEnterprise: boolean,
-    reason?: string,
-  ) {
-    return this.SendOrderStatusEmail(
-      order,
-      OrderStatus.CANCELED,
-      forEnterprise,
-      { reason },
-    );
-  }
+  // async SendOrderCanceledEmail(
+  //   order: Order,
+  //   forEnterprise: boolean,
+  //   reason?: string,
+  // ) {
+  //   return this.SendOrderStatusEmail(
+  //     order,
+  //     OrderStatus.CANCELED,
+  //     forEnterprise,
+  //     { reason },
+  //   );
+  // }
 
   async SendRefundProcessedEmail(order: Order, forEnterprise: boolean) {
     return this.SendOrderStatusEmail(
