@@ -308,8 +308,8 @@ export class ProductsService {
         );
 
       case quantity <= lowStock && quantity >= orderQuantity:
-        await this.emailService.LowStockWarn(findProduct.id, findProduct.name);
-        break;
+        await this.emailService.LowStockWarn(findProduct);
+        return;
     }
   }
 

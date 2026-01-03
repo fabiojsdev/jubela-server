@@ -5,6 +5,7 @@ import { join } from 'path';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailTemplateData } from 'src/interfaces/email-template';
 import { Order } from 'src/orders/entities/order.entity';
+import { Product } from 'src/products/entities/product.entity';
 import { RTAlertDTO } from './dto/rt-alert.dto';
 
 @Injectable()
@@ -122,7 +123,40 @@ export class EmailService {
     }
   }
 
-  async LowStockWarn(productId: string, productName: string) {}
+  async LowStockWarn(product: Product) {
+    try {
+      const productData = {
+        productRanOut: product.quantity < 1 ? true : false,
+        productName: product.name,
+        sku: product.sku,
+        stock: product.quantity,
+      };
+
+      const html = await this.RenderTemplate('stock-alert', productData);
+
+      const info = await this.transporter.sendMail({
+        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        to: process.env.FROM_EMAIL,
+        subject: 'Produto com baixo estoque ou esgotado',
+        html,
+      });
+
+      this.logger.log(
+        `Email enviado: ${info.messageId} para ${process.env.FROM_EMAIL}`,
+      );
+
+      return {
+        success: true,
+        messageId: info.messageId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Erro ao enviar email para ${process.env.FROM_EMAIL}:`,
+        error,
+      );
+      throw error;
+    }
+  }
 
   async SendOrderStatusEmail(
     order: Order,
