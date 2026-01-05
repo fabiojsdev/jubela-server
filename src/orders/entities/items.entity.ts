@@ -16,9 +16,9 @@ export class Items {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: string;
 
-  @ManyToOne(() => Order, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Order, { onDelete: 'RESTRICT', nullable: false })
   order: Order;
 
-  @ManyToOne(() => Product, { onDelete: 'RESTRICT', nullable: true })
+  @ManyToOne(() => Product, { onDelete: 'RESTRICT', nullable: false })
   product: Product;
 }
