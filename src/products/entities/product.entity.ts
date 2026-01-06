@@ -42,9 +42,7 @@ export class Product {
   @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
   employee: Employee;
 
-  @OneToMany(() => Items, (orderItem) => orderItem.product, {
-    eager: true,
-  })
+  @OneToMany(() => Items, (orderItem) => orderItem.product)
   orderItem: Items[];
 
   @CreateDateColumn()

@@ -23,10 +23,7 @@ export class Order {
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   user: User;
 
-  @OneToMany(() => Items, (item) => item.order, {
-    eager: true,
-    nullable: true,
-  })
+  @OneToMany(() => Items, (item) => item.order)
   items: Items[];
 
   @Column({ type: 'enum', enum: OrderStatus })

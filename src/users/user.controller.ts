@@ -29,7 +29,6 @@ export class UsersController {
 
   @Public()
   @Post()
-  @UsePipes(ReqBodyPhoneNumberValidation)
   Create(@Body() body: CreateUserDTO) {
     return this.usersService.Create(body);
   }

@@ -283,14 +283,15 @@ export class ProductsService {
     return [total, ...items];
   }
 
-  async StockCheck(productId: string, orderQuantity: number, orderId: string) {
-    const orderDelete = await this.ordersRepository.delete(orderId);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async StockCheck(productId: string, orderQuantity: number, orderId?: string) {
+    // const orderDelete = await this.ordersRepository.delete(orderId);
 
-    if (orderDelete.affected < 1) {
-      throw new InternalServerErrorException(
-        `Erro ao deletar pedido ${orderId}`,
-      );
-    }
+    // if (orderDelete.affected < 1) {
+    //   throw new InternalServerErrorException(
+    //     `Erro ao deletar pedido ${orderId}`,
+    //   );
+    // }
 
     const findProduct = await this.productsRepository.findOneBy({
       id: productId,

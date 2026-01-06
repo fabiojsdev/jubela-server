@@ -11,7 +11,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
-import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Product } from 'src/products/entities/product.entity';
 import { ProductsService } from 'src/products/product.service';
@@ -34,9 +33,6 @@ export class OrdersService {
 
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-
-    @InjectRepository(Items)
-    private readonly orderItemsRepository: Repository<Items>,
     private readonly usersService: UsersService,
 
     @Inject(forwardRef(() => ProductsService))
@@ -46,90 +42,103 @@ export class OrdersService {
 
   async Create(
     createOrderItemDTO: CreateOrderItemDTO[],
-    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+    tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    const decimal = new Decimal(0);
+    const queryRunner =
+      this.ordersRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    for (let i = 0; i < createOrderItemDTO.length; i++) {
-      decimal.add(createOrderItemDTO[i].price);
-    }
+    try {
+      const decimal = createOrderItemDTO.reduce(
+        (sum, item) => sum.add(item.price),
+        new Decimal(0),
+      );
 
-    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+      const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
 
-    const orderData = {
-      total_price: decimal.toString(),
-      user: findUser,
-      items: [],
-      status: OrderStatus.PENDING,
-      paidAt: null,
-    };
-
-    const orderCreate = this.ordersRepository.create(orderData);
-
-    const newOrderData = await this.ordersRepository.save(orderCreate);
-
-    for (let i = 0; i < createOrderItemDTO.length; i++) {
-      const itemData = {
-        product_name: createOrderItemDTO[i].product_name,
-        quantity: createOrderItemDTO[i].quantity,
-        price: createOrderItemDTO[i].price,
-        order: newOrderData,
-        product: createOrderItemDTO[i].product,
+      const orderData = {
+        total_price: decimal.toString(),
+        user: findUser,
+        items: [],
+        status: OrderStatus.PENDING,
+        paidAt: null,
       };
 
-      const findProduct = await this.productsRepository.findOneBy({
-        id: createOrderItemDTO[i].product.id,
-      });
+      const orderCreate = queryRunner.manager.create(Order, orderData);
 
-      if (!findProduct) {
-        throw new NotFoundException('Produto não encontrado');
-      }
+      const newOrderData = await queryRunner.manager.save(orderCreate);
 
-      await this.productsService.StockCheck(
-        createOrderItemDTO[i].product.id,
-        createOrderItemDTO[i].quantity,
-        newOrderData.id,
-      );
+      for (let i = 0; i < createOrderItemDTO.length; i++) {
+        const findProduct = await this.productsRepository.findOneBy({
+          id: createOrderItemDTO[i].product.id,
+        });
 
-      const quantityUpdate =
-        findProduct.quantity - createOrderItemDTO[i].quantity;
+        if (!findProduct) {
+          throw new NotFoundException('Produto não encontrado');
+        }
 
-      const productQuantityUpdate = await this.productsRepository.update(
-        createOrderItemDTO[i].product.id,
-        {
-          quantity: quantityUpdate,
-        },
-      );
+        const itemData = {
+          product_name: createOrderItemDTO[i].product_name,
+          quantity: createOrderItemDTO[i].quantity,
+          price: createOrderItemDTO[i].price,
+          order: newOrderData,
+          product: findProduct,
+        };
 
-      if (!productQuantityUpdate || productQuantityUpdate.affected < 1) {
-        throw new InternalServerErrorException(
-          `Erro ao atualizar quantidade do produto ${createOrderItemDTO[i].product_name}`,
+        await this.productsService.StockCheck(
+          findProduct.id,
+          findProduct.quantity,
         );
+
+        const quantityUpdate =
+          findProduct.quantity - createOrderItemDTO[i].quantity;
+
+        const productQuantityUpdate = await queryRunner.manager.update(
+          Product,
+          findProduct.id,
+          {
+            quantity: quantityUpdate,
+          },
+        );
+
+        if (!productQuantityUpdate || productQuantityUpdate.affected < 1) {
+          throw new InternalServerErrorException(
+            `Erro ao atualizar quantidade do produto ${createOrderItemDTO[i].product_name}`,
+          );
+        }
+
+        const orderItemCreate = queryRunner.manager.create(Items, itemData);
+
+        await queryRunner.manager.save(orderItemCreate);
       }
 
-      const orderItemCreate = this.orderItemsRepository.create(itemData);
+      await queryRunner.commitTransaction();
 
-      await this.orderItemsRepository.save(orderItemCreate);
+      const findOrder = await this.FindById(newOrderData.id);
+
+      const createPreferenceObject = this.ReturnItemsMPObject(findOrder.items);
+
+      return {
+        items: createPreferenceObject,
+        payer: {
+          email: findUser.email,
+          name: findUser.name,
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    const findOrder = await this.FindById(newOrderData.id);
-
-    const createPreferenceObject = this.ReturnItemsMPObject(findOrder.items);
-
-    return {
-      items: createPreferenceObject,
-      payer: {
-        email: findUser.email,
-        name: findUser.name,
-      },
-    };
   }
 
   ReturnItemsMPObject(items: Items[]) {
     const itemsList = [];
     for (let i = 0; i < items.length; i++) {
       itemsList.push({
-        id: items[i].product.id,
+        id: items[i].id,
         title: items[i].product_name,
         quantity: items[i].quantity,
         currency_id: 'BRL',
@@ -208,8 +217,13 @@ export class OrdersService {
   }
 
   async FindById(id: string) {
-    const orderFindById = await this.ordersRepository.findOneBy({
-      id,
+    const orderFindById = await this.ordersRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        items: true,
+      },
     });
 
     if (!orderFindById) {

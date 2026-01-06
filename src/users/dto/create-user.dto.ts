@@ -1,11 +1,4 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Length,
-} from 'class-validator';
-import { Order } from 'src/orders/entities/order.entity';
+import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
 
 export class CreateUserDTO {
   @IsNotEmpty({
@@ -30,7 +23,4 @@ export class CreateUserDTO {
     message: 'campo "nome" deve ter no máximo 125 caracteres',
   })
   readonly name: string;
-
-  @IsOptional()
-  readonly order_history: Order[];
 }
