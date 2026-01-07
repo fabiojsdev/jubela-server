@@ -1,11 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import ejs from 'ejs';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as ejs from 'ejs';
 import * as nodemailer from 'nodemailer';
 import { join } from 'path';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailTemplateData } from 'src/interfaces/email-template';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { Repository } from 'typeorm';
 import { RTAlertDTO } from './dto/rt-alert.dto';
 
 @Injectable()
@@ -13,12 +15,15 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(EmailService.name);
 
-  constructor() {
+  constructor(
+    @InjectRepository(Order)
+    private readonly ordersRepository: Repository<Order>,
+  ) {
     this.transporter = nodemailer.createTransport({
       host: process.env.HOST,
       service: process.env.SERVICE,
       port: parseInt(process.env.PORT_EMAIL, 10),
-      secure: true, // true em prod
+      secure: false, // true em prod
       auth: {
         user: process.env.FROM_EMAIL,
         pass: process.env.PASS,
@@ -45,7 +50,7 @@ export class EmailService {
 
       // Enviar email
       const info = await this.transporter.sendMail({
-        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        from: process.env.FROM_EMAIL,
         to: forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email,
         subject: 'Alerta de segurança',
         html,
@@ -75,7 +80,7 @@ export class EmailService {
 
       // Enviar email
       const info = await this.transporter.sendMail({
-        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        from: process.env.FROM_EMAIL,
         to: forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email,
         subject: 'Alerta de segurança',
         html,
@@ -101,7 +106,7 @@ export class EmailService {
   async LogIssue(userOrEmployeeLog: string) {
     try {
       const info = await this.transporter.sendMail({
-        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        from: process.env.FROM_EMAIL,
         to: process.env.FROM_EMAIL,
         subject: `Erro ao criar logs de ${userOrEmployeeLog}`,
       });
@@ -135,7 +140,7 @@ export class EmailService {
       const html = await this.RenderTemplate('stock-alert', productData);
 
       const info = await this.transporter.sendMail({
-        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
+        from: process.env.FROM_EMAIL,
         to: process.env.FROM_EMAIL,
         subject: 'Produto com baixo estoque ou esgotado',
         html,
@@ -164,10 +169,26 @@ export class EmailService {
     forEnterprise: boolean,
     additionalData?: any,
   ) {
+    const findOrder = await this.ordersRepository.findOne({
+      where: {
+        id: order.id,
+      },
+      relations: {
+        items: true,
+        user: true,
+      },
+    });
+
+    if (status !== findOrder.status) {
+      throw new BadRequestException(
+        `Status enviado diferente do status do pedido ${order}`,
+      );
+    }
+
     try {
       // Preparar dados baseados no status
       const emailData = this.PrepareEmailData(
-        order,
+        findOrder,
         status,
         forEnterprise,
         additionalData,
@@ -178,14 +199,17 @@ export class EmailService {
 
       // Enviar email
       const info = await this.transporter.sendMail({
-        from: `"Não responda" <${process.env.FROM_EMAIL}>`,
-        to: order.user.email,
+        from: process.env.FROM_EMAIL,
+        to:
+          forEnterprise === true
+            ? process.env.FROM_EMAIL
+            : findOrder.user.email,
         subject: emailData.subject,
         html,
       });
 
       this.logger.log(
-        `Email enviado: ${info.messageId} para ${order.user.email}`,
+        `Email enviado: ${info.messageId} para ${findOrder.user.email}`,
       );
 
       return {
@@ -194,7 +218,7 @@ export class EmailService {
       };
     } catch (error) {
       this.logger.error(
-        `Erro ao enviar email para ${order.user.email}:`,
+        `Erro ao enviar email para ${findOrder.user.email}:`,
         error,
       );
       throw error;
@@ -210,12 +234,10 @@ export class EmailService {
     const baseData: EmailTemplateData = {
       customerName: order.user.name,
       orderId: order.id,
-      // precisa ser Decimal?
       orderTotal: this.FormatCurrency(Number(order.total_price)),
       orderItems: order.items?.map((item) => ({
-        name: item.product.name,
+        name: item.product_name,
         quantity: item.quantity,
-        // precisa ser Decimal?
         price: this.FormatCurrency(Number(item.price)),
       })),
       status,
@@ -223,6 +245,9 @@ export class EmailService {
       actionMessage: '',
       // explicar
       actionUrl: `${process.env.FRONTEND_URL}/orders/${order.id}`,
+      additionalInfo: '',
+      refundAmount: additionalData.refundAmount,
+      refundedItems: additionalData.refundedItems,
     };
 
     // Configurações específicas por status
@@ -269,16 +294,16 @@ export class EmailService {
       //     additionalInfo: 'Você receberá um email assim que for aprovado.',
       //   };
 
-      case OrderStatus.CANCELED:
-        return {
-          ...baseData,
-          subject: `🚫 Pedido Cancelado - #${order.id}`,
-          statusMessage: 'Seu pedido foi cancelado.',
-          actionMessage: 'Nenhuma cobrança foi realizada.',
-          additionalInfo:
-            additionalData?.reason ||
-            'Se precisar de ajuda, entre em contato conosco.',
-        };
+      // case OrderStatus.CANCELED:
+      //   return {
+      //     ...baseData,
+      //     subject: `🚫 Pedido Cancelado - #${order.id}`,
+      //     statusMessage: 'Seu pedido foi cancelado.',
+      //     actionMessage: 'Nenhuma cobrança foi realizada.',
+      //     additionalInfo:
+      //       additionalData?.reason ||
+      //       'Se precisar de ajuda, entre em contato conosco.',
+      //   };
 
       case OrderStatus.REFUNDED:
         return {

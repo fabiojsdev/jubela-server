@@ -282,10 +282,10 @@
         <% refundedItems.forEach(function(item) { %>
         <div class="item">
           <div>
-            <div class="item-name"><%= item.name %></div>
-            <div class="item-details">Quantidade: <%= item.quantity %></div>
+            <div class="item-name"><%= item.name %></div><br>
+            <div class="item-details">Quantidade: <%= item.quantity %></div><br>
           </div>
-          <div class="detail-value"><%= item.amount %></div>
+          <div class="detail-value">valor total: <%= item.amount %></div>
         </div>
         <% }); %>
       </div>

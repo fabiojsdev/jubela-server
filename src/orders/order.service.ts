@@ -223,6 +223,7 @@ export class OrdersService {
       },
       relations: {
         items: true,
+        user: true,
       },
     });
 
