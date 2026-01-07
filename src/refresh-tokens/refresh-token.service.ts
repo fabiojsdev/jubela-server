@@ -143,18 +143,35 @@ export class RefreshTokensService {
 
       if (isLogout) return;
 
-      const date = new Date();
-      const day = date.getDay().toString();
-      const month = date.getMonth().toString();
-      const year = date.getFullYear().toString();
-      const hour = date.getHours().toString();
-      const minutes = date.getMinutes().toString();
+      const dateObj = new Date();
+
+      const localDate = dateObj.toLocaleString('pt-br', {
+        dateStyle: 'short',
+      });
+
+      const localHour = dateObj.toLocaleTimeString('pt-br', {
+        hourCycle: 'h24',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      const localDateReplace = localDate.replaceAll('/', '-');
+      const year = localDateReplace.slice(6, 10);
+      const month = localDateReplace.slice(3, 5);
+      const day = localDateReplace.slice(0, 2);
+
+      const hours = localHour.slice(0, 2);
+      const minutes = localHour.slice(3, 5);
+      const seconds = localHour.slice(6, 9);
+
+      const hourString = `${hours}:${minutes}:${seconds}`;
 
       const alertData: RTAlertDTO = {
         email: sub.email,
         userId: sub.id,
         tokenId,
-        occurredAt: `${day}/${month}/${year} - ${hour}:${minutes}`,
+        occurredAt: `${day}/${month}/${year} - ${hourString}`,
       };
 
       await this.emailsService.SendRTAlertEmployees(alertData, true);
@@ -187,19 +204,36 @@ export class RefreshTokensService {
 
       if (isLogout) return;
 
-      const date = new Date();
-      const day = date.getDay().toString();
-      const month = date.getMonth().toString();
-      const year = date.getFullYear().toString();
-      const hour = date.getHours().toString();
-      const minutes = date.getMinutes().toString();
+      const dateObj = new Date();
+
+      const localDate = dateObj.toLocaleString('pt-br', {
+        dateStyle: 'short',
+      });
+
+      const localHour = dateObj.toLocaleTimeString('pt-br', {
+        hourCycle: 'h24',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      const localDateReplace = localDate.replaceAll('/', '-');
+      const year = localDateReplace.slice(6, 10);
+      const month = localDateReplace.slice(3, 5);
+      const day = localDateReplace.slice(0, 2);
+
+      const hours = localHour.slice(0, 2);
+      const minutes = localHour.slice(3, 5);
+      const seconds = localHour.slice(6, 9);
+
+      const hourString = `${hours}:${minutes}:${seconds}`;
 
       // A URL DO LOGIN PODE SER OUTRA, NÃO ESTA
       const alertData: RTAlertDTO = {
         email: sub.email,
         userId: sub.id,
         tokenId,
-        occurredAt: `${day}/${month}/${year} - ${hour}:${minutes}`,
+        occurredAt: `${day}/${month}/${year} - ${hourString}`,
         loginUrl: 'https://jubela-client.vercel.app/login',
       };
 
