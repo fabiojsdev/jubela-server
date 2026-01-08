@@ -42,6 +42,7 @@ export class RefreshTokensService {
     const rtData = {
       is_valid: true,
       employee: sub,
+      expiresAt: new Date(Number(process.env.JWT_REFRESH_TOKEN_TTL) * 1000),
     };
 
     const rtCreate = this.RTEmployeeRepository.create(rtData);
@@ -57,6 +58,7 @@ export class RefreshTokensService {
     const rtData = {
       is_valid: true,
       user: sub,
+      expiresAt: new Date(Number(process.env.JWT_REFRESH_TOKEN_TTL) * 1000),
     };
 
     const rtCreate = this.RTUserRepository.create(rtData);
@@ -94,6 +96,19 @@ export class RefreshTokensService {
     if (refreshTokenData.is_valid !== true) {
       return this.RevokeAllEmployee(sub, false, refreshTokenData.token_id);
     } else {
+      if (new Date() > refreshTokenData.expiresAt) {
+        const rtInvalidate = await this.InvalidateRefreshToken(
+          refreshTokenData.id,
+        );
+
+        if (!rtInvalidate || rtInvalidate.affected < 1) {
+          throw new InternalServerErrorException(
+            'Erro ao atualizar estado de token',
+          );
+        }
+
+        throw new UnauthorizedException('Token expirado');
+      }
       return 'Token válido. Sem incidentes';
     }
   }
@@ -102,6 +117,19 @@ export class RefreshTokensService {
     if (refreshTokenData.is_valid !== true) {
       return this.RevokeAllUser(sub, false, refreshTokenData.token_id);
     } else {
+      if (new Date() > refreshTokenData.expiresAt) {
+        const rtInvalidate = await this.InvalidateRefreshToken(
+          refreshTokenData.id,
+        );
+
+        if (!rtInvalidate || rtInvalidate.affected < 1) {
+          throw new InternalServerErrorException(
+            'Erro ao atualizar estado de token',
+          );
+        }
+
+        throw new UnauthorizedException('Token expirado');
+      }
       return 'Token válido. Sem incidentes';
     }
   }

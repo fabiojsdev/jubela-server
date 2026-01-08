@@ -203,7 +203,7 @@ export class OrdersService {
         await this.ordersRepository.update(order.id, {
           status: OrderStatus.CANCELED,
           cancelReason: 'Expirado (30 minutos sem pagamento)',
-          canceledAt: Date.now(),
+          canceledAt: new Date(),
         });
 
         this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);

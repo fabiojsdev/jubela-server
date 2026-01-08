@@ -125,7 +125,7 @@ export class CheckoutService {
 
       await this.ordersRepository.update(orderId, {
         status: OrderStatus.REFUNDED,
-        refundedAt: Date.now(),
+        refundedAt: new Date(),
         refundReason: refundDTO.reasonCode,
       });
 
@@ -387,7 +387,7 @@ export class CheckoutService {
       await this.ordersRepository.update(orderId, {
         status: OrderStatus.CANCELED,
         cancelReason: cancelDTO.reason,
-        canceledAt: Date.now(),
+        canceledAt: new Date(),
       });
 
       const returnObject = {

@@ -24,6 +24,9 @@ export class RefreshTokenEmployee {
   @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
   employee: Employee;
 
+  @Column({ type: 'timestamp' })
+  expiresAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

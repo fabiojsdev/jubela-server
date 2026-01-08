@@ -295,7 +295,7 @@ export class CheckoutController {
     try {
       await this.ordersRepository.update(order.id, {
         status: OrderStatus.APPROVED,
-        paidAt: Date.now(),
+        paidAt: new Date(),
       });
 
       this.logger.log(`✅ Pedido ${order.id} aprovado e estoque reduzido`);
