@@ -164,20 +164,23 @@ export class EmailService {
   }
 
   async SendOrderStatusEmail(
-    order: Order,
+    order: string,
     status: OrderStatus,
     forEnterprise: boolean,
     additionalData?: any,
   ) {
     const findOrder = await this.ordersRepository.findOne({
       where: {
-        id: order.id,
+        id: order,
       },
       relations: {
         items: true,
         user: true,
       },
     });
+
+    console.log(status);
+    console.log(findOrder.status);
 
     if (status !== findOrder.status) {
       throw new BadRequestException(
@@ -194,10 +197,8 @@ export class EmailService {
         additionalData,
       );
 
-      const emailDataVerify = this.EmailDataVerify(forEnterprise, emailData);
-
       // Renderizar template
-      const html = await this.RenderTemplate('order-status', emailDataVerify);
+      const html = await this.RenderTemplate('order-status', emailData);
 
       // Enviar email
       const info = await this.transporter.sendMail({
@@ -227,21 +228,6 @@ export class EmailService {
     }
   }
 
-  private EmailDataVerify(
-    forEnterprise: boolean,
-    emailData: EmailTemplateData & {
-      subject: string;
-    },
-  ) {
-    if (forEnterprise === true) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { customerName, ...rest } = emailData;
-      return rest;
-    } else {
-      return emailData;
-    }
-  }
-
   private PrepareEmailData(
     order: Order,
     status: OrderStatus,
@@ -259,6 +245,7 @@ export class EmailService {
       })),
       status,
       statusMessage: '',
+      forEnterprise,
       actionMessage: '',
       // explicar
       actionUrl: `${process.env.FRONTEND_URL}/orders/${order.id}`,
@@ -346,13 +333,15 @@ export class EmailService {
               ? `Estorno parcial do cliente ${order.user.email} processado com sucesso`
               : 'Um estorno parcial foi processado para o seu pedido.',
           actionMessage: 'O valor será creditado em 5-10 dias úteis.',
-          refundAmount: this.FormatCurrency(additionalData?.refundAmount || 0),
+          refundAmount: this.FormatCurrency(
+            Number(additionalData?.refundAmount),
+          ),
           refundedItems: additionalData?.refundedItems?.map((item) => ({
-            name: item.productName,
+            name: item.name,
             quantity: item.quantity,
-            amount: this.FormatCurrency(item.amount),
+            amount: this.FormatCurrency(Number(item.amount)),
           })),
-          additionalInfo: `Valor estornado: ${this.FormatCurrency(additionalData?.refundAmount || 0)}`,
+          additionalInfo: `Valor estornado: ${this.FormatCurrency(Number(additionalData?.refundAmount))}`,
         };
 
       default:
@@ -367,7 +356,7 @@ export class EmailService {
 
   async SendPaymentApprovedEmail(order: Order, forEnterprise: boolean) {
     return this.SendOrderStatusEmail(
-      order,
+      order.id,
       OrderStatus.APPROVED,
       forEnterprise,
     );
@@ -379,7 +368,7 @@ export class EmailService {
     reason?: string,
   ) {
     return this.SendOrderStatusEmail(
-      order,
+      order.id,
       OrderStatus.REJECTED,
       forEnterprise,
       { reason },
@@ -417,7 +406,7 @@ export class EmailService {
 
   async SendRefundProcessedEmail(order: Order, forEnterprise: boolean) {
     return this.SendOrderStatusEmail(
-      order,
+      order.id,
       OrderStatus.REFUNDED,
       forEnterprise,
     );
@@ -434,7 +423,7 @@ export class EmailService {
     }>,
   ) {
     return this.SendOrderStatusEmail(
-      order,
+      order.id,
       OrderStatus.PARTIAL_REFUND,
       forEnterprise,
       {

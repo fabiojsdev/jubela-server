@@ -11,6 +11,7 @@ export interface EmailTemplateData {
   }>;
   status: OrderStatus;
   statusMessage: string;
+  forEnterprise: boolean;
   actionMessage?: string;
   actionUrl?: string;
   additionalInfo?: string;
