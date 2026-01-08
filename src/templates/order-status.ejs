@@ -241,18 +241,18 @@
         <h3>📦 Detalhes do Pedido</h3>
 
         <div class="detail-row">
-          <span class="detail-label">Número do Pedido:</span>
+          <span class="detail-label">Número do Pedido: </span>
           <span class="detail-value">#<%= orderId %></span>
         </div>
 
         <div class="detail-row">
-          <span class="detail-label">Valor Total:</span>
+          <span class="detail-label">Valor Total: </span>
           <span class="detail-value"><%= orderTotal %></span>
         </div>
 
         <% if (refundAmount) { %>
         <div class="detail-row">
-          <span class="detail-label">Valor Estornado:</span>
+          <span class="detail-label">Valor Estornado: </span>
           <span class="detail-value"><%= refundAmount %></span>
         </div>
         <% } %>
@@ -265,10 +265,9 @@
           <% orderItems.forEach(function(item) { %>
           <div class="item">
             <div>
-              <div class="item-name"><%= item.name %></div>
+              <div class="item-name"><%= item.name %>: <%= item.price %></div>
               <div class="item-details">Quantidade: <%= item.quantity %></div>
             </div>
-            <div class="detail-value"><%= item.price %></div>
           </div>
           <% }); %>
         </div>

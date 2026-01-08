@@ -194,8 +194,10 @@ export class EmailService {
         additionalData,
       );
 
+      const emailDataVerify = this.EmailDataVerify(forEnterprise, emailData);
+
       // Renderizar template
-      const html = await this.RenderTemplate('order-status', emailData);
+      const html = await this.RenderTemplate('order-status', emailDataVerify);
 
       // Enviar email
       const info = await this.transporter.sendMail({
@@ -222,6 +224,21 @@ export class EmailService {
         error,
       );
       throw error;
+    }
+  }
+
+  private EmailDataVerify(
+    forEnterprise: boolean,
+    emailData: EmailTemplateData & {
+      subject: string;
+    },
+  ) {
+    if (forEnterprise === true) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { customerName, ...rest } = emailData;
+      return rest;
+    } else {
+      return emailData;
     }
   }
 
@@ -260,9 +277,12 @@ export class EmailService {
             forEnterprise === true
               ? `Pagamento feito pelo cliente ${order.user.email} aprovado`
               : 'Seu pagamento foi aprovado com sucesso!',
-          actionMessage: 'Seu pedido está sendo preparado para envio.',
-          additionalInfo:
-            'Você receberá um email com o código de rastreamento em breve.',
+          actionMessage:
+            forEnterprise === true
+              ? ''
+              : 'Seu pedido está sendo preparado para envio.',
+          // additionalInfo:
+          //   'Você receberá um email com o código de rastreamento em breve.',
         };
 
       case OrderStatus.REJECTED:
@@ -314,7 +334,6 @@ export class EmailService {
               ? `Estorno do cliente ${order.user.email} processado.`
               : 'O estorno do seu pedido foi processado com sucesso.',
           actionMessage: 'O valor será creditado em 5-10 dias úteis.',
-          // precisa ser Decimal?
           additionalInfo: `Valor estornado: ${this.FormatCurrency(Number(order.refundAmount))}`,
         };
 
