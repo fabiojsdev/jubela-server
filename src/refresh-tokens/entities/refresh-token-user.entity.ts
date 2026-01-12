@@ -24,9 +24,6 @@ export class RefreshTokenUser {
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   user: User;
 
-  @Column({ type: 'timestamp' })
-  expiresAt: Date;
-
   @CreateDateColumn()
   createdAt: Date;
 
