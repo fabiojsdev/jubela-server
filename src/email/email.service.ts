@@ -23,7 +23,7 @@ export class EmailService {
       host: process.env.HOST,
       service: process.env.SERVICE,
       port: parseInt(process.env.PORT_EMAIL, 10),
-      secure: false, // true em prod
+      secure: true, // true em prod
       auth: {
         user: process.env.FROM_EMAIL,
         pass: process.env.PASS,
@@ -35,7 +35,7 @@ export class EmailService {
       if (error) {
         this.logger.error('Erro ao conectar ao servidor SMTP:', error.message);
       } else {
-        this.logger.log('Servidor SMTP pronto para enviar emails');
+        this.logger.log('Servidor SMTP pronto para enviar emails', success);
       }
     });
   }
