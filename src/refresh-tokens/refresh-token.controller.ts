@@ -22,16 +22,16 @@ export class RefreshTokensController {
 
     res.cookie('accessToken', getRefreshToken.accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
     });
 
     res.cookie('refreshToken', getRefreshToken.refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/user',
     });
@@ -50,16 +50,16 @@ export class RefreshTokensController {
 
     res.cookie('accessToken', getRefreshToken.accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
     });
 
     res.cookie('refreshToken', getRefreshToken.refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/employee',
     });
