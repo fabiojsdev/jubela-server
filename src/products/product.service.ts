@@ -14,7 +14,7 @@ import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
 import { Order } from 'src/orders/entities/order.entity';
-import { Like, Repository } from 'typeorm';
+import { DataSource, Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
@@ -32,6 +32,7 @@ export class ProductsService {
     private readonly productsRepository: Repository<Product>,
     private readonly employeesService: EmployeesService,
     private readonly emailService: EmailService,
+    private dataSource: DataSource,
   ) {}
 
   async Create(
@@ -285,32 +286,38 @@ export class ProductsService {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async StockCheck(productId: string, orderQuantity: number, orderId?: string) {
-    // const orderDelete = await this.ordersRepository.delete(orderId);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // if (orderDelete.affected < 1) {
-    //   throw new InternalServerErrorException(
-    //     `Erro ao deletar pedido ${orderId}`,
-    //   );
-    // }
+    try {
+      const findProduct = await queryRunner.manager.findOne(Product, {
+        where: {
+          id: productId,
+        },
+      });
 
-    const findProduct = await this.productsRepository.findOneBy({
-      id: productId,
-    });
+      const { quantity, lowStock } = findProduct;
 
-    const { quantity, lowStock } = findProduct;
+      switch (true) {
+        case quantity < 1:
+          throw new BadRequestException(`Produto ${findProduct.name} esgotado`);
 
-    switch (true) {
-      case quantity < 1:
-        throw new BadRequestException(`Produto ${findProduct.name} esgotado`);
+        case orderQuantity > quantity:
+          throw new BadRequestException(
+            `Estoque do produto  ${findProduct.name} insuficiente`,
+          );
 
-      case orderQuantity > quantity:
-        throw new BadRequestException(
-          `Estoque do produto  ${findProduct.name} insuficiente`,
-        );
-
-      case quantity <= lowStock && quantity >= orderQuantity:
-        await this.emailService.LowStockWarn(findProduct);
-        return;
+        case quantity <= lowStock && quantity >= orderQuantity:
+          // Pode deixar mais lento
+          await this.emailService.LowStockWarn(findProduct);
+          return;
+      }
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 

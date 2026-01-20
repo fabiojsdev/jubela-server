@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
+import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { Like, Repository } from 'typeorm';
 import { UrlUuidDTO } from '../common/dto/url-uuid.dto';
@@ -58,7 +59,6 @@ export class EmployeesService {
     };
   }
 
-  // Verificar se é um funcionário ou admin no guard ou middleware
   async UpdateSelf(
     employeeIdDTO: UrlUuidDTO,
     updateEmployeeDTO: UpdateEmployeeDTO,
@@ -127,7 +127,7 @@ export class EmployeesService {
       address: updateEmployeeAdminDTO.address,
     };
 
-    if (!tokenPayloadDTO.role.includes('admin')) {
+    if (!tokenPayloadDTO.role.includes(EmployeeRole.ADMIN)) {
       throw new ForbiddenException('Ação não permitida');
     }
 
@@ -137,8 +137,12 @@ export class EmployeesService {
       },
     });
 
+    // Não deixa atualizar outros admins
     for (let i = 0; i < findEmployeeById.role.length; i++) {
-      if (tokenPayloadDTO.sub !== id && findEmployeeById.role[i] === 'admin') {
+      if (
+        tokenPayloadDTO.sub !== id &&
+        findEmployeeById.role[i] === EmployeeRole.ADMIN
+      ) {
         throw new ForbiddenException('Ação não permitida');
       }
     }

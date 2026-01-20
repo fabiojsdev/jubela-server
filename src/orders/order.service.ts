@@ -14,8 +14,9 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { Product } from 'src/products/entities/product.entity';
 import { ProductsService } from 'src/products/product.service';
+import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
-import { LessThan, Repository } from 'typeorm';
+import { DataSource, LessThan, Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
@@ -31,6 +32,9 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
 
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly usersService: UsersService,
@@ -38,16 +42,19 @@ export class OrdersService {
     @Inject(forwardRef(() => ProductsService))
     private readonly productsService: ProductsService,
     private readonly logger: Logger,
+    private dataSource: DataSource,
   ) {}
 
   async Create(
     createOrderItemDTO: CreateOrderItemDTO[],
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    const queryRunner =
-      this.ordersRepository.manager.connection.createQueryRunner();
+    const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+
+    let findUser: User;
+    let newOrderData: Order;
 
     try {
       const decimal = createOrderItemDTO.reduce(
@@ -55,7 +62,11 @@ export class OrdersService {
         new Decimal(0),
       );
 
-      const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+      findUser = await queryRunner.manager.findOne(User, {
+        where: {
+          id: tokenPayloadDTO.sub,
+        },
+      });
 
       const orderData = {
         total_price: decimal.toString(),
@@ -67,11 +78,13 @@ export class OrdersService {
 
       const orderCreate = queryRunner.manager.create(Order, orderData);
 
-      const newOrderData = await queryRunner.manager.save(orderCreate);
+      newOrderData = await queryRunner.manager.save(orderCreate);
 
       for (let i = 0; i < createOrderItemDTO.length; i++) {
-        const findProduct = await this.productsRepository.findOneBy({
-          id: createOrderItemDTO[i].product.id,
+        const findProduct = await queryRunner.manager.findOne(Product, {
+          where: {
+            id: createOrderItemDTO[i].product.id,
+          },
         });
 
         if (!findProduct) {
@@ -114,24 +127,22 @@ export class OrdersService {
       }
 
       await queryRunner.commitTransaction();
-
-      const findOrder = await this.FindById(newOrderData.id);
-
-      const createPreferenceObject = this.ReturnItemsMPObject(findOrder.items);
-
-      return {
-        items: createPreferenceObject,
-        payer: {
-          email: findUser.email,
-          name: findUser.name,
-        },
-      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();
     }
+
+    const createPreferenceObject = this.ReturnItemsMPObject(newOrderData.items);
+
+    return {
+      items: createPreferenceObject,
+      payer: {
+        email: findUser.email,
+        name: findUser.name,
+      },
+    };
   }
 
   ReturnItemsMPObject(items: Items[]) {
