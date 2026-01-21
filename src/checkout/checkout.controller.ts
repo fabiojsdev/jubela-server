@@ -25,7 +25,7 @@ import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailService } from 'src/email/email.service';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
@@ -48,6 +48,7 @@ export class CheckoutController {
     private readonly productsRepository: Repository<Product>,
     private readonly checkoutService: CheckoutService,
     private readonly emaillSerive: EmailService,
+    private dataSource: DataSource,
   ) {
     const client = new MercadoPagoConfig({
       accessToken: mercadoPagoConfiguration.accessToken,
@@ -340,29 +341,52 @@ export class CheckoutController {
       }
 
       for (const item of order.items) {
-        const findProduct = await this.productsRepository.findOneBy({
-          id: item.product.id,
-        });
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        if (!findProduct) {
-          throw new NotFoundException(
-            `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+        try {
+          const findProduct = await queryRunner.manager.findOneBy(Product, {
+            id: item.product.id,
+          });
+
+          if (!findProduct) {
+            this.logger.log(
+              `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+            );
+
+            await queryRunner.rollbackTransaction();
+            await queryRunner.release();
+            continue;
+          }
+
+          const updatedProductQuantity = (findProduct.quantity +=
+            item.quantity);
+
+          const updateProductQuantity = await queryRunner.manager.update(
+            Product,
+            findProduct.id,
+            {
+              quantity: updatedProductQuantity,
+            },
           );
-        }
 
-        const updatedProductQuantity = (findProduct.quantity += item.quantity);
+          if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+            this.logger.log(
+              `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
+            );
 
-        const updateProductQuantity = await this.productsRepository.update(
-          findProduct.id,
-          {
-            quantity: updatedProductQuantity,
-          },
-        );
+            await queryRunner.rollbackTransaction();
+            await queryRunner.release();
+            continue;
+          }
 
-        if (!updateProductQuantity || updateProductQuantity.affected < 1) {
-          throw new InternalServerErrorException(
-            `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
-          );
+          await queryRunner.commitTransaction();
+        } catch (error) {
+          await queryRunner.rollbackTransaction();
+          throw error;
+        } finally {
+          await queryRunner.release();
         }
       }
 
