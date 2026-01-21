@@ -1,6 +1,5 @@
 import {
-  forwardRef,
-  Inject,
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -12,8 +11,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { EmailService } from 'src/email/email.service';
 import { Product } from 'src/products/entities/product.entity';
-import { ProductsService } from 'src/products/product.service';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
 import { DataSource, LessThan, Repository } from 'typeorm';
@@ -32,16 +31,9 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
 
-    @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
-
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
-    private readonly usersService: UsersService,
-
-    @Inject(forwardRef(() => ProductsService))
-    private readonly productsService: ProductsService,
     private readonly logger: Logger,
+    private readonly emailService: EmailService,
+    private readonly usersService: UsersService,
     private dataSource: DataSource,
   ) {}
 
@@ -55,6 +47,8 @@ export class OrdersService {
 
     let findUser: User;
     let newOrderData: Order;
+    let findProduct: Product;
+    let sendEmail = false;
 
     try {
       const decimal = createOrderItemDTO.reduce(
@@ -81,10 +75,11 @@ export class OrdersService {
       newOrderData = await queryRunner.manager.save(orderCreate);
 
       for (let i = 0; i < createOrderItemDTO.length; i++) {
-        const findProduct = await queryRunner.manager.findOne(Product, {
+        findProduct = await queryRunner.manager.findOne(Product, {
           where: {
             id: createOrderItemDTO[i].product.id,
           },
+          lock: { mode: 'pessimistic_write' },
         });
 
         if (!findProduct) {
@@ -99,10 +94,24 @@ export class OrdersService {
           product: findProduct,
         };
 
-        await this.productsService.StockCheck(
-          findProduct.id,
-          findProduct.quantity,
-        );
+        const { quantity, lowStock } = findProduct;
+
+        switch (true) {
+          case quantity < 1:
+            throw new BadRequestException(
+              `Produto ${findProduct.name} esgotado`,
+            );
+
+          case createOrderItemDTO[i].quantity > quantity:
+            throw new BadRequestException(
+              `Estoque do produto  ${findProduct.name} insuficiente`,
+            );
+
+          case quantity <= lowStock &&
+            quantity >= createOrderItemDTO[i].quantity:
+            sendEmail = true;
+            break;
+        }
 
         const quantityUpdate =
           findProduct.quantity - createOrderItemDTO[i].quantity;
@@ -133,6 +142,8 @@ export class OrdersService {
     } finally {
       await queryRunner.release();
     }
+
+    if (sendEmail === true) await this.emailService.LowStockWarn(findProduct);
 
     const createPreferenceObject = this.ReturnItemsMPObject(newOrderData.items);
 
@@ -172,19 +183,25 @@ export class OrdersService {
       relations: ['items', 'items.product'],
     });
 
-    if (expiredOrders.length === 0) {
+    if (expiredOrders.length < 1) {
       this.logger.log('✅ Nenhuma reserva expirada');
       return;
     }
 
     this.logger.log(`📋 Processando ${expiredOrders.length} pedidos expirados`);
 
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     for (const order of expiredOrders) {
       try {
         // Liberar estoque
-        order.items.forEach(async (item) => {
-          const findProduct = await this.productsRepository.findOneBy({
-            id: item.product.id,
+        for (const item of order.items) {
+          const findProduct = await queryRunner.manager.findOne(Product, {
+            where: {
+              id: item.product.id,
+            },
           });
 
           if (!findProduct) {
@@ -193,25 +210,22 @@ export class OrdersService {
             );
           }
 
-          const updatedProductQuantity = (findProduct.quantity +=
-            item.quantity);
-
-          const updateProductQuantity = await this.productsRepository.update(
-            findProduct.id,
-            {
-              quantity: updatedProductQuantity,
-            },
+          const returnedQuantity = await queryRunner.manager.increment(
+            Product,
+            { id: findProduct.id },
+            'quantity',
+            item.quantity,
           );
 
-          if (!updateProductQuantity || updateProductQuantity.affected < 1) {
+          if (!returnedQuantity || returnedQuantity.affected < 1) {
             throw new InternalServerErrorException(
               `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
             );
           }
-        });
+        }
 
         // Cancelar pedido
-        await this.ordersRepository.update(order.id, {
+        await queryRunner.manager.update(Order, order.id, {
           status: OrderStatus.CANCELED,
           cancelReason: 'Expirado (30 minutos sem pagamento)',
           canceledAt: new Date(),
