@@ -19,7 +19,7 @@ import { Items } from 'src/orders/entities/items.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrdersService } from 'src/orders/order.service';
 import { Product } from 'src/products/entities/product.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
@@ -50,6 +50,7 @@ export class CheckoutService {
     private readonly ItemsRepository: Repository<Items>,
     private readonly ordersService: OrdersService,
     private readonly emailsService: EmailService,
+    private dataSource: DataSource,
   ) {
     this.client = new mercadopago.MercadoPagoConfig({
       accessToken: mercadoPagoConfiguration.accessToken,
@@ -333,6 +334,11 @@ export class CheckoutService {
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
     const findOrder = await this.ordersService.FindById(orderId);
+    const returnObject = {
+      orderId,
+      status: 'cancelled',
+      message: 'Pedido cancelado com sucesso',
+    };
 
     if (
       findOrder.user.id !== tokenPayloadDTO.sub &&
@@ -352,13 +358,17 @@ export class CheckoutService {
       );
     }
 
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
       await this.paymentClient.cancel({
         id: findOrder.paymentId,
       });
 
-      findOrder.items.forEach(async (item) => {
-        const findProduct = await this.productsRepository.findOneBy({
+      for (const item of findOrder.items) {
+        const findProduct = await queryRunner.manager.findOneBy(Product, {
           id: item.product.id,
         });
 
@@ -370,7 +380,8 @@ export class CheckoutService {
 
         const updatedProductQuantity = (findProduct.quantity += item.quantity);
 
-        const updateProductQuantity = await this.productsRepository.update(
+        const updateProductQuantity = await queryRunner.manager.update(
+          Product,
           findProduct.id,
           {
             quantity: updatedProductQuantity,
@@ -382,19 +393,13 @@ export class CheckoutService {
             `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
           );
         }
-      });
+      }
 
-      await this.ordersRepository.update(orderId, {
+      await queryRunner.manager.update(Order, orderId, {
         status: OrderStatus.CANCELED,
         cancelReason: cancelDTO.reason,
         canceledAt: new Date(),
       });
-
-      const returnObject = {
-        orderId,
-        status: 'cancelled',
-        message: 'Pedido cancelado com sucesso',
-      };
 
       // await this.emailsService.SendOrderCanceledEmail(
       //   findOrder,
@@ -404,11 +409,16 @@ export class CheckoutService {
 
       this.logger.log(`✅ Pedido cancelado: ${orderId}`);
 
-      return returnObject;
+      await queryRunner.commitTransaction();
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error('Erro ao cancelar:', error);
       throw new BadRequestException(this.translateMPError(error.message));
+    } finally {
+      await queryRunner.release();
     }
+
+    return returnObject;
   }
 
   private ValidateRefundEligibility(order: Order) {

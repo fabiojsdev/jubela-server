@@ -329,11 +329,17 @@ export class CheckoutController {
         newStatus = OrderStatus.CANCELED;
       }
 
-      await this.ordersRepository.update(order.id, {
+      const updateOrderStatus = await this.ordersRepository.update(order.id, {
         status: newStatus,
       });
 
-      order.items.forEach(async (item) => {
+      if (!updateOrderStatus || updateOrderStatus.affected < 1) {
+        throw new InternalServerErrorException(
+          `Erro ao atualizar pedido ${order.id}`,
+        );
+      }
+
+      for (const item of order.items) {
         const findProduct = await this.productsRepository.findOneBy({
           id: item.product.id,
         });
@@ -358,7 +364,7 @@ export class CheckoutController {
             `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
           );
         }
-      });
+      }
 
       this.logger.log(`❌ Pedido ${order.id} ${newStatus} - estoque liberado`);
 

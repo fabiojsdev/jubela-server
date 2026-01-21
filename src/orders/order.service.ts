@@ -187,6 +187,12 @@ export class OrdersService {
       relations: ['items', 'items.product'],
     });
 
+    if (!expiredOrders) {
+      throw new InternalServerErrorException(
+        'Erro ao buscar pedidos pendentes',
+      );
+    }
+
     if (expiredOrders.length < 1) {
       this.logger.log('✅ Nenhuma reserva expirada');
       return;
@@ -198,6 +204,23 @@ export class OrdersService {
       const queryRunner = this.dataSource.createQueryRunner();
       await queryRunner.connect();
       await queryRunner.startTransaction();
+
+      const doesExpiredOrderReallyExists = await queryRunner.manager.findOne(
+        Order,
+        {
+          where: {
+            id: order.id,
+            status: OrderStatus.PENDING,
+          },
+          relations: ['items', 'items.product'],
+        },
+      );
+
+      if (!doesExpiredOrderReallyExists) {
+        await queryRunner.rollbackTransaction();
+        await queryRunner.release();
+        continue;
+      }
 
       try {
         // Liberar estoque
@@ -234,6 +257,8 @@ export class OrdersService {
           cancelReason: 'Expirado (30 minutos sem pagamento)',
           canceledAt: new Date(),
         });
+
+        await queryRunner.commitTransaction();
 
         this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
       } catch (error) {
