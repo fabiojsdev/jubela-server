@@ -62,6 +62,10 @@ export class OrdersService {
         },
       });
 
+      if (!findUser) {
+        throw new NotFoundException('Usuário não encontrado');
+      }
+
       const orderData = {
         total_price: decimal.toString(),
         user: findUser,
@@ -190,11 +194,11 @@ export class OrdersService {
 
     this.logger.log(`📋 Processando ${expiredOrders.length} pedidos expirados`);
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     for (const order of expiredOrders) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
       try {
         // Liberar estoque
         for (const item of order.items) {
@@ -233,10 +237,10 @@ export class OrdersService {
 
         this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
       } catch (error) {
-        this.logger.error(
-          `❌ Erro ao processar pedido ${order.id} do cliente ${order.user}`,
-          error,
-        );
+        await queryRunner.rollbackTransaction();
+        throw error;
+      } finally {
+        await queryRunner.release();
       }
     }
   }
