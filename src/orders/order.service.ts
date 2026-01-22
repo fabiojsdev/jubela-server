@@ -205,23 +205,25 @@ export class OrdersService {
       await queryRunner.connect();
       await queryRunner.startTransaction();
 
-      const doesExpiredOrderReallyExists = await queryRunner.manager.findOne(
-        Order,
-        {
-          where: {
-            id: order.id,
-            status: OrderStatus.PENDING,
-          },
-          relations: ['items', 'items.product'],
-        },
-      );
-
-      if (!doesExpiredOrderReallyExists) {
-        await queryRunner.rollbackTransaction();
-        continue;
-      }
-
       try {
+        const doesExpiredOrderReallyExists = await queryRunner.manager.findOne(
+          Order,
+          {
+            where: {
+              id: order.id,
+              status: OrderStatus.PENDING,
+              createdAt: LessThan(thirtyMinutesAgo),
+            },
+            relations: ['items', 'items.product'],
+          },
+        );
+
+        if (!doesExpiredOrderReallyExists) {
+          await queryRunner.rollbackTransaction();
+          this.logger.error(`❌ Pedido ${order.id} não encontrado`);
+          continue;
+        }
+
         // Liberar estoque
         for (const item of doesExpiredOrderReallyExists.items) {
           const findProduct = await queryRunner.manager.findOne(Product, {
@@ -263,7 +265,7 @@ export class OrdersService {
         this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
       } catch (error) {
         await queryRunner.rollbackTransaction();
-        throw error;
+        this.logger.error(`❌ Erro no pedido ${order.id}`, error);
       } finally {
         await queryRunner.release();
       }

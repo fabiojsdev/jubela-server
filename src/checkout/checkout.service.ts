@@ -80,13 +80,28 @@ export class CheckoutService {
       );
     }
 
-    this.ValidateRefundEligibility(findOrder);
-
-    const idmptKey = randomUUID();
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
+      const doesOrderReallyExists = await queryRunner.manager.findOne(Order, {
+        where: {
+          id: orderId,
+        },
+        relations: ['items', 'items.product'],
+      });
+
+      if (!doesOrderReallyExists) {
+        throw new NotFoundException(`Pedido ${orderId} não encontrado`);
+      }
+
+      this.ValidateRefundEligibility(doesOrderReallyExists);
+
+      const idmptKey = randomUUID();
+
       const refund = await this.paymentRefundClient.create({
-        payment_id: findOrder.paymentId,
+        payment_id: doesOrderReallyExists.paymentId,
         body: {
           amount: refundDTO.amount,
         },
@@ -97,8 +112,8 @@ export class CheckoutService {
 
       this.logger.log(`Estorno criado no MP: ${refund.id}`);
 
-      findOrder.items.forEach(async (item) => {
-        const findProduct = await this.productsRepository.findOneBy({
+      for (const item of doesOrderReallyExists.items) {
+        const findProduct = await queryRunner.manager.findOneBy(Product, {
           id: item.product.id,
         });
 
@@ -110,7 +125,8 @@ export class CheckoutService {
 
         const updatedProductQuantity = (findProduct.quantity += item.quantity);
 
-        const updateProductQuantity = await this.productsRepository.update(
+        const updateProductQuantity = await queryRunner.manager.update(
+          Product,
           findProduct.id,
           {
             quantity: updatedProductQuantity,
@@ -122,13 +138,15 @@ export class CheckoutService {
             `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
           );
         }
-      });
+      }
 
-      await this.ordersRepository.update(orderId, {
+      await queryRunner.manager.update(Order, orderId, {
         status: OrderStatus.REFUNDED,
         refundedAt: new Date(),
         refundReason: refundDTO.reasonCode,
       });
+
+      await queryRunner.commitTransaction();
 
       this.logger.log(`✅ Estorno total processado: Order ${orderId}`);
 
@@ -139,13 +157,16 @@ export class CheckoutService {
         orderId,
       };
 
-      await this.emailsService.SendRefundProcessedEmail(findOrder, false);
-      await this.emailsService.SendRefundProcessedEmail(findOrder, true);
+      this.emailsService.SendRefundProcessedEmail(findOrder, false);
+      this.emailsService.SendRefundProcessedEmail(findOrder, true);
 
       return returnObject;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error('Erro ao processar estorno no MP:', error);
       throw new BadRequestException(this.translateMPError(error.message));
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -165,18 +186,33 @@ export class CheckoutService {
       );
     }
 
-    this.ValidateRefundEligibility(findOrder);
-
-    const refundDetails = await this.ValidateAndCalculateRefund(
-      findOrder,
-      partialRefundDTO.items,
-    );
-
-    const idmptKey = randomUUID();
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
+      const doesOrderReallyExists = await queryRunner.manager.findOne(Order, {
+        where: {
+          id: orderId,
+        },
+        relations: ['items', 'items.product'],
+      });
+
+      if (!doesOrderReallyExists) {
+        throw new NotFoundException(`Pedido ${orderId} não encontrado`);
+      }
+
+      this.ValidateRefundEligibility(doesOrderReallyExists);
+
+      const refundDetails = await this.ValidateAndCalculateRefund(
+        doesOrderReallyExists,
+        partialRefundDTO.items,
+      );
+
+      const idmptKey = randomUUID();
+
       const refund = await this.paymentRefundClient.create({
-        payment_id: findOrder.paymentId,
+        payment_id: doesOrderReallyExists.paymentId,
         body: {
           amount: refundDetails.totalAmount,
         },
@@ -185,8 +221,8 @@ export class CheckoutService {
         },
       });
 
-      partialRefundDTO.items.forEach(async (item) => {
-        const findProduct = await this.productsRepository.findOneBy({
+      for (const item of partialRefundDTO.items) {
+        const findProduct = await queryRunner.manager.findOneBy(Product, {
           id: item.productId,
         });
 
@@ -198,7 +234,8 @@ export class CheckoutService {
 
         const updatedProductQuantity = (findProduct.quantity += item.quantity);
 
-        const updateProductQuantity = await this.productsRepository.update(
+        const updateProductQuantity = await queryRunner.manager.update(
+          Product,
           findProduct.id,
           {
             quantity: updatedProductQuantity,
@@ -210,26 +247,28 @@ export class CheckoutService {
             `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
           );
         }
-      });
+      }
 
-      const refundTotal = new Decimal(findOrder.refundAmount);
+      const refundTotal = new Decimal(doesOrderReallyExists.refundAmount);
       const totalAmount = new Decimal(refundDetails.totalAmount);
 
       const compare = refundTotal.greaterThan(totalAmount);
 
       if (compare !== true) {
-        await this.ordersRepository.update(findOrder.id, {
+        await queryRunner.manager.update(Order, doesOrderReallyExists.id, {
           status: OrderStatus.REFUNDED,
           refundAmount: totalAmount.toString(),
         });
       } else {
         const sumValues = refundTotal.add(totalAmount);
 
-        await this.ordersRepository.update(findOrder.id, {
+        await queryRunner.manager.update(Order, doesOrderReallyExists.id, {
           status: OrderStatus.PARTIAL_REFUND,
           refundAmount: sumValues.toString(),
         });
       }
+
+      await queryRunner.commitTransaction();
 
       const returnObject = {
         refundId: refund.id,
@@ -248,14 +287,14 @@ export class CheckoutService {
         }),
       };
 
-      await this.emailsService.SendPartialRefundEmail(
+      this.emailsService.SendPartialRefundEmail(
         findOrder,
         returnObject.amount,
         false,
         returnObject.details,
       );
 
-      await this.emailsService.SendPartialRefundEmail(
+      this.emailsService.SendPartialRefundEmail(
         findOrder,
         returnObject.amount,
         true,
@@ -268,8 +307,11 @@ export class CheckoutService {
 
       return returnObject;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error('Erro no estorno parcial:', error);
       throw new BadRequestException(this.translateMPError(error.message));
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -363,11 +405,20 @@ export class CheckoutService {
     await queryRunner.startTransaction();
 
     try {
-      await this.paymentClient.cancel({
-        id: findOrder.paymentId,
+      const doesOrderReallyExists = await queryRunner.manager.findOne(Order, {
+        where: {
+          id: orderId,
+        },
+        relations: ['items', 'items.product'],
       });
 
-      for (const item of findOrder.items) {
+      if (!doesOrderReallyExists) await queryRunner.rollbackTransaction();
+
+      await this.paymentClient.cancel({
+        id: doesOrderReallyExists.paymentId,
+      });
+
+      for (const item of doesOrderReallyExists.items) {
         const findProduct = await queryRunner.manager.findOneBy(Product, {
           id: item.product.id,
         });

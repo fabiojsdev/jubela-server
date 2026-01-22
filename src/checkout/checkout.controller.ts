@@ -351,12 +351,9 @@ export class CheckoutController {
           });
 
           if (!findProduct) {
-            this.logger.log(
+            throw new NotFoundException(
               `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
             );
-
-            await queryRunner.rollbackTransaction();
-            continue;
           }
 
           const updatedProductQuantity = (findProduct.quantity +=
@@ -371,12 +368,9 @@ export class CheckoutController {
           );
 
           if (!updateProductQuantity || updateProductQuantity.affected < 1) {
-            this.logger.log(
+            throw new InternalServerErrorException(
               `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
             );
-
-            await queryRunner.rollbackTransaction();
-            continue;
           }
 
           await queryRunner.commitTransaction();
