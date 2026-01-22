@@ -356,7 +356,6 @@ export class CheckoutController {
             );
 
             await queryRunner.rollbackTransaction();
-            await queryRunner.release();
             continue;
           }
 
@@ -377,7 +376,6 @@ export class CheckoutController {
             );
 
             await queryRunner.rollbackTransaction();
-            await queryRunner.release();
             continue;
           }
 

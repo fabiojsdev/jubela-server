@@ -218,19 +218,19 @@ export class OrdersService {
 
       if (!doesExpiredOrderReallyExists) {
         await queryRunner.rollbackTransaction();
-        await queryRunner.release();
         continue;
       }
 
       try {
         // Liberar estoque
-        for (const item of order.items) {
+        for (const item of doesExpiredOrderReallyExists.items) {
           const findProduct = await queryRunner.manager.findOne(Product, {
             where: {
               id: item.product.id,
             },
           });
 
+          // Sem rollback nem release aqui. Só pode um de cada para cada query runner
           if (!findProduct) {
             throw new NotFoundException(
               `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
