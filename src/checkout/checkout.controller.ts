@@ -346,8 +346,11 @@ export class CheckoutController {
         await queryRunner.startTransaction();
 
         try {
-          const findProduct = await queryRunner.manager.findOneBy(Product, {
-            id: item.product.id,
+          const findProduct = await queryRunner.manager.findOne(Product, {
+            where: {
+              id: item.product.id,
+            },
+            lock: { mode: 'pessimistic_write' },
           });
 
           if (!findProduct) {

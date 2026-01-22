@@ -113,8 +113,11 @@ export class CheckoutService {
       this.logger.log(`Estorno criado no MP: ${refund.id}`);
 
       for (const item of doesOrderReallyExists.items) {
-        const findProduct = await queryRunner.manager.findOneBy(Product, {
-          id: item.product.id,
+        const findProduct = await queryRunner.manager.findOne(Product, {
+          where: {
+            id: item.product.id,
+          },
+          lock: { mode: 'pessimistic_write' },
         });
 
         if (!findProduct) {
@@ -222,8 +225,11 @@ export class CheckoutService {
       });
 
       for (const item of partialRefundDTO.items) {
-        const findProduct = await queryRunner.manager.findOneBy(Product, {
-          id: item.productId,
+        const findProduct = await queryRunner.manager.findOne(Product, {
+          where: {
+            id: item.productId,
+          },
+          lock: { mode: 'pessimistic_write' },
         });
 
         if (!findProduct) {
@@ -419,8 +425,11 @@ export class CheckoutService {
       });
 
       for (const item of doesOrderReallyExists.items) {
-        const findProduct = await queryRunner.manager.findOneBy(Product, {
-          id: item.product.id,
+        const findProduct = await queryRunner.manager.findOne(Product, {
+          where: {
+            id: item.product.id,
+          },
+          lock: { mode: 'pessimistic_write' },
         });
 
         if (!findProduct) {

@@ -230,6 +230,7 @@ export class OrdersService {
             where: {
               id: item.product.id,
             },
+            lock: { mode: 'pessimistic_write' },
           });
 
           // Sem rollback nem release aqui. Só pode um de cada para cada query runner
