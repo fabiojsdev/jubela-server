@@ -317,14 +317,12 @@ export class OrdersService {
       throw new UnauthorizedException('Ação não permitida');
     }
 
-    const { limit, offset } = paginationAllOrders;
-
     const [findAll, total] = await this.ordersRepository.findAndCount({
       where: {
         user: findUser,
       },
-      take: limit,
-      skip: offset,
+      take: 10,
+      skip: 0,
       order: {
         id: 'desc',
       },
