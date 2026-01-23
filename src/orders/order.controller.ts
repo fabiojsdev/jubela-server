@@ -58,8 +58,14 @@ export class OrdersController {
   }
 
   @Get()
-  async ListOrdersUsers(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
-    const allOrders = await this.ordersService.ListOrdersUsers(tokenPayloadDTO);
+  async ListOrdersUsers(
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+    @Body() body: any,
+  ) {
+    const allOrders = await this.ordersService.ListOrdersUsers(
+      tokenPayloadDTO,
+      body.id,
+    );
 
     if (allOrders.length < 1) {
       return {

@@ -308,9 +308,10 @@ export class OrdersService {
 
   async ListOrdersUsers(
     tokenPayloadDTO: TokenPayloadDTO,
+    id: string,
     paginationAllOrders?: PaginationAllOrdersDTO,
   ) {
-    const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
+    const findUser = await this.usersService.FindById(id);
 
     if (!findUser) {
       throw new UnauthorizedException('Ação não permitida');
