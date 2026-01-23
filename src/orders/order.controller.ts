@@ -1,9 +1,17 @@
-import { Controller, Get, HttpStatus, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
+import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
 import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
@@ -14,6 +22,24 @@ import { OrdersService } from './order.service';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Post()
+  @SetRoutePolicy(EmployeeRole.ADMIN)
+  async Create(
+    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
+    createOrderItemDTO: CreateOrderItemDTO[],
+  ) {
+    const createOrder = await this.ordersService.Create(
+      createOrderItemDTO,
+      tokenPayloadDTO,
+    );
+
+    console.log(createOrder);
+
+    return {
+      ...createOrder,
+    };
+  }
 
   @Get('employees')
   @SetRoutePolicy(EmployeeRole.READ_ORDERS)
