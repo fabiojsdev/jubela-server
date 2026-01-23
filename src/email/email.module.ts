@@ -1,7 +1,9 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrdersModule } from 'src/orders/order.module';
+import emailConfig from './config/email.config';
 import { EmailControllerTemp } from './email.controller';
 import { EmailService } from './email.service';
 
@@ -9,6 +11,10 @@ import { EmailService } from './email.service';
   providers: [EmailService],
   controllers: [EmailControllerTemp],
   exports: [EmailService],
-  imports: [TypeOrmModule.forFeature([Order]), forwardRef(() => OrdersModule)],
+  imports: [
+    TypeOrmModule.forFeature([Order]),
+    ConfigModule.forFeature(emailConfig),
+    forwardRef(() => OrdersModule),
+  ],
 })
 export class EmailModule {}

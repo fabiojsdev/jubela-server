@@ -202,7 +202,7 @@ export class CheckoutService {
       });
 
       if (!doesOrderReallyExists) {
-        throw new NotFoundException(`Pedido ${orderId} não encontrado`);
+        throw new NotFoundException('Pedido não encontrado');
       }
 
       this.ValidateRefundEligibility(doesOrderReallyExists);
@@ -223,6 +223,12 @@ export class CheckoutService {
           idempotencyKey: idmptKey,
         },
       });
+
+      if (!refund) {
+        throw new InternalServerErrorException(
+          'Erro ao criar reembolso com api de pagamento',
+        );
+      }
 
       for (const item of partialRefundDTO.items) {
         const findProduct = await queryRunner.manager.findOne(Product, {
@@ -418,7 +424,9 @@ export class CheckoutService {
         relations: ['items', 'items.product'],
       });
 
-      if (!doesOrderReallyExists) await queryRunner.rollbackTransaction();
+      if (!doesOrderReallyExists) {
+        throw new NotFoundException('Pedido não encontrado');
+      }
 
       await this.paymentClient.cancel({
         id: doesOrderReallyExists.paymentId,

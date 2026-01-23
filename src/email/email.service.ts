@@ -1,38 +1,29 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
+import * as sgMail from '@sendgrid/mail';
 import * as ejs from 'ejs';
-import * as nodemailer from 'nodemailer';
 import { join } from 'path';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailTemplateData } from 'src/interfaces/email-template';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
+import emailConfig from './config/email.config';
 import { RTAlertDTO } from './dto/rt-alert.dto';
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(EmailService.name);
 
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.HOST,
-      service: process.env.SERVICE,
-      port: parseInt(process.env.PORT_EMAIL, 10),
-      secure: true, // true em prod
-      auth: {
-        user: process.env.FROM_EMAIL,
-        pass: process.env.PASS,
-      },
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.transporter.verify((error, success) => {
-      if (error) {
-        this.logger.error('Erro ao conectar ao servidor SMTP:', error.message);
-      } else {
-        this.logger.log('Servidor SMTP pronto para enviar emails', success);
-      }
-    });
+  constructor(
+    @Inject(emailConfig.KEY)
+    private readonly emailConfiguration: ConfigType<typeof emailConfig>,
+  ) {
+    sgMail.setApiKey(emailConfiguration.sendgridApiKey);
   }
 
   async SendRTAlertEmployees(alertData: RTAlertDTO, forSupportTeam: boolean) {
@@ -44,20 +35,21 @@ export class EmailService {
       );
 
       // Enviar email
-      const info = await this.transporter.sendMail({
+      const info: sgMail.MailDataRequired = {
         from: process.env.FROM_EMAIL,
         to: forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email,
         subject: 'Alerta de segurança',
         html,
-      });
+      };
+
+      await sgMail.send(info);
 
       this.logger.log(
-        `Email enviado: ${info.messageId} para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}`,
+        `Email enviado para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}`,
       );
 
       return {
         success: true,
-        messageId: info.messageId,
       };
     } catch (error) {
       this.logger.error(
@@ -74,20 +66,21 @@ export class EmailService {
       const html = await this.RenderTemplate('user-session-alert', alertData);
 
       // Enviar email
-      const info = await this.transporter.sendMail({
+      const info: sgMail.MailDataRequired = {
         from: process.env.FROM_EMAIL,
         to: forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email,
         subject: 'Alerta de segurança',
         html,
-      });
+      };
+
+      await sgMail.send(info);
 
       this.logger.log(
-        `Email enviado: ${info.messageId} para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}`,
+        `Email enviado para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}`,
       );
 
       return {
         success: true,
-        messageId: info.messageId,
       };
     } catch (error) {
       this.logger.error(
@@ -100,19 +93,19 @@ export class EmailService {
 
   async LogIssue(userOrEmployeeLog: string) {
     try {
-      const info = await this.transporter.sendMail({
+      const info = {
         from: process.env.FROM_EMAIL,
         to: process.env.FROM_EMAIL,
         subject: `Erro ao criar logs de ${userOrEmployeeLog}`,
-      });
+        html: '<h1>Erro na cração de logs do usuário</h1>',
+      };
 
-      this.logger.log(
-        `Email enviado: ${info.messageId} para ${process.env.FROM_EMAIL}`,
-      );
+      await sgMail.send(info);
+
+      this.logger.log(`Email enviado para ${process.env.FROM_EMAIL}`);
 
       return {
         success: true,
-        messageId: info.messageId,
       };
     } catch (error) {
       this.logger.error(
@@ -134,20 +127,19 @@ export class EmailService {
 
       const html = await this.RenderTemplate('stock-alert', productData);
 
-      const info = await this.transporter.sendMail({
+      const info: sgMail.MailDataRequired = {
         from: process.env.FROM_EMAIL,
         to: process.env.FROM_EMAIL,
         subject: 'Produto com baixo estoque ou esgotado',
         html,
-      });
+      };
 
-      this.logger.log(
-        `Email enviado: ${info.messageId} para ${process.env.FROM_EMAIL}`,
-      );
+      await sgMail.send(info);
+
+      this.logger.log(`Email enviado para ${process.env.FROM_EMAIL}`);
 
       return {
         success: true,
-        messageId: info.messageId,
       };
     } catch (error) {
       this.logger.error(
@@ -196,20 +188,21 @@ export class EmailService {
       const html = await this.RenderTemplate('order-status', emailData);
 
       // Enviar email
-      const info = await this.transporter.sendMail({
+      const info: sgMail.MailDataRequired = {
         from: process.env.FROM_EMAIL,
         to: forEnterprise === true ? process.env.FROM_EMAIL : order.user.email,
         subject: emailData.subject,
         html,
-      });
+      };
+
+      await sgMail.send(info);
 
       this.logger.log(
-        `Email enviado: ${info.messageId} para ${order.user.email}`,
+        `Email enviado para ${forEnterprise === true ? process.env.FROM_EMAIL : order.user}`,
       );
 
       return {
         success: true,
-        messageId: info.messageId,
       };
     } catch (error) {
       this.logger.error(
@@ -434,7 +427,7 @@ export class EmailService {
         `${templateFile}.ejs`,
       );
 
-      const html = await ejs.renderFile(templatePath, data);
+      const html = (await ejs.renderFile(templatePath, data)) as string;
       return html;
     } catch (error) {
       this.logger.error(
