@@ -32,7 +32,7 @@ export class OrdersController {
     const createOrder = await this.ordersService.Create(
       body.createOrderItemDTO,
       tokenPayloadDTO,
-      body.id,
+      body.userId,
     );
 
     console.log(createOrder);
