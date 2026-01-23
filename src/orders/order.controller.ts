@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   HttpStatus,
-  Param,
   Post,
   Query,
   UseGuards,
@@ -33,7 +32,7 @@ export class OrdersController {
     const createOrder = await this.ordersService.Create(
       body.createOrderItemDTO,
       tokenPayloadDTO,
-      body.userId,
+      body.id,
     );
 
     console.log(createOrder);
@@ -58,15 +57,9 @@ export class OrdersController {
     return allOrders;
   }
 
-  @Get('/:id')
-  async ListOrdersUsers(
-    @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
-    @Param('id') param: string,
-  ) {
-    const allOrders = await this.ordersService.ListOrdersUsers(
-      tokenPayloadDTO,
-      param,
-    );
+  @Get()
+  async ListOrdersUsers(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
+    const allOrders = await this.ordersService.ListOrdersUsers(tokenPayloadDTO);
 
     if (allOrders.length < 1) {
       return {
