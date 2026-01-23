@@ -39,36 +39,40 @@ export class ProductsService {
     files: Array<Express.Multer.File>,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    const { sub } = tokenPayloadDTO;
+    try {
+      const { sub } = tokenPayloadDTO;
 
-    const imagesCreate = await this.FileCreate(files);
+      const imagesCreate = await this.FileCreate(files);
 
-    const findEmployee = await this.employeesService.FindById(sub);
+      const findEmployee = await this.employeesService.FindById(sub);
 
-    const decimalPrice = new Decimal(createProductDTO.price);
+      const decimalPrice = new Decimal(createProductDTO.price);
 
-    const createProductData = {
-      name: createProductDTO.name,
-      category: createProductDTO.category,
-      description: createProductDTO.description,
-      price: decimalPrice.toString(),
-      images: imagesCreate,
-      quantity: createProductDTO.quantity,
-      sku: createProductDTO.sku,
-      employee: findEmployee,
-      order: null,
-    };
+      const createProductData = {
+        name: createProductDTO.name,
+        category: createProductDTO.category,
+        description: createProductDTO.description,
+        price: decimalPrice.toString(),
+        images: imagesCreate,
+        quantity: createProductDTO.quantity,
+        sku: createProductDTO.sku,
+        employee: findEmployee,
+        order: null,
+      };
 
-    const productCreate = this.productsRepository.create(createProductData);
+      const productCreate = this.productsRepository.create(createProductData);
 
-    const newProductData = await this.productsRepository.save(productCreate);
+      const newProductData = await this.productsRepository.save(productCreate);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { images, description, ...convenientData } = newProductData;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { images, description, ...convenientData } = newProductData;
 
-    return {
-      ...convenientData,
-    };
+      return {
+        ...convenientData,
+      };
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   async FileCreate(files: Array<Express.Multer.File>) {
