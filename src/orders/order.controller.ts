@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
@@ -11,7 +12,6 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
-import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
 import { PaginationByUserDTO } from './dto/pagination-by-user.dto';
 import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
@@ -27,10 +27,10 @@ export class OrdersController {
   @SetRoutePolicy(EmployeeRole.ADMIN)
   async Create(
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
-    createOrderItemDTO: CreateOrderItemDTO[],
+    @Body() body: any,
   ) {
     const createOrder = await this.ordersService.Create(
-      createOrderItemDTO,
+      body.createOrderItemDTO,
       tokenPayloadDTO,
     );
 
