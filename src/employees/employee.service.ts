@@ -14,7 +14,6 @@ import { Like, Repository } from 'typeorm';
 import { UrlUuidDTO } from '../common/dto/url-uuid.dto';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
-import { SearchByEmailDTO } from './dto/search-email-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
 import { Employee } from './entities/employee.entity';
@@ -165,9 +164,7 @@ export class EmployeesService {
     return this.employeeRepository.save(employeeUpdate);
   }
 
-  async FindByEmail(emailDTO: SearchByEmailDTO) {
-    const email = emailDTO.email;
-
+  async FindByEmail(email: string) {
     const employeeFindByEmail = await this.employeeRepository.findOneBy({
       email,
       situation: EmployeeSituation.EMPLOYED,

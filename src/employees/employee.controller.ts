@@ -21,7 +21,6 @@ import { FindByPhoneNumberValidation } from 'src/common/pipes/phone-number-valid
 import { UrlUuidDTO } from '../common/dto/url-uuid.dto';
 import { CreateEmployeeDTO } from './dto/create-employee.dto';
 import { PaginationByRoleDTO } from './dto/pagination-employee-role.dto';
-import { SearchByEmailDTO } from './dto/search-email-employee.dto';
 import { UpdateEmployeeAdminDTO } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeDTO } from './dto/update-employee.dto';
 import { EmployeesService } from './employee.service';
@@ -69,7 +68,7 @@ export class EmployeesController {
 
   @Get('search/email/:email')
   @SetRoutePolicy(EmployeeRole.ADMIN)
-  FindByEmail(@Param('email') email: SearchByEmailDTO) {
+  FindByEmail(@Param('email') email: string) {
     return this.employeesService.FindByEmail(email);
   }
 
