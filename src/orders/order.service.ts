@@ -12,8 +12,8 @@ import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailService } from 'src/email/email.service';
+import { Employee } from 'src/employees/entities/employee.entity';
 import { Product } from 'src/products/entities/product.entity';
-import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
 import { DataSource, LessThan, Repository } from 'typeorm';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
@@ -45,7 +45,7 @@ export class OrdersService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    let findUser: User;
+    let findUser: Employee;
     let newOrderData: Order;
     let findProduct: Product;
     let sendEmail = false;
@@ -56,7 +56,7 @@ export class OrdersService {
         new Decimal(0),
       );
 
-      findUser = await queryRunner.manager.findOne(User, {
+      findUser = await queryRunner.manager.findOne(Employee, {
         where: {
           id: tokenPayloadDTO.sub,
         },
