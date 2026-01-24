@@ -40,7 +40,6 @@ export class OrdersService {
   async Create(
     createOrderItemDTO: CreateOrderItemDTO[],
     tokenPayloadDTO: TokenPayloadDTO,
-    id: string,
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -59,7 +58,7 @@ export class OrdersService {
 
       findUser = await queryRunner.manager.findOne(User, {
         where: {
-          id,
+          id: tokenPayloadDTO.sub,
         },
       });
 

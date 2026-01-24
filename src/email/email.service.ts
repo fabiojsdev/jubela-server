@@ -5,7 +5,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
 import * as sgMail from '@sendgrid/mail';
 import * as ejs from 'ejs';
 import { join } from 'path';
@@ -13,7 +12,6 @@ import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailTemplateData } from 'src/interfaces/email-template';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
-import { Repository } from 'typeorm';
 import emailConfig from './config/email.config';
 import { RTAlertDTO } from './dto/rt-alert.dto';
 
@@ -24,9 +22,6 @@ export class EmailService {
   constructor(
     @Inject(emailConfig.KEY)
     private readonly emailConfiguration: ConfigType<typeof emailConfig>,
-
-    @InjectRepository(Order)
-    private readonly ordersRepository: Repository<Order>,
   ) {
     sgMail.setApiKey(emailConfiguration.sendgridApiKey);
   }
@@ -156,25 +151,25 @@ export class EmailService {
   }
 
   async SendOrderStatusEmail(
-    order: string,
+    order: Order,
     status: OrderStatus,
     forEnterprise: boolean,
     additionalData?: any,
   ) {
-    const findOrder = await this.ordersRepository.findOne({
-      where: {
-        id: order,
-      },
-      relations: {
-        items: true,
-        user: true,
-      },
-    });
+    // const findOrder = await this.ordersRepository.findOne({
+    //   where: {
+    //     id: order,
+    //   },
+    //   relations: {
+    //     items: true,
+    //     user: true,
+    //   },
+    // });
 
     console.log(status);
-    console.log(findOrder.status);
+    console.log(order.status);
 
-    if (status !== findOrder.status) {
+    if (status !== order.status) {
       throw new BadRequestException(
         `Status enviado diferente do status do pedido ${order}`,
       );
@@ -183,7 +178,7 @@ export class EmailService {
     try {
       // Preparar dados baseados no status
       const emailData = this.PrepareEmailData(
-        findOrder,
+        order,
         status,
         forEnterprise,
         additionalData,
@@ -195,10 +190,7 @@ export class EmailService {
       // Enviar email
       const info: sgMail.MailDataRequired = {
         from: process.env.FROM_EMAIL,
-        to:
-          forEnterprise === true
-            ? process.env.FROM_EMAIL
-            : findOrder.user.email,
+        to: forEnterprise === true ? process.env.FROM_EMAIL : order.user.email,
         subject: emailData.subject,
         html,
       };
@@ -206,7 +198,7 @@ export class EmailService {
       await sgMail.send(info);
 
       this.logger.log(
-        `Email enviado para ${forEnterprise === true ? process.env.FROM_EMAIL : findOrder.user}`,
+        `Email enviado para ${forEnterprise === true ? process.env.FROM_EMAIL : order.user}`,
       );
 
       return {
@@ -214,7 +206,7 @@ export class EmailService {
       };
     } catch (error) {
       this.logger.error(
-        `Erro ao enviar email para ${findOrder.user.email}:`,
+        `Erro ao enviar email para ${order.user.email}:`,
         error,
       );
       throw error;
@@ -349,7 +341,7 @@ export class EmailService {
 
   async SendPaymentApprovedEmail(order: Order, forEnterprise: boolean) {
     return this.SendOrderStatusEmail(
-      order.id,
+      order,
       OrderStatus.APPROVED,
       forEnterprise,
     );
@@ -361,7 +353,7 @@ export class EmailService {
     reason?: string,
   ) {
     return this.SendOrderStatusEmail(
-      order.id,
+      order,
       OrderStatus.REJECTED,
       forEnterprise,
       { reason },
@@ -399,7 +391,7 @@ export class EmailService {
 
   async SendRefundProcessedEmail(order: Order, forEnterprise: boolean) {
     return this.SendOrderStatusEmail(
-      order.id,
+      order,
       OrderStatus.REFUNDED,
       forEnterprise,
     );
@@ -416,7 +408,7 @@ export class EmailService {
     }>,
   ) {
     return this.SendOrderStatusEmail(
-      order.id,
+      order,
       OrderStatus.PARTIAL_REFUND,
       forEnterprise,
       {
