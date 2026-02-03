@@ -40,11 +40,6 @@ export class CheckoutService {
     private readonly mercadoPagoConfiguration: ConfigType<
       typeof mercadopagoConfig
     >,
-    @InjectRepository(Product)
-    private readonly productsRepository: Repository<Product>,
-
-    @InjectRepository(Order)
-    private readonly ordersRepository: Repository<Order>,
 
     @InjectRepository(Items)
     private readonly ItemsRepository: Repository<Items>,

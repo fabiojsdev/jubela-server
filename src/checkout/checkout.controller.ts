@@ -45,7 +45,6 @@ export class CheckoutController {
     >,
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
-    private readonly productsRepository: Repository<Product>,
     private readonly checkoutService: CheckoutService,
     private readonly emaillSerive: EmailService,
     private dataSource: DataSource,
