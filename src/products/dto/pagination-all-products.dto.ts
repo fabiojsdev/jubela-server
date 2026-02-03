@@ -9,7 +9,7 @@ export class PaginationAllProductsDTO {
     message: 'Limite não pode ser menor que 0',
   })
   @Max(50, {
-    message: 'Limite não pode ser maior que 20',
+    message: 'Limite não pode ser maior que 50',
   })
   @Type(() => Number)
   limit: number;
