@@ -14,6 +14,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { readdirSync } from 'fs';
+import { join } from 'path';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -109,6 +111,18 @@ export class ProductsController {
     }
 
     return allProducts;
+  }
+
+  @Public()
+  @Get('debug-images')
+  debugFiles() {
+    const directoryPath = join(process.cwd(), 'images');
+    try {
+      const files = readdirSync(directoryPath);
+      return { path: directoryPath, files };
+    } catch (error) {
+      return { error: `Pasta não encontrada: ${error}`, path: directoryPath };
+    }
   }
 
   @Get('search/sku/:sku')
