@@ -53,7 +53,7 @@ import { AppService } from './app.service';
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
       rootPath: path.resolve(__dirname, '..', '..', 'images'),
-      serveRoot: '/images',
+      serveRoot: '/products/static',
     }),
   ],
   controllers: [AppController],
