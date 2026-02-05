@@ -52,7 +52,7 @@ import { AppService } from './app.service';
     CheckoutModule,
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
-      rootPath: path.resolve(process.cwd(), 'images'),
+      rootPath: path.resolve(__dirname, '..', '..', '..', 'images'),
       serveRoot: '/images',
     }),
   ],
