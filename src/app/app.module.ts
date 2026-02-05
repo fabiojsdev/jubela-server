@@ -52,8 +52,8 @@ import { AppService } from './app.service';
     CheckoutModule,
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
-      rootPath: path.resolve(__dirname, '..', '..', 'images'),
-      serveRoot: '/products/static',
+      rootPath: path.resolve(process.cwd(), 'images'),
+      serveRoot: '/images',
     }),
   ],
   controllers: [AppController],
