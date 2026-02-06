@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ProductImages } from './product-images.entity';
 
 @Entity()
 export class Product {
@@ -27,8 +28,11 @@ export class Product {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: string;
 
-  @Column({ type: 'varchar', array: true, nullable: true })
-  images: string[];
+  @OneToMany(() => ProductImages, (image) => image.product, {
+    cascade: true,
+    eager: true,
+  })
+  images: ProductImages[];
 
   @Column({ type: 'int' })
   quantity: number;

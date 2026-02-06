@@ -6,14 +6,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import Decimal from 'decimal.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
-import { Order } from 'src/orders/entities/order.entity';
 import { Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
@@ -25,9 +23,6 @@ import { Product } from './entities/product.entity';
 @Injectable()
 export class ProductsService {
   constructor(
-    @InjectRepository(Order)
-    private readonly ordersRepository: Repository<Order>,
-
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly employeesService: EmployeesService,
@@ -42,22 +37,11 @@ export class ProductsService {
     try {
       const { sub } = tokenPayloadDTO;
 
-      const imagesCreate = await this.FileCreate(files);
-
       const findEmployee = await this.employeesService.FindById(sub);
 
-      const decimalPrice = new Decimal(createProductDTO.price);
-
       const createProductData = {
-        name: createProductDTO.name,
-        category: createProductDTO.category,
-        description: createProductDTO.description,
-        price: decimalPrice.toString(),
-        images: imagesCreate,
-        quantity: createProductDTO.quantity,
-        sku: createProductDTO.sku,
+        ...createProductDTO,
         employee: findEmployee,
-        order: null,
       };
 
       const productCreate = this.productsRepository.create(createProductData);
