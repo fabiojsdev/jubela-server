@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,8 +15,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { readdirSync } from 'fs';
-import { join } from 'path';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -38,13 +37,31 @@ export class ProductsController {
 
   @Post()
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @UseInterceptors(FilesInterceptor('files', 4))
+  @UseInterceptors(
+    FilesInterceptor('images', 4, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5 mb
+      },
+      fileFilter: (req, file, cb) => {
+        // Validação RÁPIDA de tipo
+        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+          return cb(
+            new BadRequestException('Apenas imagens são permitidas!'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
   Create(
     @UploadedFiles(
       new ParseFilePipeBuilder()
-        .addMaxSizeValidator({ maxSize: 2_000_000 })
         .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
-        .build(),
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
     )
     files: Array<Express.Multer.File>,
 
@@ -53,6 +70,10 @@ export class ProductsController {
 
     @Body() body: any,
   ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Pelo menos uma imagem é obrigatória');
+    }
+
     const jsonData: CreateProductDTO = JSON.parse(body.data);
 
     return this.productsService.Create(jsonData, files, tokenPayloadDTO);
@@ -60,15 +81,33 @@ export class ProductsController {
 
   @Patch(':id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @UseInterceptors(FilesInterceptor('files', 4))
+  @UseInterceptors(
+    FilesInterceptor('files', 4, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5 mb
+      },
+      fileFilter: (req, file, cb) => {
+        // Validação RÁPIDA de tipo
+        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+          return cb(
+            new BadRequestException('Apenas imagens são permitidas!'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
   Update(
     @Param('id') id: string,
     @Body() body: any,
     @UploadedFiles(
       new ParseFilePipeBuilder()
-        .addMaxSizeValidator({ maxSize: 2_000_000 })
         .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
-        .build(),
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
     )
     files: Array<Express.Multer.File>,
   ) {
@@ -111,18 +150,6 @@ export class ProductsController {
     }
 
     return allProducts;
-  }
-
-  @Public()
-  @Get('debug-images')
-  debugFiles() {
-    const directoryPath = join(process.cwd(), 'images');
-    try {
-      const files = readdirSync(directoryPath);
-      return { path: directoryPath, files };
-    } catch (error) {
-      return { error: `Pasta não encontrada: ${error}`, path: directoryPath };
-    }
   }
 
   @Get('search/sku/:sku')
