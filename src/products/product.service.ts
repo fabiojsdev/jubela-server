@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   HttpException,
   Injectable,
   InternalServerErrorException,
@@ -9,10 +8,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UploadApiResponse } from 'cloudinary';
-import * as path from 'path';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
-import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
 import { Employee } from 'src/employees/entities/employee.entity';
@@ -21,22 +18,20 @@ import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
-import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductImages } from './entities/product-images.entity';
 import { Product } from './entities/product.entity';
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-
-    @InjectRepository(ProductImages)
-    private readonly productImagesRepository: Repository<ProductImages>,
     private readonly employeesService: EmployeesService,
     private readonly emailService: EmailService,
     private readonly cloudinaryService: CloudinaryService,
-    private readonly logger: Logger,
+
     private dataSource: DataSource,
   ) {}
 
@@ -150,118 +145,98 @@ export class ProductsService {
     }
   }
 
-  async ImageDelete(images: string[], productId: string) {
-    const findProduct = await this.FindById(productId);
-
-    const deleteFromDb = await this.ImagesDeleteFromDb(findProduct.id, images);
-
-    if (!deleteFromDb) {
-      throw new InternalServerErrorException(
-        'Erro ao tentar excluir imagens do banco de dados',
-      );
-    }
-
-    const fileFullPath = path.resolve(process.cwd(), 'images');
-
-    for (let i = 0; i < images.length; i++) {
-      const imageName = images[i].split('/').pop();
-
-      const imageFullPath = path.join(fileFullPath, imageName);
-
-      if (!imageFullPath.startsWith(fileFullPath)) {
-        throw new Error('Path traversal detectado');
-      }
-
-      const imageVerify = await this.FileExists(imageFullPath);
-
-      if (!imageVerify) {
-        throw new NotFoundException('Imagem não cadastrada');
-      }
-
-      const imageDelete = await this.FileUnlink(imageFullPath);
-
-      if (imageDelete !== 'Imagem excluída') {
-        switch (imageDelete) {
-          case 'Arquivo em uso':
-            throw new ConflictException(imageDelete);
-
-          case 'Arquivo já não existe':
-            throw new NotFoundException(imageDelete);
-
-          case 'Erro desconhecido':
-            throw new InternalServerErrorException(
-              'Erro ao tentar exlcuir imagem',
-            );
-        }
-      }
-
-      return imageDelete;
-    }
-  }
-
-  async Update(
-    id: string,
-    updateProductDTO: UpdateProductDTO,
-    files: Array<Express.Multer.File>,
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { sku, ...restOfProductData } = updateProductDTO;
-
-    const productExists = this.productsRepository.findOne({
+  async ImageDelete(id: string) {
+    const product = await this.productsRepository.findOne({
       where: {
         id,
       },
+      relations: {
+        images: true,
+      },
     });
 
-    if (!productExists) {
+    if (!product) {
       throw new NotFoundException('Produto não encontrado');
     }
 
-    const productUpdate = await this.productsRepository.preload({
-      id,
-      ...restOfProductData,
-    });
+    if (product.images && product.images.length > 0) {
+      const publicIds = product.images.map((img) => img.publicId);
 
-    if (!productUpdate) {
-      throw new InternalServerErrorException(
-        'Erro ao tentar atualizar dados do produto',
-      );
+      try {
+        await this.cloudinaryService.DeleteMultipleImages(publicIds);
+      } catch (error) {
+        console.error('Erro ao deletar imagens do Cloudinary:', error);
+      }
     }
 
-    const updatedData = await this.productsRepository.save(productUpdate);
+    await this.productsRepository.remove(product);
 
-    const updateImages = await this.FileCreate(files);
-
-    for (const image of updateImages) {
-      await this.productsRepository
-        .createQueryBuilder()
-        .update()
-        .set({
-          images: () => `array_append("images", :newImage)`,
-        })
-        .where('id = :id', { id })
-        .setParameters({ newImage: image })
-        .execute();
-    }
-
-    return {
-      ...updatedData,
-    };
+    return { message: 'Produto deletado com sucesso' };
   }
 
-  async Delete(deleteIdDTO: UrlUuidDTO) {
-    const findProduct = await this.FindById(deleteIdDTO.id);
+  // async Update(
+  //   id: string,
+  //   updateProductDTO: UpdateProductDTO,
+  //   files: Array<Express.Multer.File>,
+  // ) {
+  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //   const { sku, ...restOfProductData } = updateProductDTO;
 
-    await this.ImageDelete(findProduct.images, deleteIdDTO.id);
+  //   const productExists = this.productsRepository.findOne({
+  //     where: {
+  //       id,
+  //     },
+  //   });
 
-    const deleteProduct = await this.productsRepository.delete(deleteIdDTO);
+  //   if (!productExists) {
+  //     throw new NotFoundException('Produto não encontrado');
+  //   }
 
-    if (deleteProduct.affected < 1) {
-      throw new NotFoundException('Produto não encontrado');
-    }
+  //   const productUpdate = await this.productsRepository.preload({
+  //     id,
+  //     ...restOfProductData,
+  //   });
 
-    return 'Produto deletado';
-  }
+  //   if (!productUpdate) {
+  //     throw new InternalServerErrorException(
+  //       'Erro ao tentar atualizar dados do produto',
+  //     );
+  //   }
+
+  //   const updatedData = await this.productsRepository.save(productUpdate);
+
+  //   const updateImages = await this.FileCreate(files);
+
+  //   for (const image of updateImages) {
+  //     await this.productsRepository
+  //       .createQueryBuilder()
+  //       .update()
+  //       .set({
+  //         images: () => `array_append("images", :newImage)`,
+  //       })
+  //       .where('id = :id', { id })
+  //       .setParameters({ newImage: image })
+  //       .execute();
+  //   }
+
+  //   return {
+  //     ...updatedData,
+  //   };
+  // }
+
+  // async Delete(deleteIdDTO: UrlUuidDTO) {
+  //   const findProduct = await this.FindById(deleteIdDTO.id);
+
+  //   await this.ImageDelete(findProduct.images, deleteIdDTO.id);
+
+  //   const deleteProduct = await this.productsRepository.delete(deleteIdDTO);
+
+  //   if (deleteProduct.affected < 1) {
+  //     throw new NotFoundException('Produto não encontrado');
+  //   }
+
+  //   return 'Produto deletado';
+  // }
 
   async FindById(id: string) {
     const productFindById = await this.productsRepository.findOneBy({

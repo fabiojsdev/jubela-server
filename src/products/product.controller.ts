@@ -2,12 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   HttpStatus,
   Param,
   ParseFilePipeBuilder,
-  Patch,
   Post,
   Query,
   UploadedFiles,
@@ -21,13 +19,11 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
-import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
-import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductsService } from './product.service';
 
 @UseGuards(RoutePolicyGuard)
@@ -79,59 +75,59 @@ export class ProductsController {
     return this.productsService.Create(jsonData, files, tokenPayloadDTO);
   }
 
-  @Patch(':id')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  @UseInterceptors(
-    FilesInterceptor('files', 4, {
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5 mb
-      },
-      fileFilter: (req, file, cb) => {
-        // Validação RÁPIDA de tipo
-        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-          return cb(
-            new BadRequestException('Apenas imagens são permitidas!'),
-            false,
-          );
-        }
-        cb(null, true);
-      },
-    }),
-  )
-  Update(
-    @Param('id') id: string,
-    @Body() body: any,
-    @UploadedFiles(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    files: Array<Express.Multer.File>,
-  ) {
-    const jsonData: UpdateProductDTO = JSON.parse(body.data);
+  // @Patch(':id')
+  // @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  // @UseInterceptors(
+  //   FilesInterceptor('files', 4, {
+  //     limits: {
+  //       fileSize: 5 * 1024 * 1024, // 5 mb
+  //     },
+  //     fileFilter: (req, file, cb) => {
+  //       // Validação RÁPIDA de tipo
+  //       if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+  //         return cb(
+  //           new BadRequestException('Apenas imagens são permitidas!'),
+  //           false,
+  //         );
+  //       }
+  //       cb(null, true);
+  //     },
+  //   }),
+  // )
+  // Update(
+  //   @Param('id') id: string,
+  //   @Body() body: any,
+  //   @UploadedFiles(
+  //     new ParseFilePipeBuilder()
+  //       .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
+  //       .build({
+  //         fileIsRequired: true,
+  //         errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+  //       }),
+  //   )
+  //   files: Array<Express.Multer.File>,
+  // ) {
+  //   const jsonData: UpdateProductDTO = JSON.parse(body.data);
 
-    return this.productsService.Update(id, jsonData, files);
-  }
+  //   return this.productsService.Update(id, jsonData, files);
+  // }
 
-  @Delete('images')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  async DeleteImages(@Body() body: any) {
-    const deleteImage = await this.productsService.ImageDelete(
-      body.images,
-      body.productId,
-    );
-    return { success: true, message: deleteImage };
-  }
+  // @Delete('images')
+  // @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  // async DeleteImages(@Body() body: any) {
+  //   const deleteImage = await this.productsService.ImageDelete(
+  //     body.images,
+  //     body.productId,
+  //   );
+  //   return { success: true, message: deleteImage };
+  // }
 
-  @Delete(':id')
-  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  Delete(@Param('id') id: UrlUuidDTO) {
-    this.productsService.Delete(id);
-    return { success: true, message: 'Produto deletado' };
-  }
+  // @Delete(':id')
+  // @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  // Delete(@Param('id') id: UrlUuidDTO) {
+  //   this.productsService.Delete(id);
+  //   return { success: true, message: 'Produto deletado' };
+  // }
 
   @Public()
   @Get()

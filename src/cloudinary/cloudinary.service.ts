@@ -48,6 +48,14 @@ export class CloudinaryService {
   }
 
   async DeleteMultipleImages(publicIds: string[]): Promise<any> {
+    if (!publicIds || publicIds.length === 0) {
+      return { deleted: {} };
+    }
+
+    if (publicIds.length === 1) {
+      return cloudinary.uploader.destroy(publicIds[0]);
+    }
+
     return cloudinary.api.delete_resources(publicIds);
   }
 
