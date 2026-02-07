@@ -34,7 +34,7 @@ export class ProductsController {
   @Post()
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(
-    FilesInterceptor('images', 4, {
+    FilesInterceptor('files', 4, {
       limits: {
         fileSize: 5 * 1024 * 1024, // 5 mb
       },
@@ -64,15 +64,13 @@ export class ProductsController {
     @TokenPayloadParam()
     tokenPayloadDTO: TokenPayloadDTO,
 
-    @Body() body: any,
+    @Body() body: CreateProductDTO,
   ) {
     if (!files || files.length === 0) {
       throw new BadRequestException('Pelo menos uma imagem é obrigatória');
     }
 
-    const jsonData: CreateProductDTO = JSON.parse(body.data);
-
-    return this.productsService.Create(jsonData, files, tokenPayloadDTO);
+    return this.productsService.Create(body, files, tokenPayloadDTO);
   }
 
   // @Patch(':id')

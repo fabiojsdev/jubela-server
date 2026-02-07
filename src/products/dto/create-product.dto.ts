@@ -1,10 +1,13 @@
+import { Transform } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
-  IsNumberString,
+  IsOptional,
   IsPositive,
   IsString,
+  Length,
 } from 'class-validator';
+import { IsDecimalString } from 'src/common/decoratos/decimal-string.decorator';
 
 export class CreateProductDTO {
   @IsNotEmpty({
@@ -29,22 +32,29 @@ export class CreateProductDTO {
   @IsString({
     message: 'O campo "descrição" deve estar no formato de texto',
   })
+  @Length(10, 255, {
+    message: 'O campo descrição deve ter o comprimento máximo de 255',
+  })
   readonly description: string;
 
   @IsNotEmpty({
     message: 'Campo "preço" não preenchido',
   })
-  @IsString({
-    message: 'O campo "preço" deve estar no formato de texto',
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.trim(); // Remove espaços em branco
+    }
+    return value;
   })
-  @IsNumberString({
-    no_symbols: true,
+  @IsDecimalString({
+    message: 'O campo preco deve ser um string decima ex: 59.99',
   })
   readonly price: string;
 
   @IsNotEmpty({
     message: 'Campo "quantidade" não preenchido',
   })
+  @Transform(({ value }) => parseInt(value, 10))
   @IsInt({
     message: 'Campo "quantidade" deve ser um número inteiro positivo',
   })
@@ -52,6 +62,16 @@ export class CreateProductDTO {
     message: 'Campo "quantidade" deve ser um número inteiro positivo',
   })
   readonly quantity: number;
+
+  @IsOptional()
+  @IsInt({
+    message: 'Campo "quantidade mínima" deve ser um número inteiro positivo',
+  })
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsPositive({
+    message: 'Campo "quantidade mínima" deve ser um número inteiro positivo',
+  })
+  readonly lowStock?: number;
 
   @IsNotEmpty({
     message: 'Campo "sku" não preenchido',

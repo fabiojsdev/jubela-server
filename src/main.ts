@@ -19,7 +19,13 @@ async function bootstrap() {
     extended: true,
   });
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   const allowedOrigins = [
     'https://jubela-client.vercel.app',
