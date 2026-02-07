@@ -1,23 +1,28 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as fs from 'fs/promises';
+import { UploadApiResponse } from 'cloudinary';
 import * as path from 'path';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
-import { Like, Repository } from 'typeorm';
+import { Employee } from 'src/employees/entities/employee.entity';
+import { DataSource, Like, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
+import { ProductImages } from './entities/product-images.entity';
 import { Product } from './entities/product.entity';
 
 @Injectable()
@@ -25,8 +30,14 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+
+    @InjectRepository(ProductImages)
+    private readonly productImagesRepository: Repository<ProductImages>,
     private readonly employeesService: EmployeesService,
     private readonly emailService: EmailService,
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly logger: Logger,
+    private dataSource: DataSource,
   ) {}
 
   async Create(
@@ -34,76 +45,108 @@ export class ProductsService {
     files: Array<Express.Multer.File>,
     tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    try {
-      const { sub } = tokenPayloadDTO;
+    const { sub } = tokenPayloadDTO;
 
-      const findEmployee = await this.employeesService.FindById(sub);
+    const findEmployee = await this.employeesService.FindById(sub);
+
+    if (!findEmployee) {
+      throw new NotFoundException('Funcionário não encontrado');
+    }
+
+    let uploadResults: UploadApiResponse[];
+
+    try {
+      uploadResults = await this.cloudinaryService.UploadMultipleImages(
+        files,
+        'products',
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Erro ao fazer upload das imagens: ${error.message}`,
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const doesEmployeeReallyExists = await queryRunner.manager.findOne(
+        Employee,
+        {
+          where: {
+            id: tokenPayloadDTO.sub,
+          },
+        },
+      );
+
+      if (!doesEmployeeReallyExists) {
+        throw new NotFoundException('Funcionário não encontrado');
+      }
 
       const createProductData = {
         ...createProductDTO,
         employee: findEmployee,
       };
 
-      const productCreate = this.productsRepository.create(createProductData);
+      const createProduct = queryRunner.manager.create(
+        Product,
+        createProductData,
+      );
 
-      const newProductData = await this.productsRepository.save(productCreate);
+      const newProduct = await queryRunner.manager.save(Product, createProduct);
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { images, description, ...convenientData } = newProductData;
+      const images = uploadResults.map((result, index) => {
+        return queryRunner.manager.create(ProductImages, {
+          url: result.secure_url,
+          publicId: result.public_id,
+          isMain: index === 0,
+          order: index + 1,
+          product: newProduct,
+        });
+      });
 
-      return {
-        ...convenientData,
-      };
-    } catch (error) {
-      console.log(error);
-    }
-  }
+      await queryRunner.manager.save(ProductImages, images);
 
-  async FileCreate(files: Array<Express.Multer.File>) {
-    const imagesString = [];
+      await queryRunner.commitTransaction();
 
-    await Promise.all(
-      files.map(async (file) => {
-        const fileFullPath = path.resolve(
-          process.cwd(),
-          'images',
-          file.originalname,
-        );
+      const createdProduct = await this.productsRepository.findOne({
+        where: {
+          id: newProduct.id,
+        },
+        relations: {
+          images: true,
+        },
+      });
 
-        await fs.writeFile(fileFullPath, file.buffer);
-
-        // MUDAR A URL EM PRODUÇÃO
-        imagesString.push(
-          `https://jubela-server-api.onrender.com/images/${file.originalname}`,
-        );
-      }),
-    );
-
-    return imagesString;
-  }
-
-  async FileExists(path: string) {
-    try {
-      await fs.stat(path);
-      return true;
-    } catch (error) {
-      console.log(error);
-      return false;
-    }
-  }
-
-  async FileUnlink(path: string) {
-    try {
-      await fs.unlink(path);
-      return 'Imagem excluída';
-    } catch (error) {
-      if (error.code === 'EBUSY' || error.code === 'EPERM') {
-        return 'Arquivo em uso';
-      } else if (error.code === 'ENOENT') {
-        return 'Arquivo já não existe';
-      } else {
-        return 'Erro desconhecido';
+      if (!createProduct) {
+        throw new NotFoundException('Produto não encontrado');
       }
+
+      return createdProduct;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(`Erro ao cadastrar produto: ${error.message}`);
+
+      try {
+        const publicIds = uploadResults.map((results) => results.public_id);
+        await this.cloudinaryService.DeleteMultipleImages(publicIds);
+      } catch (cleanupError) {
+        // Se cleanup falhar, loga mas não quebra a aplicação
+        this.logger.error('Erro ao fazer cleanup das imagens:', cleanupError);
+        // Você pode enviar para um sistema de log/monitoramento aqui
+      }
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação na criação de produto',
+      );
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -153,30 +196,6 @@ export class ProductsService {
       }
 
       return imageDelete;
-    }
-  }
-
-  async ImagesDeleteFromDb(id: string, images: string[]) {
-    try {
-      await this.productsRepository
-        .createQueryBuilder()
-        .update()
-        .set({
-          images: () => `ARRAY(
-          SELECT unnest("images")
-          EXCEPT
-          SELECT unnest(:removeImages::varchar[] )
-          )`,
-        })
-        .where('id = :id', { id })
-        .setParameters({ removeImages: images })
-        .execute();
-
-      return 'Imagens excluídas do banco de dados';
-    } catch (error) {
-      console.log({
-        message: error.message,
-      });
     }
   }
 
