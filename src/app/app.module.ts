@@ -2,9 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import * as path from 'path';
 import { AuthModule } from 'src/auth/auth.module';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { CheckoutModule } from 'src/checkout/checkout.module';
@@ -51,10 +49,6 @@ import { AppService } from './app.service';
     EmailModule,
     CheckoutModule,
     ScheduleModule.forRoot(),
-    ServeStaticModule.forRoot({
-      rootPath: path.resolve(__dirname, '..', '..', '..', 'images'),
-      serveRoot: '/images',
-    }),
   ],
   controllers: [AppController],
   providers: [
