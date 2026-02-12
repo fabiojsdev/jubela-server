@@ -1,4 +1,3 @@
-// Trocar nomes em produção?
 export enum EmployeeRole {
   ADMIN = 'admin',
   READ_PRODUCTS = 'ler-produtos',

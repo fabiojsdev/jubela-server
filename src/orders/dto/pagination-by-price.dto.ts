@@ -1,5 +1,6 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsNumberString, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, Max, Min } from 'class-validator';
+import { IsDecimalString } from 'src/common/decoratos/decimal-string.decorator';
 
 export class PaginationByPriceDTO {
   @IsInt({
@@ -26,8 +27,14 @@ export class PaginationByPriceDTO {
   @IsNotEmpty({
     message: 'Id do usuário não fornecido',
   })
-  @IsNumberString({
-    no_symbols: true,
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.trim(); // Remove espaços em branco
+    }
+    return value;
+  })
+  @IsDecimalString({
+    message: 'O campo preco deve ser um string decima ex: 59.99',
   })
   value: string;
 }

@@ -1,11 +1,12 @@
+import { Transform } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
-  IsNumberString,
   IsPositive,
   IsString,
   IsUUID,
 } from 'class-validator';
+import { IsDecimalString } from 'src/common/decoratos/decimal-string.decorator';
 import { Product } from 'src/products/entities/product.entity';
 
 export class CreateOrderItemDTO {
@@ -31,11 +32,14 @@ export class CreateOrderItemDTO {
   @IsNotEmpty({
     message: 'Campo "preço" não preenchido',
   })
-  @IsString({
-    message: 'O campo "preço" deve estar no formato de texto',
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.trim(); // Remove espaços em branco
+    }
+    return value;
   })
-  @IsNumberString({
-    no_symbols: true,
+  @IsDecimalString({
+    message: 'O campo preco deve ser um string decima ex: 59.99',
   })
   readonly price: string;
 
