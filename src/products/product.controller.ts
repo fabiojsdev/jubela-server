@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Param,
@@ -21,8 +22,10 @@ import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
+import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { CreateProductDTO } from './dto/create-product.dto';
+import { DeleteImagesDTO } from './dto/delete-images.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
@@ -157,22 +160,18 @@ export class ProductsController {
     return this.productsService.UpdatePrice(id, body);
   }
 
-  // @Delete('images')
-  // @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  // async DeleteImages(@Body() body: any) {
-  //   const deleteImage = await this.productsService.ImageDelete(
-  //     body.images,
-  //     body.productId,
-  //   );
-  //   return { success: true, message: deleteImage };
-  // }
+  @Delete('delete/images')
+  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  DeleteImages(@Body() body: DeleteImagesDTO) {
+    return this.productsService.RemoveImage(body.productId, body.imageId);
+  }
 
-  // @Delete(':id')
-  // @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
-  // Delete(@Param('id') id: UrlUuidDTO) {
-  //   this.productsService.Delete(id);
-  //   return { success: true, message: 'Produto deletado' };
-  // }
+  @Delete(':id')
+  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  Delete(@Param('id') id: UrlUuidDTO) {
+    this.productsService.Delete(id.id);
+    return { success: true, message: 'Produto deletado' };
+  }
 
   @Public()
   @Get()

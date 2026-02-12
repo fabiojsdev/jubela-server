@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { UploadApiResponse, v2 as cloudinary } from 'cloudinary';
 
 @Injectable()
@@ -49,7 +49,7 @@ export class CloudinaryService {
 
   async DeleteMultipleImages(publicIds: string[]): Promise<any> {
     if (!publicIds || publicIds.length === 0) {
-      return { deleted: {} };
+      throw new BadRequestException('Nenhuma imagem enviada para excluir');
     }
 
     if (publicIds.length === 1) {

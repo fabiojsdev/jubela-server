@@ -150,35 +150,6 @@ export class ProductsService {
     }
   }
 
-  async ImageDelete(id: string) {
-    const product = await this.productsRepository.findOne({
-      where: {
-        id,
-      },
-      relations: {
-        images: true,
-      },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Produto não encontrado');
-    }
-
-    if (product.images && product.images.length > 0) {
-      const publicIds = product.images.map((img) => img.publicId);
-
-      try {
-        await this.cloudinaryService.DeleteMultipleImages(publicIds);
-      } catch (error) {
-        console.error('Erro ao deletar imagens do Cloudinary:', error);
-      }
-    }
-
-    await this.productsRepository.remove(product);
-
-    return { message: 'Produto deletado com sucesso' };
-  }
-
   async Update(
     id: string,
     imageId: string,
@@ -464,19 +435,109 @@ export class ProductsService {
     }
   }
 
-  // async Delete(deleteIdDTO: UrlUuidDTO) {
-  //   const findProduct = await this.FindById(deleteIdDTO.id);
+  async RemoveImage(productId: string, imageId: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  //   await this.ImageDelete(findProduct.images, deleteIdDTO.id);
+    try {
+      const findProduct = await queryRunner.manager.findOne(Product, {
+        where: {
+          id: productId,
+        },
+        relations: {
+          images: true,
+        },
+      });
 
-  //   const deleteProduct = await this.productsRepository.delete(deleteIdDTO);
+      if (!findProduct) {
+        throw new NotFoundException('Produto não encontrado');
+      }
 
-  //   if (deleteProduct.affected < 1) {
-  //     throw new NotFoundException('Produto não encontrado');
-  //   }
+      const imageToRemove = findProduct.images.find(
+        (img) => img.id === imageId,
+      );
 
-  //   return 'Produto deletado';
-  // }
+      if (!imageToRemove) {
+        throw new NotFoundException('Imagem não encontrada');
+      }
+
+      const publicIdToDelete = imageToRemove.publicId;
+
+      await queryRunner.manager.remove(ProductImages, imageToRemove);
+
+      const remainingImages = await queryRunner.manager.find(ProductImages, {
+        where: { product: { id: productId } },
+        order: { order: 'ASC' },
+      });
+
+      if (remainingImages.length > 0) {
+        remainingImages.forEach((img, index) => {
+          img.order = index + 1;
+        });
+
+        await queryRunner.manager.save(ProductImages, remainingImages);
+      }
+
+      await queryRunner.commitTransaction();
+
+      try {
+        await this.cloudinaryService.DeleteMultipleImages([publicIdToDelete]);
+      } catch (cloudinaryError) {
+        // ⚠️ Banco já foi commitado, então não podemos reverter
+        // Loga o erro para investigação/cleanup manual
+        console.error(
+          `ATENÇÃO: Imagem deletada do banco mas falhou no Cloudinary:`,
+          {
+            productId,
+            imageId,
+            publicId: publicIdToDelete,
+            error: cloudinaryError.message,
+          },
+        );
+
+        // Aqui você poderia:
+        // - Adicionar em uma fila de cleanup
+        // - Enviar alerta para monitoramento
+        // - Gravar em tabela de "orphan_images" para cleanup posterior
+      }
+
+      return this.productsRepository.findOne({
+        where: { id: productId },
+        relations: {
+          images: true,
+        },
+      });
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(
+        `Erro ao atualizar ingredientes do produto: ${error.message}`,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação na atualização dos ingredientes do produto',
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async Delete(id: string) {
+    const findProduct = await this.FindById(id);
+
+    const deleteProduct = await this.productsRepository.delete(findProduct.id);
+
+    if (deleteProduct.affected < 1) {
+      throw new InternalServerErrorException('Erro ao deletar produto');
+    }
+
+    return 'Produto deletado';
+  }
 
   async FindById(id: string) {
     const productFindById = await this.productsRepository.findOneBy({
