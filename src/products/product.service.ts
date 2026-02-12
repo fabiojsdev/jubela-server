@@ -13,11 +13,13 @@ import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
 import { Employee } from 'src/employees/entities/employee.entity';
-import { DataSource, Like, Repository } from 'typeorm';
+import { DataSource, Like, QueryRunner, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
 import { PaginationDTO } from './dto/pagination-product.dto';
+import { UpdatePriceProductDTO } from './dto/update-product-price.dto';
+import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductImages } from './entities/product-images.entity';
 import { Product } from './entities/product.entity';
 
@@ -174,55 +176,186 @@ export class ProductsService {
     return { message: 'Produto deletado com sucesso' };
   }
 
-  // async Update(
-  //   id: string,
-  //   updateProductDTO: UpdateProductDTO,
-  //   files: Array<Express.Multer.File>,
-  // ) {
-  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //   const { sku, ...restOfProductData } = updateProductDTO;
+  async Update(
+    id: string,
+    imageId: string,
+    updateProductDTO: UpdateProductDTO,
+    file: Express.Multer.File,
+  ) {
+    const updatesPerformed = [];
 
-  //   const productExists = this.productsRepository.findOne({
-  //     where: {
-  //       id,
-  //     },
-  //   });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  //   if (!productExists) {
-  //     throw new NotFoundException('Produto não encontrado');
-  //   }
+    try {
+      const findProduct = await queryRunner.manager.findOne(Product, {
+        where: {
+          id,
+        },
+      });
 
-  //   const productUpdate = await this.productsRepository.preload({
-  //     id,
-  //     ...restOfProductData,
-  //   });
+      if (!findProduct) {
+        throw new NotFoundException('Produto não encontrado');
+      }
 
-  //   if (!productUpdate) {
-  //     throw new InternalServerErrorException(
-  //       'Erro ao tentar atualizar dados do produto',
-  //     );
-  //   }
+      if (file) {
+        await this.ReplaceImage(findProduct.id, imageId, file, queryRunner);
+        updatesPerformed.push('image');
+      }
 
-  //   const updatedData = await this.productsRepository.save(productUpdate);
+      await this.UpdateRegularData(findProduct, updateProductDTO, queryRunner);
 
-  //   const updateImages = await this.FileCreate(files);
+      for (let i = 0; i < Object.keys(updateProductDTO).length; i++) {
+        updatesPerformed.push(Object.keys(updateProductDTO));
+      }
 
-  //   for (const image of updateImages) {
-  //     await this.productsRepository
-  //       .createQueryBuilder()
-  //       .update()
-  //       .set({
-  //         images: () => `array_append("images", :newImage)`,
-  //       })
-  //       .where('id = :id', { id })
-  //       .setParameters({ newImage: image })
-  //       .execute();
-  //   }
+      await queryRunner.commitTransaction();
 
-  //   return {
-  //     ...updatedData,
-  //   };
-  // }
+      const findUpdatedProduct = await this.productsRepository.findOne({
+        where: {
+          id,
+        },
+      });
+
+      return {
+        updatedFields: updatesPerformed,
+        product: findUpdatedProduct,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(
+        `Erro ao atualizar ingredientes do produto: ${error.message}`,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação na atualização dos ingredientes do produto',
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async UpdatePrice(
+    id: string,
+    updateProductPriceDataDTO: UpdatePriceProductDTO,
+    queryRunnerSub: QueryRunner,
+  ) {
+    const productUpdate = await queryRunnerSub.manager.update(Product, id, {
+      price: updateProductPriceDataDTO.price,
+    });
+
+    if (!productUpdate || productUpdate.affected < 1) {
+      throw new InternalServerErrorException(
+        'Erro ao tentar atualizar preço do produto',
+      );
+    }
+  }
+
+  private async UpdateRegularData(
+    product: Product,
+    updateProductRegularDataDTO: UpdateProductDTO,
+    queryRunnerSub: QueryRunner,
+  ) {
+    if (Object.keys(updateProductRegularDataDTO).length < 1) return;
+
+    const productUpdate = await queryRunnerSub.manager.update(
+      Product,
+      product.id,
+      {
+        id: product.id,
+        ...updateProductRegularDataDTO,
+      },
+    );
+
+    if (!productUpdate || productUpdate.affected < 1) {
+      throw new InternalServerErrorException(
+        'Erro ao tentar atualizar produto',
+      );
+    }
+  }
+
+  /**
+   * Substitui uma imagem específica por outra
+   * Mantém a ordem e se é principal ou não
+   */
+  private async ReplaceImage(
+    productId: string,
+    imageId: string,
+    file: Express.Multer.File,
+    queryRunnerSub: QueryRunner,
+  ) {
+    // 1. Busca produto e imagem
+    const product = await queryRunnerSub.manager.findOne(Product, {
+      where: { id: productId },
+      relations: {
+        images: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+
+    const imageToReplace = product.images.find((img) => img.id === imageId);
+
+    if (!imageToReplace) {
+      throw new NotFoundException('Imagem não encontrada');
+    }
+
+    // Guarda informações da imagem antiga
+    const { publicId: oldPublicId } = imageToReplace;
+
+    // 2. Upload da nova imagem ANTES da transação
+    let uploadResult: UploadApiResponse;
+    try {
+      const results = await this.cloudinaryService.UploadMultipleImages(
+        [file],
+        'products',
+      );
+      uploadResult = results[0];
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Erro ao fazer upload da imagem: ${error.message}`,
+      );
+    }
+
+    // 3. Transação: Atualiza no banco
+
+    // ✅ ATUALIZA a entidade existente (não cria nova)
+    imageToReplace.url = uploadResult.secure_url;
+    imageToReplace.publicId = uploadResult.public_id;
+    // isMain e order permanecem iguais
+
+    await queryRunnerSub.manager.save(ProductImages, imageToReplace);
+
+    await queryRunnerSub.commitTransaction();
+
+    // 4. Deleta a imagem antiga do Cloudinary
+    try {
+      await this.cloudinaryService.DeleteMultipleImages([oldPublicId]);
+    } catch (error) {
+      console.error('Erro ao deletar imagem antiga do Cloudinary:', error);
+
+      // Cleanup: deleta nova imagem do Cloudinary para não deixar órfã
+      try {
+        await this.cloudinaryService.DeleteMultipleImages([
+          uploadResult.public_id,
+        ]);
+      } catch (cleanupError) {
+        console.error('Erro no cleanup:', cleanupError.message);
+      }
+    }
+
+    throw new InternalServerErrorException(
+      'Erro ao substituir imagem, operação revertida.',
+    );
+  }
 
   // async Delete(deleteIdDTO: UrlUuidDTO) {
   //   const findProduct = await this.FindById(deleteIdDTO.id);

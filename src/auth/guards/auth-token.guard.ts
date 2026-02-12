@@ -12,9 +12,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
 import { Repository } from 'typeorm';
 import { JWTBlacklist } from '../../jwt-blacklist/entities/jwt_blacklist.entity';
-import { REQUEST_TOKEN_PAYLOAD_KEY } from '../auth.constants';
+import { IS_PUBLIC_KEY, REQUEST_TOKEN_PAYLOAD_KEY } from '../auth.constants';
 import jwtConfig from '../config/jwt.config';
-import { IS_PUBLIC_KEY } from '../decorators/set-metadata.decorator';
 
 @Injectable()
 export class AuthTokenGuard implements CanActivate {
