@@ -30,6 +30,9 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
+
+    @InjectRepository(ProductImages)
+    private readonly productImagesRepository: Repository<ProductImages>,
     private readonly employeesService: EmployeesService,
     private readonly emailService: EmailService,
     private readonly cloudinaryService: CloudinaryService,
@@ -200,7 +203,7 @@ export class ProductsService {
       }
 
       if (file) {
-        await this.ReplaceImage(findProduct.id, imageId, file, queryRunner);
+        await this.ReplaceImage(findProduct, imageId, file, queryRunner);
         updatesPerformed.push('image');
       }
 
@@ -297,23 +300,11 @@ export class ProductsService {
    * Mantém a ordem e se é principal ou não
    */
   private async ReplaceImage(
-    productId: string,
+    product: Product,
     imageId: string,
     file: Express.Multer.File,
     queryRunnerSub: QueryRunner,
   ) {
-    // 1. Busca produto e imagem
-    const product = await queryRunnerSub.manager.findOne(Product, {
-      where: { id: productId },
-      relations: {
-        images: true,
-      },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Produto não encontrado');
-    }
-
     const imageToReplace = product.images.find((img) => img.id === imageId);
 
     if (!imageToReplace) {
@@ -352,7 +343,10 @@ export class ProductsService {
     try {
       await this.cloudinaryService.DeleteMultipleImages([oldPublicId]);
     } catch (error) {
-      console.error('Erro ao deletar imagem antiga do Cloudinary:', error);
+      console.error(
+        'Erro ao deletar imagem antiga do Cloudinary:',
+        error.message,
+      );
 
       // Cleanup: deleta nova imagem do Cloudinary para não deixar órfã
       try {
@@ -367,6 +361,107 @@ export class ProductsService {
     throw new InternalServerErrorException(
       'Erro ao substituir imagem, operação revertida.',
     );
+  }
+
+  /**
+   * Adiciona novas imagens a um produto existente
+   */
+  async AddImages(productId: string, files: Express.Multer.File[]) {
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+      relations: {
+        images: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+
+    // Validação: limite máximo de imagens
+    const MAX_IMAGES = 4;
+    if (product.images.length + files.length > MAX_IMAGES) {
+      throw new BadRequestException(
+        `Produto pode ter no máximo ${MAX_IMAGES} imagens`,
+      );
+    }
+
+    // 1. Upload das novas imagens
+    let uploadResults: UploadApiResponse[];
+    try {
+      uploadResults = await this.cloudinaryService.UploadMultipleImages(
+        files,
+        'products',
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Erro ao fazer upload das imagens: ${error.message}`,
+      );
+    }
+
+    // 2. Transação: Adiciona no banco
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const doesProductReallyExists = await queryRunner.manager.findOne(
+        Product,
+        {
+          where: {
+            id: productId,
+          },
+        },
+      );
+
+      if (!doesProductReallyExists) {
+        throw new NotFoundException('Produto não encontrado');
+      }
+
+      // Pega a maior ordem atual
+      const currentMaxOrder =
+        product.images.length > 0
+          ? Math.max(...product.images.map((img) => img.order))
+          : 0;
+
+      // Cria novas entidades de imagem
+      const newImages = uploadResults.map((result, index) => {
+        return queryRunner.manager.create(ProductImages, {
+          url: result.secure_url,
+          publicId: result.public_id,
+          isMain: false, // Novas imagens não são principais
+          order: currentMaxOrder + index + 1,
+          product: product,
+        });
+      });
+
+      await queryRunner.manager.save(ProductImages, newImages);
+
+      await queryRunner.commitTransaction();
+
+      return this.productsRepository.findOne({
+        where: { id: productId },
+        relations: {
+          images: true,
+        },
+      });
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      // Cleanup: deleta do Cloudinary
+      const publicIds = uploadResults.map((r) => r.public_id);
+      try {
+        await this.cloudinaryService.DeleteMultipleImages(publicIds);
+      } catch (cleanupError) {
+        console.error('Erro no cleanup:', cleanupError.message);
+      }
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // async Delete(deleteIdDTO: UrlUuidDTO) {

@@ -77,6 +77,44 @@ export class ProductsController {
     return this.productsService.Create(body, files, tokenPayloadDTO);
   }
 
+  @Post('/addImages/:id')
+  @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
+  @UseInterceptors(
+    FilesInterceptor('files', 4, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5 mb
+      },
+      fileFilter: (req, file, cb) => {
+        // Validação RÁPIDA de tipo
+        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+          return cb(
+            new BadRequestException('Apenas imagens são permitidas'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  AddImages(
+    @Param('id') id: string,
+    @UploadedFiles(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    files: Array<Express.Multer.File>,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Pelo menos uma imagem é obrigatória');
+    }
+
+    return this.productsService.AddImages(id, files);
+  }
+
   @Patch('update/:id/:imageId?')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(
