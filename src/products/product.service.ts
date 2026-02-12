@@ -225,16 +225,14 @@ export class ProductsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(
-        `Erro ao atualizar ingredientes do produto: ${error.message}`,
-      );
+      this.logger.error(`Erro ao atualizar produto: ${error.message}`);
 
       if (error instanceof HttpException) {
         throw error;
       }
 
       throw new InternalServerErrorException(
-        'Falha ao processar transação na atualização dos ingredientes do produto',
+        'Falha ao processar transação na atualização do produto',
       );
     } finally {
       await queryRunner.release();
@@ -244,17 +242,31 @@ export class ProductsService {
   async UpdatePrice(
     id: string,
     updateProductPriceDataDTO: UpdatePriceProductDTO,
-    queryRunnerSub: QueryRunner,
   ) {
-    const productUpdate = await queryRunnerSub.manager.update(Product, id, {
+    const findProduct = await this.productsRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!findProduct) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+
+    const productUpdate = await this.productsRepository.preload({
+      id,
       price: updateProductPriceDataDTO.price,
     });
 
-    if (!productUpdate || productUpdate.affected < 1) {
+    const updatedProduct = await this.productsRepository.save(productUpdate);
+
+    if (!productUpdate || !updatedProduct) {
       throw new InternalServerErrorException(
         'Erro ao tentar atualizar preço do produto',
       );
     }
+
+    return updatedProduct;
   }
 
   private async UpdateRegularData(

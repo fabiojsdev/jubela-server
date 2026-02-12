@@ -100,13 +100,20 @@ export class EmployeesService {
       ...allowedData,
     });
 
-    if (!employeeUpdate) {
+    const updatedEmployee = await this.employeeRepository.save(employeeUpdate);
+
+    if (!employeeUpdate || !updatedEmployee) {
       throw new InternalServerErrorException(
         'Erro ao tentar atualizar funcionário',
       );
     }
 
-    return this.employeeRepository.save(employeeUpdate);
+    return {
+      email: updatedEmployee.email,
+      name: updatedEmployee.name,
+      role: updatedEmployee.role,
+      situation: updatedEmployee.situation,
+    };
   }
 
   async UpdateAdmin(
