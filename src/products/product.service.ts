@@ -15,9 +15,9 @@ import { EmployeesService } from 'src/employees/employee.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { DataSource, Like, QueryRunner, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
-import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
-import { PaginationDTO } from './dto/pagination-product.dto';
+import { ProductFindByCategoryDTO } from './dto/product-find-by-category.dto';
+import { ProductFindByNameDTO } from './dto/product-find-by-name.dto';
 import { UpdatePriceProductDTO } from './dto/update-product-price.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductImages } from './entities/product-images.entity';
@@ -600,19 +600,15 @@ export class ProductsService {
     return productFindById;
   }
 
-  async ListProducts(paginationAllProducts?: PaginationAllProductsDTO) {
-    const { limit, offset } = paginationAllProducts;
-
-    const [items, total] = await this.productsRepository.findAndCount({
-      take: limit,
-      skip: offset,
+  async ListProducts() {
+    const items = await this.productsRepository.find({
       order: {
         id: 'desc',
       },
       where: {},
     });
 
-    return [total, ...items];
+    return items;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -638,20 +634,15 @@ export class ProductsService {
     }
   }
 
-  async FindByName(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
-
-    const [productFindByName, total] =
-      await this.productsRepository.findAndCount({
-        take: limit,
-        skip: offset,
-        order: {
-          id: 'desc',
-        },
-        where: {
-          name: Like(`${value}%`),
-        },
-      });
+  async FindByName(nameParam: ProductFindByNameDTO) {
+    const productFindByName = await this.productsRepository.find({
+      order: {
+        id: 'desc',
+      },
+      where: {
+        name: Like(`${nameParam.name}%`),
+      },
+    });
 
     if (!productFindByName) {
       throw new InternalServerErrorException(
@@ -663,23 +654,18 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return [total, ...productFindByName];
+    return productFindByName;
   }
 
-  async FindByCategory(paginationDTO: PaginationDTO) {
-    const { limit, offset, value } = paginationDTO;
-
-    const [productFindByName, total] =
-      await this.productsRepository.findAndCount({
-        take: limit,
-        skip: offset,
-        order: {
-          id: 'desc',
-        },
-        where: {
-          name: Like(`${value}%`),
-        },
-      });
+  async FindByCategory(categoryParam: ProductFindByCategoryDTO) {
+    const productFindByName = await this.productsRepository.find({
+      order: {
+        id: 'desc',
+      },
+      where: {
+        name: Like(`${categoryParam.category}%`),
+      },
+    });
 
     if (!productFindByName) {
       throw new InternalServerErrorException(
@@ -691,7 +677,7 @@ export class ProductsService {
       throw new NotFoundException('Produtos não encontrados');
     }
 
-    return [total, ...productFindByName];
+    return productFindByName;
   }
 
   async FindBySku(sku: string) {

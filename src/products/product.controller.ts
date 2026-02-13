@@ -21,14 +21,13 @@ import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
-import { PaginationByNameDTO } from 'src/common/dto/pagination-name.dto';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { DeleteImagesDTO } from './dto/delete-images.dto';
-import { PaginationAllProductsDTO } from './dto/pagination-all-products.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
-import { PaginationDTO } from './dto/pagination-product.dto';
+import { ProductFindByCategoryDTO } from './dto/product-find-by-category.dto';
+import { ProductFindByNameDTO } from './dto/product-find-by-name.dto';
 import { UpdatePriceProductDTO } from './dto/update-product-price.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductsService } from './product.service';
@@ -174,12 +173,8 @@ export class ProductsController {
 
   @Public()
   @Get()
-  async ListProducts(
-    @Query() paginationAllProductsDTO: PaginationAllProductsDTO,
-  ) {
-    const allProducts = await this.productsService.ListProducts(
-      paginationAllProductsDTO,
-    );
+  async ListProducts() {
+    const allProducts = await this.productsService.ListProducts();
 
     if (allProducts.length < 1) {
       return {
@@ -198,15 +193,15 @@ export class ProductsController {
   }
 
   @Public()
-  @Get('search/name/')
-  FindByName(@Query() paginationByNameDto: PaginationByNameDTO) {
-    return this.productsService.FindByName(paginationByNameDto);
+  @Get('search/name/:name')
+  FindByName(@Param('name') name: ProductFindByNameDTO) {
+    return this.productsService.FindByName(name);
   }
 
   @Public()
-  @Get('search/category/')
-  FindByRole(@Query() paginationDto: PaginationDTO) {
-    return this.productsService.FindByCategory(paginationDto);
+  @Get('search/category/:category')
+  FindByRole(@Param('category') category: ProductFindByCategoryDTO) {
+    return this.productsService.FindByCategory(category);
   }
 
   @Get('search/employee/')
