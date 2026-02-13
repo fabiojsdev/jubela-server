@@ -199,7 +199,7 @@ export class ProductsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Erro ao atualizar produto: ${error.message}`);
+      this.logger.error(`Erro ao atualizar produto: ${error}`);
 
       if (error instanceof HttpException) {
         throw error;
@@ -308,8 +308,6 @@ export class ProductsService {
 
     await queryRunnerSub.manager.save(ProductImages, imageToReplace);
 
-    await queryRunnerSub.commitTransaction();
-
     // 4. Deleta a imagem antiga do Cloudinary
     try {
       await this.cloudinaryService.DeleteMultipleImages([oldPublicId]);
@@ -327,11 +325,11 @@ export class ProductsService {
       } catch (cleanupError) {
         console.error('Erro no cleanup:', cleanupError.message);
       }
-    }
 
-    throw new InternalServerErrorException(
-      'Erro ao substituir imagem, operação revertida.',
-    );
+      throw new InternalServerErrorException(
+        `Erro ao substituir imagem, operação revertida ${error.message}`,
+      );
+    }
   }
 
   /**

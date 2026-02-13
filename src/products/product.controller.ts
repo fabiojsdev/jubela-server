@@ -15,7 +15,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -121,7 +121,7 @@ export class ProductsController {
   @Patch('update/:id/:imageId?')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(
-    FilesInterceptor('files', 4, {
+    FileInterceptor('file', {
       limits: {
         fileSize: 5 * 1024 * 1024, // 5 mb
       },
@@ -144,11 +144,11 @@ export class ProductsController {
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /jpeg|jpg|png/g })
         .build({
-          fileIsRequired: true,
+          fileIsRequired: false,
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
     )
-    file: Express.Multer.File,
+    file?: Express.Multer.File,
     @Param('imageId') imageId?: string,
   ) {
     return this.productsService.Update(id, imageId, body, file);
