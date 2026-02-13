@@ -528,15 +528,66 @@ export class ProductsService {
   }
 
   async Delete(id: string) {
-    const findProduct = await this.FindById(id);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const deleteProduct = await this.productsRepository.delete(findProduct.id);
+    try {
+      const product = await queryRunner.manager.findOne(Product, {
+        where: { id },
+        relations: {
+          images: true,
+        },
+      });
 
-    if (deleteProduct.affected < 1) {
-      throw new InternalServerErrorException('Erro ao deletar produto');
+      if (!product) {
+        throw new NotFoundException('Produto não encontrado');
+      }
+
+      const publicIdsToDelete = product.images.map((img) => img.publicId);
+
+      await queryRunner.manager.remove(Product, product);
+
+      await queryRunner.commitTransaction();
+
+      if (publicIdsToDelete.length > 0) {
+        await this.DeleteFromCloudinaryAsync(publicIdsToDelete).catch(
+          (error) => {
+            this.logger.error('Erro ao deletar do Cloudinary:', error.message);
+          },
+        );
+      }
+
+      return { message: 'Produto deletado com sucesso' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(`Erro ao excluir produto: ${error.message}`);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação na exclusão de produto',
+      );
+    } finally {
+      await queryRunner.release();
     }
+  }
 
-    return 'Produto deletado';
+  private async DeleteFromCloudinaryAsync(publicIds: string[]): Promise<void> {
+    try {
+      await this.cloudinaryService.DeleteMultipleImages(publicIds);
+    } catch (error) {
+      // // Registra órfãos para cleanup
+      // await this.orphanCleanupService.logOrphanImages(
+      //   publicIds,
+      //   productId,
+      //   'Produto deletado',
+      // );
+      throw error;
+    }
   }
 
   async FindById(id: string) {

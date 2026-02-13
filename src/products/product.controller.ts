@@ -169,8 +169,7 @@ export class ProductsController {
   @Delete(':id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   Delete(@Param('id') id: UrlUuidDTO) {
-    this.productsService.Delete(id.id);
-    return { success: true, message: 'Produto deletado' };
+    return this.productsService.Delete(id.id);
   }
 
   @Public()
