@@ -16,6 +16,7 @@ import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
 import { GoogleAuthGuard } from './guards/google.guard';
 
+// @SkipCsrf()
 @SkipThrottle({ read: true, write: true })
 @Controller('auth')
 export class AuthController {

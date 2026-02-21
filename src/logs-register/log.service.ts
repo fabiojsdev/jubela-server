@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryRunner, Repository } from 'typeorm';
 import { CreateLogEmployee } from './dto/create-log-employee.dto';
 import { CreateLogUser } from './dto/create-log-user.dto';
 import { LogEmployee } from './entities/log-employee.entity';
@@ -9,21 +9,20 @@ import { LogUser } from './entities/log-user.entity';
 @Injectable()
 export class LogsService {
   constructor(
-    @InjectRepository(LogEmployee)
-    private readonly logEmployeeRepository: Repository<LogEmployee>,
-
     @InjectRepository(LogUser)
     private readonly logUserRepository: Repository<LogUser>,
   ) {}
 
-  async CreateLogEmployee(createLogEmployeeDTO: CreateLogEmployee) {
-    const createLog = this.logEmployeeRepository.create(createLogEmployeeDTO);
+  async CreateLogEmployee(
+    createLogEmployeeDTO: CreateLogEmployee,
+    queryRunnerSub: QueryRunner,
+  ) {
+    const createLog = queryRunnerSub.manager.create(
+      LogEmployee,
+      createLogEmployeeDTO,
+    );
 
-    const newLog = await this.logEmployeeRepository.save(createLog);
-
-    if (!newLog) {
-      throw new InternalServerErrorException('Erro ao criar log');
-    }
+    await queryRunnerSub.manager.save(LogEmployee, createLog);
 
     return 'Log criado com sucesso';
   }

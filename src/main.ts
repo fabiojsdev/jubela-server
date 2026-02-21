@@ -69,11 +69,11 @@ async function bootstrap() {
       'Content-Type',
       'Authorization',
       'X-Requested-With',
-      'X-CSRF-Token',
+      //'X-CSRF-Token',
     ],
     maxAge: 3600,
-    exposedHeaders: ['X-CSRF-Token'],
-    optionsSuccessStatus: 204,
+    // exposedHeaders: ['X-CSRF-Token'],
+    // optionsSuccessStatus: 204,
   });
 
   app.use(helmet());

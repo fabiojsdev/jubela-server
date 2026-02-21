@@ -1,7 +1,9 @@
 import {
+  HttpException,
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -13,7 +15,7 @@ import { RTAlertDTO } from 'src/email/dto/rt-alert.dto';
 import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { RefreshTokenEmployee } from './entities/refresh-token-employee.entity';
 import { RefreshTokenUser } from './entities/refresh-token-user.entity';
 
@@ -36,93 +38,44 @@ export class RefreshTokensService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
     private readonly emailsService: EmailService,
+    private readonly logger: Logger,
+    private dataSource: DataSource,
   ) {}
 
-  async CreateEmployee(sub: Employee) {
+  async CreateEmployee(sub: Employee, queryRunnerSub: QueryRunner) {
     const rtData = {
       is_valid: true,
       employee: sub,
     };
 
-    const rtCreate = this.RTEmployeeRepository.create(rtData);
+    const rtCreate = queryRunnerSub.manager.create(
+      RefreshTokenEmployee,
+      rtData,
+    );
 
-    const newRT = await this.RTEmployeeRepository.save(rtCreate);
+    const newRT = await queryRunnerSub.manager.save(
+      RefreshTokenEmployee,
+      rtCreate,
+    );
 
     return {
       ...newRT,
     };
   }
 
-  async CreateUser(sub: User) {
+  async CreateUser(sub: User, queryRunnerSub?: QueryRunner) {
     const rtData = {
       is_valid: true,
       user: sub,
     };
 
-    const rtCreate = this.RTUserRepository.create(rtData);
+    const rtCreate = queryRunnerSub.manager.create(RefreshTokenUser, rtData);
 
-    const newRT = await this.RTUserRepository.save(rtCreate);
+    const newRT = await queryRunnerSub.manager.save(RefreshTokenUser, rtCreate);
 
     return {
       ...newRT,
     };
-  }
-
-  async FindUsedRefreshTokenEmployee(refreshTokenId: string, sub: Employee) {
-    const findUsedRefreshToken = await this.RTEmployeeRepository.findOne({
-      where: {
-        token_id: refreshTokenId,
-        employee: {
-          id: sub.id,
-        },
-      },
-    });
-
-    if (!findUsedRefreshToken) {
-      throw new InternalServerErrorException(
-        'Erro ao buscar refresh tokens relacionados ao funcionário',
-      );
-    }
-
-    return findUsedRefreshToken;
-  }
-
-  async RefreshTokenVerifyEmployee(
-    refreshTokenData: RefreshTokenEmployee,
-    sub: Employee,
-  ) {
-    if (refreshTokenData.is_valid !== true) {
-      return this.RevokeAllEmployee(sub, false, refreshTokenData.token_id);
-    } else {
-      return 'Token válido. Sem incidentes';
-    }
-  }
-
-  async RefreshTokenVerifyUser(refreshTokenData: RefreshTokenUser, sub: User) {
-    if (refreshTokenData.is_valid !== true) {
-      return this.RevokeAllUser(sub, false, refreshTokenData.token_id);
-    } else {
-      return 'Token válido. Sem incidentes';
-    }
-  }
-
-  async FindUsedRefreshTokenUser(refreshTokenId: string, sub: User) {
-    const findUsedRefreshToken = await this.RTUserRepository.findOne({
-      where: {
-        token_id: refreshTokenId,
-        user: {
-          id: sub.id,
-        },
-      },
-    });
-
-    if (!findUsedRefreshToken) {
-      throw new InternalServerErrorException(
-        'Erro ao buscar refresh tokens relacionados ao usuário',
-      );
-    }
-
-    return findUsedRefreshToken;
   }
 
   async RevokeAllEmployee(sub: Employee, isLogout: boolean, tokenId?: string) {
@@ -292,99 +245,163 @@ export class RefreshTokensService {
     return create;
   }
 
-  async InvalidateRefreshToken(id: string) {
-    const invalidate = await this.RTEmployeeRepository.update(id, {
-      is_valid: false,
-    });
-
-    return invalidate;
-  }
-
   async CreateTokensEmployee(
     employeeData: Employee,
     refreshTokenIdIncoming: string,
   ) {
-    const findUsedRT = await this.FindUsedRefreshTokenEmployee(
-      refreshTokenIdIncoming,
-      employeeData,
-    );
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    await this.RefreshTokenVerifyEmployee(findUsedRT, employeeData);
+    let accessToken: string = '';
+    let refreshToken: string = '';
 
-    const invalidate = await this.InvalidateRefreshToken(findUsedRT.id);
-
-    if (!invalidate) {
-      throw new InternalServerErrorException(
-        'Erro ao atualizar estado de refresh token',
+    try {
+      const doesEmployeeReallyExists = await queryRunner.manager.findOne(
+        Employee,
+        {
+          where: {
+            id: employeeData.id,
+          },
+        },
       );
-    }
 
-    const create = await this.CreateEmployee(employeeData);
+      if (!doesEmployeeReallyExists) {
+        throw new UnauthorizedException('Funcionário não encontrado');
+      }
 
-    if (!create) {
-      throw new InternalServerErrorException(
-        'Erro ao criar registro de refresh token',
+      const [updateToken]: RefreshTokenEmployee[] =
+        await queryRunner.manager.query(
+          `
+          UPDATE refresh_token_employee
+          SET is_valid = false
+          WHERE token_id = $1
+            AND employee_id = $2
+            AND is_valid = true
+          RETURNING *
+        `,
+          [refreshTokenIdIncoming, doesEmployeeReallyExists.id],
+        );
+
+      if (!updateToken) {
+        await this.RevokeAllEmployee(doesEmployeeReallyExists, false);
+
+        throw new UnauthorizedException(
+          'Refresh token inválido ou já utilizado',
+        );
+      }
+
+      const create = await this.CreateEmployee(employeeData, queryRunner);
+
+      accessToken = await this.SignJwtAsync(
+        employeeData.id,
+        this.jwtConfiguration.jwtTtl,
+        { email: employeeData.email, role: employeeData.role },
       );
+
+      refreshToken = await this.SignJwtAsync(
+        employeeData.id,
+        this.jwtConfiguration.jwtRefreshTtl,
+        { id: create.token_id },
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        accessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(`Erro ao criar novo par de tokens: ${error.message}`);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação da autenticação',
+      );
+    } finally {
+      await queryRunner.release();
     }
-
-    const accessToken = await this.SignJwtAsync<Partial<Employee>>(
-      employeeData.id,
-      this.jwtConfiguration.jwtTtl,
-      { email: employeeData.email, role: employeeData.role },
-    );
-
-    const refreshToken = await this.SignJwtAsync<Partial<Employee>>(
-      employeeData.id,
-      this.jwtConfiguration.jwtRefreshTtl,
-      { id: create.token_id },
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-    };
   }
 
-  async CreateTokensUser(userData: User, refreshTokenIncoming: string) {
-    const findUsedRT = await this.FindUsedRefreshTokenUser(
-      refreshTokenIncoming,
-      userData,
-    );
+  async CreateTokensUser(userData: User, refreshTokenIdIncoming: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    await this.RefreshTokenVerifyUser(findUsedRT, userData);
+    let accessToken: string = '';
+    let refreshToken: string = '';
 
-    const invalidate = await this.InvalidateRefreshToken(findUsedRT.id);
+    try {
+      const doesUserReallyExists = await queryRunner.manager.findOne(User, {
+        where: {
+          id: userData.id,
+        },
+      });
 
-    if (!invalidate) {
-      throw new InternalServerErrorException(
-        'Erro ao atualizar estado de refresh token',
+      if (!doesUserReallyExists) {
+        throw new UnauthorizedException('Usuário não encontrado');
+      }
+
+      const [updateToken]: RefreshTokenUser[] = await queryRunner.manager.query(
+        `
+          UPDATE refresh_token_user
+          SET is_valid = false
+          WHERE token_id = $1
+            AND user_id = $2
+            AND is_valid = true
+          RETURNING *
+        `,
+        [refreshTokenIdIncoming, doesUserReallyExists.id],
       );
-    }
 
-    const create = await this.CreateUser(userData);
+      if (!updateToken) {
+        await this.RevokeAllUser(doesUserReallyExists, false);
 
-    if (!create) {
-      throw new InternalServerErrorException(
-        'Erro ao criar registro de refresh token',
+        throw new UnauthorizedException(
+          'Refresh token inválido ou já utilizado',
+        );
+      }
+
+      const create = await this.CreateUser(userData, queryRunner);
+
+      accessToken = await this.SignJwtAsync(
+        userData.id,
+        this.jwtConfiguration.jwtTtl,
+        { email: userData.email },
       );
+
+      refreshToken = await this.SignJwtAsync(
+        userData.id,
+        this.jwtConfiguration.jwtRefreshTtl,
+        { id: create.token_id },
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        accessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(`Erro ao criar novo par de tokens: ${error.message}`);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação da autenticação',
+      );
+    } finally {
+      await queryRunner.release();
     }
-
-    const accessToken = await this.SignJwtAsync<Partial<Employee>>(
-      userData.id,
-      this.jwtConfiguration.jwtTtl,
-      { email: userData.email },
-    );
-
-    const refreshToken = await this.SignJwtAsync<Partial<User>>(
-      userData.id,
-      this.jwtConfiguration.jwtRefreshTtl,
-      { id: create.token_id },
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-    };
   }
 
   async SignJwtAsync<T>(sub: string, expiresIn: number, payload?: T) {

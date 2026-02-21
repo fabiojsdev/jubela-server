@@ -1,7 +1,9 @@
 import {
+  HttpException,
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -15,7 +17,7 @@ import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
 import { CreateUserDTO } from 'src/users/dto/create-user.dto';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import jwtConfig from './config/jwt.config';
 import { LoginDTO } from './dto/login.dto';
@@ -42,6 +44,8 @@ export class AuthService {
     private readonly userService: UsersService,
     private readonly logService: LogsService,
     private readonly emailsService: EmailService,
+    private readonly logger: Logger,
+    private dataSource: DataSource,
   ) {}
 
   async LoginEmployee(loginDTO: LoginDTO) {
@@ -111,42 +115,68 @@ export class AuthService {
   }
 
   async CreateTokensEmployee(employeeData: Employee) {
-    const accessToken = await this.SignJwtAsync<Partial<Employee>>(
-      employeeData.id,
-      this.jwtConfiguration.jwtTtl,
-      { email: employeeData.email, role: employeeData.role },
-    );
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const refreshToken = await this.SignJwtAsync<Partial<Employee>>(
-      employeeData.id,
-      this.jwtConfiguration.jwtRefreshTtl,
-    );
+    let accessToken: string = '';
+    let refreshToken: string = '';
 
-    const create = await this.refreshTokenService.CreateEmployee(employeeData);
+    try {
+      await this.refreshTokenService.CreateEmployee(employeeData, queryRunner);
 
-    if (!create) {
-      throw new InternalServerErrorException(
-        'Erro ao criar registro de refresh token',
+      accessToken = await this.SignJwtAsync(
+        employeeData.id,
+        this.jwtConfiguration.jwtTtl,
+        { email: employeeData.email, role: employeeData.role },
       );
+
+      refreshToken = await this.SignJwtAsync(
+        employeeData.id,
+        this.jwtConfiguration.jwtRefreshTtl,
+      );
+
+      const dataForLog = {
+        email: employeeData.email,
+        name: employeeData.name,
+        employee: employeeData,
+      };
+
+      await this.logService.CreateLogEmployee(dataForLog, queryRunner);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        accessToken,
+        refreshToken,
+        email: employeeData.email,
+        name: employeeData.name,
+        id: employeeData.id,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(`Erro ao criar novo par de tokens: ${error.message}`);
+
+      try {
+        await this.emailsService.LogIssue('funcionário');
+      } catch (emailErr) {
+        console.error(
+          'Falha ao enviar e-mail de alerta de erro de autenticação',
+          emailErr.message,
+        );
+      }
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação da autenticação',
+      );
+    } finally {
+      await queryRunner.release();
     }
-
-    const dataForLog = {
-      email: employeeData.email,
-      name: employeeData.name,
-      employee: employeeData,
-    };
-
-    const createLog = await this.logService.CreateLogEmployee(dataForLog);
-
-    if (!createLog) await this.emailsService.LogIssue('Funcionários');
-
-    return {
-      accessToken,
-      refreshToken,
-      email: employeeData.email,
-      name: employeeData.name,
-      id: employeeData.id,
-    };
   }
 
   async CreateTokensUser(userId: string, userEmail: string) {
