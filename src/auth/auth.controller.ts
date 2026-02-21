@@ -7,6 +7,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { GoogleUser } from '../interfaces/google-user';
 import { AuthService } from './auth.service';
@@ -15,6 +16,7 @@ import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
 import { GoogleAuthGuard } from './guards/google.guard';
 
+@SkipThrottle({ read: true, write: true })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

@@ -9,6 +9,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
@@ -30,6 +31,7 @@ import { EmployeesService } from './employee.service';
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
+  @SkipThrottle({ read: true, auth: true })
   @Post()
   @SetRoutePolicy(EmployeeRole.ADMIN)
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
@@ -37,6 +39,7 @@ export class EmployeesController {
     return this.employeesService.Create(body);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Patch('update/self/:id')
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   UpdateSelf(
@@ -51,6 +54,7 @@ export class EmployeesController {
     );
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Patch('update/admin/:id')
   @SetRoutePolicy(EmployeeRole.ADMIN)
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
@@ -66,12 +70,14 @@ export class EmployeesController {
     );
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Get('search/email/:email')
   @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByEmail(@Param('email') email: string) {
     return this.employeesService.FindByEmail(email);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Get('search/phoneNumber/:phoneNumber')
   @SetRoutePolicy(EmployeeRole.ADMIN)
   @UsePipes(FindByPhoneNumberValidation)
@@ -79,12 +85,14 @@ export class EmployeesController {
     return this.employeesService.FindByPhoneNumber(phoneNumber);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Get('search/name/')
   @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByName(@Query() paginationByNameDto: PaginationByNameDTO) {
     return this.employeesService.FindByName(paginationByNameDto);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Get('search/role/')
   @SetRoutePolicy(EmployeeRole.ADMIN)
   FindByRole(@Query() paginationByRoleDto: PaginationByRoleDTO) {

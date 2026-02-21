@@ -9,6 +9,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -28,11 +29,13 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Public()
+  @SkipThrottle({ read: true, auth: true })
   @Post()
   Create(@Body() body: CreateUserDTO) {
     return this.usersService.Create(body);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Patch(':id')
   @UsePipes(ReqBodyPhoneNumberValidation)
   Update(
@@ -43,6 +46,7 @@ export class UsersController {
     return this.usersService.Update(id, updateUserDTO, tokenPayloadDTO);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Public()
   @UseGuards(RoutePolicyGuard)
   @Get('search/email/:email')
@@ -51,6 +55,7 @@ export class UsersController {
     return this.usersService.FindByEmail(email);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Public()
   @UseGuards(RoutePolicyGuard)
   @Get('search/name/')

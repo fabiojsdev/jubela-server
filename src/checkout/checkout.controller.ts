@@ -14,6 +14,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
+import { SkipThrottle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
@@ -56,6 +57,7 @@ export class CheckoutController {
     this.paymentApi = new Payment(client);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Post('preference')
   async Create(
     @Body() orderDTO: OrderDTO,
@@ -73,6 +75,7 @@ export class CheckoutController {
     };
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Post('orders/:orderId/refund')
   async RefundOrder(
     @Param('orderId') orderId: string,
@@ -97,6 +100,7 @@ export class CheckoutController {
     }
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Post('orders/:orderId/refund-partial')
   async RefundPartial(
     @Param('orderId') orderId: string,
@@ -121,6 +125,7 @@ export class CheckoutController {
     }
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Patch('orders/:orderId/cancel')
   async CancelOrder(
     @Param('orderId') orderId: string,
@@ -145,6 +150,7 @@ export class CheckoutController {
     }
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Public()
   @Post('webhooks/mercadopago')
   async Handle(@Req() req: RawBodyRequest<Request>, @Res() res: Response) {

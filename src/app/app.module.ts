@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
@@ -38,6 +39,28 @@ import { AppService } from './app.service';
         };
       },
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'auth',
+        ttl: 60000,
+        limit: 5,
+      },
+      {
+        name: 'write',
+        ttl: 10000,
+        limit: 10,
+      },
+      {
+        name: 'read',
+        ttl: 10000,
+        limit: 50,
+      },
+      {
+        name: 'global',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     EmployeesModule,
     ProductsModule,
     OrdersModule,

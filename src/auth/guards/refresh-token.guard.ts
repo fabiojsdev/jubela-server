@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -17,6 +18,7 @@ export class RefreshTokenGuard implements CanActivate {
 
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+    private readonly logger: Logger,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -27,6 +29,10 @@ export class RefreshTokenGuard implements CanActivate {
       throw new UnauthorizedException('Não logado');
     }
 
+    if (!token.is_valid) {
+      throw new UnauthorizedException('Token inválido');
+    }
+
     try {
       await this.jwtService.verifyAsync(token, this.jwtConfiguration);
 
@@ -34,7 +40,8 @@ export class RefreshTokenGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException(error.stack);
+      this.logger.error(`RefreshTokenError: ${error.message}`);
+      throw new UnauthorizedException('Erro ao solicitar novos tokens');
     }
   }
 

@@ -16,6 +16,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -37,6 +38,7 @@ import { ProductsService } from './product.service';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @SkipThrottle({ read: true, auth: true })
   @Post()
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(
@@ -79,6 +81,7 @@ export class ProductsController {
     return this.productsService.Create(body, files, tokenPayloadDTO);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Post('/addImages/:id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(
@@ -117,6 +120,7 @@ export class ProductsController {
     return this.productsService.AddImages(id, files);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Patch('update/:id/:imageId?')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   @UseInterceptors(
@@ -153,24 +157,28 @@ export class ProductsController {
     return this.productsService.Update(id, imageId, body, file);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Patch('update/price')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   UpdatePrices(@Param('id') id: string, @Body() body: UpdatePriceProductDTO) {
     return this.productsService.UpdatePrice(id, body);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Delete('delete/images')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   DeleteImages(@Body() body: DeleteImagesDTO) {
     return this.productsService.RemoveImage(body.productId, body.imageId);
   }
 
+  @SkipThrottle({ read: true, auth: true })
   @Delete(':id')
   @SetRoutePolicy(EmployeeRole.EDIT_PRODUCTS)
   Delete(@Param('id') id: UrlUuidDTO) {
     return this.productsService.Delete(id.id);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Public()
   @Get()
   async ListProducts() {
@@ -186,24 +194,28 @@ export class ProductsController {
     return allProducts;
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Get('search/sku/:sku')
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
   FindBySku(@Param('sku') sku: string) {
     return this.productsService.FindBySku(sku);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Public()
   @Get('search/name/:name')
   FindByName(@Param('name') name: ProductFindByNameDTO) {
     return this.productsService.FindByName(name);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Public()
   @Get('search/category/:category')
   FindByRole(@Param('category') category: ProductFindByCategoryDTO) {
     return this.productsService.FindByCategory(category);
   }
 
+  @SkipThrottle({ write: true, auth: true })
   @Get('search/employee/')
   @SetRoutePolicy(EmployeeRole.READ_PRODUCTS)
   FindByEmployee(@Query() paginationByEmployeeDto: PaginationByEmployeeDTO) {

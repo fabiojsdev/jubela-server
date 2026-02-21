@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -35,6 +35,7 @@ import { HashingServiceProtocol } from './hashing/hashing.service';
   providers: [
     AuthService,
     GoogleStrategy,
+    Logger,
     {
       provide: HashingServiceProtocol,
       useClass: BcryptService,

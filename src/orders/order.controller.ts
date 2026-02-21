@@ -1,4 +1,5 @@
 import { Controller, Get, HttpStatus, Query, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
@@ -10,6 +11,7 @@ import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
 import { OrdersService } from './order.service';
 
+@SkipThrottle({ write: true, auth: true })
 @UseGuards(RoutePolicyGuard)
 @Controller('orders')
 export class OrdersController {

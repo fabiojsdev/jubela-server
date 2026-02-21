@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
@@ -9,6 +9,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
+  const logger = new Logger('Bootstrap');
+
+  app.set('trust proxy', 1);
 
   app.useBodyParser('json', {
     limit: '2mb',
@@ -33,21 +36,44 @@ async function bootstrap() {
     'http://localhost:3000',
   ];
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  logger.log(`Environment: ${isDevelopment ? 'development' : 'production'}`);
+  logger.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+
   app.enableCors({
     origin: (origin, callback) => {
       // permite chamadas sem origin (Postman/curl)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        if (isDevelopment) {
+          logger.debug('CORS: Request without origin (allowed in dev)');
+          return callback(null, true);
+        } else {
+          logger.warn('CORS: Request without origin blocked in production');
+          return callback(null, false);
+        }
+      }
 
       if (allowedOrigins.includes(origin)) {
+        logger.debug(`CORS: Allowed origin: ${origin}`);
         return callback(null, true);
       }
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      // Bloqueia origin não autorizado
+      logger.warn(`CORS: Blocked origin: ${origin}`);
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-CSRF-Token',
+    ],
     maxAge: 3600,
+    exposedHeaders: ['X-CSRF-Token'],
+    optionsSuccessStatus: 204,
   });
 
   app.use(helmet());

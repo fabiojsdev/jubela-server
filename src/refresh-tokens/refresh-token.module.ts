@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailModule } from 'src/email/email.module';
 import { Employee } from 'src/employees/entities/employee.entity';
@@ -19,7 +19,7 @@ import { RefreshTokensService } from './refresh-token.service';
     EmailModule,
   ],
   controllers: [RefreshTokensController],
-  providers: [RefreshTokensService],
+  providers: [RefreshTokensService, Logger],
   exports: [RefreshTokensService],
 })
 export class RefreshTokensModule {}
