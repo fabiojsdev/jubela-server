@@ -33,7 +33,7 @@ export class EmployeesController {
 
   @Public()
   @Post()
-  @SetRoutePolicy(EmployeeRole.ADMIN)
+  // @SetRoutePolicy(EmployeeRole.ADMIN)
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
   Create(@Body() body: CreateEmployeeDTO) {
     return this.employeesService.Create(body);
