@@ -9,6 +9,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
+import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
@@ -30,6 +31,7 @@ import { EmployeesService } from './employee.service';
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
+  @Public()
   @Post()
   @SetRoutePolicy(EmployeeRole.ADMIN)
   @UsePipes(ReqBodyCpfValidation, ReqBodyPhoneNumberValidation)
