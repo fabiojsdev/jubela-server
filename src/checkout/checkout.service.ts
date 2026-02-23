@@ -508,6 +508,8 @@ export class CheckoutService {
       tokenPayloadDTO,
     );
 
+    console.log(createOrder);
+
     const preferenceBody = {
       ...createOrder,
       back_urls: {

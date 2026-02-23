@@ -148,9 +148,8 @@ export class OrdersService {
 
       if (sendEmail === true) await this.emailService.LowStockWarn(findProduct);
 
-      const createPreferenceObject = this.ReturnItemsMPObject(
-        newOrderData.items,
-      );
+      const createPreferenceObject =
+        this.ReturnItemsMPObject(itemsFromThisOrder);
 
       return {
         items: createPreferenceObject,
@@ -186,7 +185,7 @@ export class OrdersService {
         title: items[i].product_name,
         quantity: items[i].quantity,
         currency_id: 'BRL',
-        unit_price: items[i].price,
+        unit_price: new Decimal(items[i].price).toDecimalPlaces(2).toNumber(),
       });
     }
 
