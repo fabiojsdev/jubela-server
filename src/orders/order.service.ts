@@ -83,6 +83,7 @@ export class OrdersService {
           where: {
             id: createOrderItemDTO[i].product.id,
           },
+          loadEagerRelations: false,
           lock: { mode: 'pessimistic_write' },
         });
 
