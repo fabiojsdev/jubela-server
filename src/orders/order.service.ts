@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -141,24 +142,37 @@ export class OrdersService {
       }
 
       await queryRunner.commitTransaction();
+
+      if (sendEmail === true) await this.emailService.LowStockWarn(findProduct);
+
+      const createPreferenceObject = this.ReturnItemsMPObject(
+        newOrderData.items,
+      );
+
+      return {
+        items: createPreferenceObject,
+        payer: {
+          email: findUser.email,
+          name: findUser.name,
+        },
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error;
+
+      this.logger.error(
+        `Erro ao criar pedido e atualizar dados do produto: ${error.message}`,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação na criação de pedido e atualização de dados do produto',
+      );
     } finally {
       await queryRunner.release();
     }
-
-    if (sendEmail === true) await this.emailService.LowStockWarn(findProduct);
-
-    const createPreferenceObject = this.ReturnItemsMPObject(newOrderData.items);
-
-    return {
-      items: createPreferenceObject,
-      payer: {
-        email: findUser.email,
-        name: findUser.name,
-      },
-    };
   }
 
   ReturnItemsMPObject(items: Items[]) {
