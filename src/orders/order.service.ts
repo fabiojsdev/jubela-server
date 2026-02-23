@@ -50,6 +50,7 @@ export class OrdersService {
     let newOrderData: Order;
     let findProduct: Product;
     let sendEmail = false;
+    const itemsFromThisOrder: Items[] = [];
 
     try {
       const decimal = createOrderItemDTO.reduce(
@@ -138,8 +139,10 @@ export class OrdersService {
 
         const orderItemCreate = queryRunner.manager.create(Items, itemData);
 
-        await queryRunner.manager.save(orderItemCreate);
+        itemsFromThisOrder.push(orderItemCreate);
       }
+
+      await queryRunner.manager.save(Items, itemsFromThisOrder);
 
       await queryRunner.commitTransaction();
 
