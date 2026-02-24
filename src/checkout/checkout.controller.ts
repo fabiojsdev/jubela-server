@@ -256,7 +256,14 @@ export class CheckoutController {
         where: {
           id: orderId,
         },
-        relations: ['orderItems, orderItems.product'],
+        relations: {
+          items: true,
+        },
+        select: {
+          items: {
+            product: true,
+          },
+        },
       });
 
       if (!order) {

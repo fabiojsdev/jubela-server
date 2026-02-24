@@ -84,7 +84,14 @@ export class CheckoutService {
         where: {
           id: orderId,
         },
-        relations: ['items', 'items.product'],
+        relations: {
+          items: true,
+        },
+        select: {
+          items: {
+            product: true,
+          },
+        },
       });
 
       if (!doesOrderReallyExists) {
@@ -193,7 +200,14 @@ export class CheckoutService {
         where: {
           id: orderId,
         },
-        relations: ['items', 'items.product'],
+        relations: {
+          items: true,
+        },
+        select: {
+          items: {
+            product: true,
+          },
+        },
       });
 
       if (!doesOrderReallyExists) {
@@ -341,7 +355,9 @@ export class CheckoutService {
           id: refundItem.orderItemId,
           order: { id: order.id }, // Garantir que pertence a este pedido
         },
-        relations: ['products'],
+        relations: {
+          product: true,
+        },
       });
 
       if (!orderItem) {
@@ -416,7 +432,14 @@ export class CheckoutService {
         where: {
           id: orderId,
         },
-        relations: ['items', 'items.product'],
+        relations: {
+          items: true,
+        },
+        select: {
+          items: {
+            product: true,
+          },
+        },
       });
 
       if (!doesOrderReallyExists) {
