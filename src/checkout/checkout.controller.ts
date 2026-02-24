@@ -279,22 +279,29 @@ export class CheckoutController {
       switch (status) {
         case 'approved':
           await this.HandleApprovedPayment(order);
+          break;
 
         case 'rejected':
         case 'cancelled':
           await this.HandleRejectedPayment(order, status);
+          break;
 
         case 'pending':
           await this.HandlePendingPayment(order);
+          break;
 
         case 'in_process':
           await this.HandleInProcessPayment(order);
+          break;
 
         default:
           this.logger.warn(`Status desconhecido: ${status}`);
       }
     } catch (error) {
-      this.logger.error('Erro ao processar notificação de pagamento:', error);
+      this.logger.error(
+        'Erro ao processar notificação de pagamento:',
+        error.message,
+      );
       throw error;
     }
   }
