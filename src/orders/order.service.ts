@@ -241,11 +241,6 @@ export class OrdersService {
             relations: {
               items: true,
             },
-            select: {
-              items: {
-                product: true,
-              },
-            },
           },
         );
 
@@ -298,7 +293,7 @@ export class OrdersService {
         return this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
       } catch (error) {
         await queryRunner.rollbackTransaction();
-        this.logger.error(`❌ Erro no pedido ${order.id}`, error.message);
+        this.logger.error(`❌ Erro no pedido ${order.id}`, error);
 
         if (error instanceof HttpException) {
           throw error;
