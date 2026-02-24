@@ -201,7 +201,14 @@ export class OrdersService {
         status: OrderStatus.PENDING,
         createdAt: LessThan(thirtyMinutesAgo),
       },
-      relations: ['items', 'items.product'],
+      relations: {
+        items: true,
+      },
+      select: {
+        items: {
+          product: true,
+        },
+      },
     });
 
     if (!expiredOrders) {
@@ -231,7 +238,14 @@ export class OrdersService {
               status: OrderStatus.PENDING,
               createdAt: LessThan(thirtyMinutesAgo),
             },
-            relations: ['items', 'items.product'],
+            relations: {
+              items: true,
+            },
+            select: {
+              items: {
+                product: true,
+              },
+            },
           },
         );
 
@@ -248,6 +262,7 @@ export class OrdersService {
               id: item.product.id,
             },
             lock: { mode: 'pessimistic_write' },
+            loadEagerRelations: false,
           });
 
           // Sem rollback nem release aqui. Só pode um de cada para cada query runner
@@ -280,10 +295,18 @@ export class OrdersService {
 
         await queryRunner.commitTransaction();
 
-        this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
+        return this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
       } catch (error) {
         await queryRunner.rollbackTransaction();
-        this.logger.error(`❌ Erro no pedido ${order.id}`, error);
+        this.logger.error(`❌ Erro no pedido ${order.id}`, error.message);
+
+        if (error instanceof HttpException) {
+          throw error;
+        }
+
+        throw new InternalServerErrorException(
+          `Falha ao processar transação no cancelamento do pedido ${order.id}`,
+        );
       } finally {
         await queryRunner.release();
       }
