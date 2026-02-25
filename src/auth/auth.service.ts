@@ -226,7 +226,7 @@ export class AuthService {
       try {
         await this.emailsService.LogIssue('usuário');
       } catch (emailErr) {
-        console.error(
+        this.logger.error(
           'Falha ao enviar e-mail de alerta de erro de autenticação',
           emailErr.message,
         );

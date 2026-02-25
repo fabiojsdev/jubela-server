@@ -302,7 +302,7 @@ export class RefreshTokensService {
       refreshToken = await this.SignJwtAsync(
         employeeData.id,
         this.jwtConfiguration.jwtRefreshTtl,
-        { id: create.token_id },
+        { id: create.token_id, role: employeeData.role },
       );
 
       await queryRunner.commitTransaction();
