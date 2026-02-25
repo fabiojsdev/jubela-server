@@ -78,27 +78,39 @@ export class UsersService {
   async FindByEmail(emailDTO: SearchByEmailDTO) {
     const email = emailDTO.email;
 
-    const employeeFindByEmail = await this.usersRepository.findOneBy({
+    const userFindByEmail = await this.usersRepository.findOneBy({
       email,
     });
 
-    if (!employeeFindByEmail) {
+    if (!userFindByEmail) {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    return employeeFindByEmail;
+    return userFindByEmail;
   }
 
   async FindById(id: string) {
-    const employeeFindById = await this.usersRepository.findOneBy({
+    const userFindById = await this.usersRepository.findOneBy({
       id,
     });
 
-    if (!employeeFindById) {
+    if (!userFindById) {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    return employeeFindById;
+    return userFindById;
+  }
+
+  async FindByIdMe(tokenPayloadDTO: TokenPayloadDTO) {
+    const userFindById = await this.usersRepository.findOneBy({
+      id: tokenPayloadDTO.sub,
+    });
+
+    if (!userFindById) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return userFindById;
   }
 
   async FindByEmailForGoogle(email: string) {

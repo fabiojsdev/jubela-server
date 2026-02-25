@@ -71,10 +71,7 @@ export class AuthController {
   @Public()
   @UseGuards(GoogleAuthGuard)
   @Get('google/callback')
-  async GoogleCallback(
-    @GoogleAuthUser() user: User,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async GoogleCallback(@GoogleAuthUser() user: User, @Res() res: Response) {
     const createTokens = await this.authService.CreateTokensUser(user);
 
     res.cookie('accessToken', createTokens.accessToken, {
@@ -93,12 +90,6 @@ export class AuthController {
       path: '/refresh/user',
     });
 
-    return {
-      success: true,
-      message: 'Autenticação concluída',
-      email: createTokens.email,
-      name: createTokens.name,
-      id: createTokens.id,
-    };
+    res.redirect('https://jubela-client.vercel.app/');
   }
 }

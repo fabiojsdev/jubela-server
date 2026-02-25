@@ -47,6 +47,12 @@ export class UsersController {
   }
 
   @SkipThrottle({ write: true, auth: true })
+  @Get('me')
+  FindMe(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
+    return this.usersService.FindByIdMe(tokenPayloadDTO);
+  }
+
+  @SkipThrottle({ write: true, auth: true })
   @Public()
   @UseGuards(RoutePolicyGuard)
   @Get('search/email/:email')
