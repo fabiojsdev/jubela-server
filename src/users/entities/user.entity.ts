@@ -1,4 +1,5 @@
 import { IsEmail, IsString } from 'class-validator';
+import { Order } from 'src/orders/entities/order.entity';
 import { RefreshTokenUser } from 'src/refresh-tokens/entities/refresh-token-user.entity';
 import {
   Column,
@@ -23,10 +24,8 @@ export class User {
   name: string;
 
   // Este campo pode ser nulo porque o cliente pode criar uma conta e não comprar nada, ao menos inicialmente
-  // @OneToMany(() => Order, (order) => order.user, {
-  //   eager: true,
-  // })
-  // order_history: Order[];
+  @OneToMany(() => Order, (order) => order.user)
+  order_history: Order[];
 
   @OneToMany(() => RefreshTokenUser, (token) => token.user)
   refresh_tokens: RefreshTokenUser[];

@@ -1,6 +1,6 @@
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { RefundReason } from 'src/common/enums/refund-reason.enum';
-import { Employee } from 'src/employees/entities/employee.entity';
+import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
@@ -20,8 +20,8 @@ export class Order {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total_price: string;
 
-  @ManyToOne(() => Employee, { onDelete: 'RESTRICT' })
-  user: Employee;
+  @ManyToOne(() => User, { onDelete: 'RESTRICT', nullable: true })
+  user: User;
 
   @OneToMany(() => Items, (item) => item.order)
   items: Items[];

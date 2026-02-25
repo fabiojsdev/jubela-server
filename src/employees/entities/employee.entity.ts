@@ -1,7 +1,6 @@
 import { IsEmail, IsString } from 'class-validator';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
-import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { RefreshTokenEmployee } from 'src/refresh-tokens/entities/refresh-token-employee.entity';
 import {
@@ -58,9 +57,6 @@ export class Employee {
 
   @OneToMany(() => Product, (product) => product.employee)
   products: Product[];
-
-  @OneToMany(() => Order, (product) => product.user)
-  orders: Order[];
 
   @OneToMany(() => RefreshTokenEmployee, (token) => token.employee)
   refresh_tokens: RefreshTokenEmployee[];
