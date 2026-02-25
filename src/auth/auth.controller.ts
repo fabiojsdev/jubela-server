@@ -1,20 +1,13 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
-import { Request, Response } from 'express';
-import { GoogleUser } from '../interfaces/google-user';
+import { Response } from 'express';
+import { User } from 'src/users/entities/user.entity';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/set-metadata.decorator';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
 import { GoogleAuthGuard } from './guards/google.guard';
+import { GoogleAuthUser } from './params/google-user.param';
 
 // @SkipCsrf()
 @SkipThrottle({ read: true, write: true })
@@ -79,17 +72,14 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get('google/callback')
   async GoogleCallback(
-    @Req() req: Request & { user: GoogleUser },
+    @GoogleAuthUser() user: User,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const createTokens = await this.authService.CreateTokensUser(
-      req.user.id,
-      req.user.email,
-    );
+    const createTokens = await this.authService.CreateTokensUser(user);
 
     res.cookie('accessToken', createTokens.accessToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
@@ -97,7 +87,7 @@ export class AuthController {
 
     res.cookie('refreshToken', createTokens.refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/user',

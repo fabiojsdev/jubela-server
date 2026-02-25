@@ -179,45 +179,69 @@ export class AuthService {
     }
   }
 
-  async CreateTokensUser(userId: string, userEmail: string) {
-    const accessToken = await this.SignJwtAsync<Partial<User>>(
-      userId,
-      this.jwtConfiguration.jwtTtl,
-      { email: userEmail },
-    );
+  async CreateTokensUser(user: User) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const refreshToken = await this.SignJwtAsync<Partial<User>>(
-      userId,
-      this.jwtConfiguration.jwtRefreshTtl,
-    );
+    let accessToken: string = '';
+    let refreshToken: string = '';
 
-    const findUser = await this.userService.FindByEmailForGoogle(userEmail);
+    try {
+      await this.refreshTokenService.CreateUser(user, queryRunner);
 
-    const create = await this.refreshTokenService.CreateUser(findUser);
-
-    if (!create) {
-      throw new InternalServerErrorException(
-        'Erro ao criar registro de refresh token',
+      accessToken = await this.SignJwtAsync<Partial<User>>(
+        user.id,
+        this.jwtConfiguration.jwtTtl,
+        { email: user.email },
       );
+
+      refreshToken = await this.SignJwtAsync<Partial<User>>(
+        user.id,
+        this.jwtConfiguration.jwtRefreshTtl,
+      );
+
+      const dataForLog = {
+        email: user.email,
+        name: user.name,
+        user: user,
+      };
+
+      await this.logService.CreateLogUser(dataForLog, queryRunner);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        accessToken,
+        refreshToken,
+        email: user.email,
+        name: user.name,
+        id: user.id,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      this.logger.error(`Erro ao criar novo par de tokens: ${error.message}`);
+
+      try {
+        await this.emailsService.LogIssue('usuário');
+      } catch (emailErr) {
+        console.error(
+          'Falha ao enviar e-mail de alerta de erro de autenticação',
+          emailErr.message,
+        );
+      }
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Falha ao processar transação da autenticação',
+      );
+    } finally {
+      await queryRunner.release();
     }
-
-    const dataForLog = {
-      email: findUser.email,
-      name: findUser.name,
-      user: findUser,
-    };
-
-    const createLog = await this.logService.CreateLogUser(dataForLog);
-
-    if (!createLog) await this.emailsService.LogIssue('usuários');
-
-    return {
-      accessToken,
-      refreshToken,
-      email: findUser.email,
-      name: findUser.name,
-      id: findUser.id,
-    };
   }
 
   async SignJwtAsync<T>(sub: string, expiresIn: number, payload?: T) {

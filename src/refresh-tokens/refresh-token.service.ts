@@ -63,7 +63,7 @@ export class RefreshTokensService {
     };
   }
 
-  async CreateUser(sub: User, queryRunnerSub?: QueryRunner) {
+  async CreateUser(sub: User, queryRunnerSub: QueryRunner) {
     const rtData = {
       is_valid: true,
       user: sub,

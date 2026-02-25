@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryRunner, Repository } from 'typeorm';
 import { CreateLogEmployee } from './dto/create-log-employee.dto';
@@ -27,14 +27,13 @@ export class LogsService {
     return 'Log criado com sucesso';
   }
 
-  async CreateLogUser(createLogUserDTO: CreateLogUser) {
-    const createLog = this.logUserRepository.create(createLogUserDTO);
+  async CreateLogUser(
+    createLogUserDTO: CreateLogUser,
+    queryRunnerSub: QueryRunner,
+  ) {
+    const createLog = queryRunnerSub.manager.create(LogUser, createLogUserDTO);
 
-    const newLog = await this.logUserRepository.save(createLog);
-
-    if (!newLog) {
-      throw new InternalServerErrorException('Erro ao criar log');
-    }
+    await queryRunnerSub.manager.save(LogUser, createLog);
 
     return 'Log criado com sucesso';
   }
