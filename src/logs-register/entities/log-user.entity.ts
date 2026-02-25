@@ -14,7 +14,7 @@ export class LogUser {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({ type: 'varchar', length: 50 })
   @IsEmail()
   email: string;
 
