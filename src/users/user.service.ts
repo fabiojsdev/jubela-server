@@ -106,10 +106,6 @@ export class UsersService {
       email,
     });
 
-    if (!employeeFindByEmail) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
     return employeeFindByEmail;
   }
 
