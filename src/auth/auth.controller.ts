@@ -25,7 +25,7 @@ export class AuthController {
 
     res.cookie('accessToken', createTokens.accessToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
@@ -33,7 +33,7 @@ export class AuthController {
 
     res.cookie('refreshToken', createTokens.refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/employee',
@@ -50,15 +50,29 @@ export class AuthController {
 
   @Public()
   @Post('logout/employee')
-  async LogoutEmployee(@Body() logoutDto: LogoutDTO) {
+  async LogoutEmployee(
+    @Body() logoutDto: LogoutDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.authService.LogoutEmployee(logoutDto);
+
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
     return { success: true, message: 'Logout concluído' };
   }
 
   @Public()
   @Post('logout/user')
-  async LogoutUser(@Body() logoutDto: LogoutDTO) {
+  async LogoutUser(
+    @Body() logoutDto: LogoutDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.authService.LogoutUser(logoutDto);
+
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
     return { success: true, message: 'Logout concluído' };
   }
 
