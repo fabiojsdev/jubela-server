@@ -88,7 +88,11 @@ export class AuthService {
 
     const createLogout = this.jwtBlacklistRepository.create(jwtBlacklistData);
 
-    await this.jwtBlacklistRepository.save(createLogout);
+    const newLogout = await this.jwtBlacklistRepository.save(createLogout);
+
+    if (!createLogout || !newLogout) {
+      throw new InternalServerErrorException('Erro ao criar logout');
+    }
 
     return 'Logout criado com suceso';
   }
@@ -109,7 +113,11 @@ export class AuthService {
 
     const createLogout = this.jwtBlacklistRepository.create(jwtBlacklistData);
 
-    await this.jwtBlacklistRepository.save(createLogout);
+    const newLogout = await this.jwtBlacklistRepository.save(createLogout);
+
+    if (!createLogout || !newLogout) {
+      throw new InternalServerErrorException('Erro ao criar logout');
+    }
 
     return 'Logout criado com suceso';
   }

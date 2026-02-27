@@ -29,13 +29,13 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Public()
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @Post()
   Create(@Body() body: CreateUserDTO) {
     return this.usersService.Create(body);
   }
 
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @Patch(':id')
   @UsePipes(ReqBodyPhoneNumberValidation)
   Update(
@@ -46,13 +46,13 @@ export class UsersController {
     return this.usersService.Update(id, updateUserDTO, tokenPayloadDTO);
   }
 
-  @SkipThrottle({ write: true, auth: true })
+  @SkipThrottle({ write: true, auth: true, refresh: true, preference: true })
   @Get('me')
   FindMe(@TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO) {
     return this.usersService.FindByIdMe(tokenPayloadDTO);
   }
 
-  @SkipThrottle({ write: true, auth: true })
+  @SkipThrottle({ write: true, auth: true, refresh: true, preference: true })
   @Public()
   @UseGuards(RoutePolicyGuard)
   @Get('search/email/:email')
@@ -61,7 +61,7 @@ export class UsersController {
     return this.usersService.FindByEmail(email);
   }
 
-  @SkipThrottle({ write: true, auth: true })
+  @SkipThrottle({ write: true, auth: true, refresh: true, preference: true })
   @Public()
   @UseGuards(RoutePolicyGuard)
   @Get('search/name/')

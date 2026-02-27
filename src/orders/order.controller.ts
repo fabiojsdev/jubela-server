@@ -11,7 +11,7 @@ import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
 import { OrdersService } from './order.service';
 
-@SkipThrottle({ write: true, auth: true })
+@SkipThrottle({ write: true, auth: true, refresh: true, preference: true })
 @UseGuards(RoutePolicyGuard)
 @Controller('orders')
 export class OrdersController {

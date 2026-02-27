@@ -57,7 +57,7 @@ export class CheckoutController {
     this.paymentApi = new Payment(client);
   }
 
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true })
   @Post('preference')
   async Create(
     @Body() orderDTO: OrderDTO,
@@ -75,7 +75,7 @@ export class CheckoutController {
     };
   }
 
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @Post('orders/:orderId/refund')
   async RefundOrder(
     @Param('orderId') orderId: string,
@@ -100,7 +100,7 @@ export class CheckoutController {
     }
   }
 
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @Post('orders/:orderId/refund-partial')
   async RefundPartial(
     @Param('orderId') orderId: string,
@@ -125,7 +125,7 @@ export class CheckoutController {
     }
   }
 
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @Patch('orders/:orderId/cancel')
   async CancelOrder(
     @Param('orderId') orderId: string,
@@ -150,7 +150,7 @@ export class CheckoutController {
     }
   }
 
-  @SkipThrottle({ read: true, auth: true })
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @Public()
   @Post('webhooks/mercadopago')
   async Handle(@Req() req: RawBodyRequest<Request>, @Res() res: Response) {

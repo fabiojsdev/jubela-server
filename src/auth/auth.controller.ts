@@ -10,7 +10,7 @@ import { GoogleAuthGuard } from './guards/google.guard';
 import { GoogleAuthUser } from './params/google-user.param';
 
 // @SkipCsrf()
-@SkipThrottle({ read: true, write: true })
+@SkipThrottle({ read: true, write: true, refresh: true, preference: true })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

@@ -61,6 +61,16 @@ import { AppService } from './app.service';
         ttl: 60000,
         limit: 100,
       },
+      {
+        name: 'preference',
+        ttl: 60000,
+        limit: 10,
+      },
+      {
+        name: 'refresh',
+        ttl: 60000,
+        limit: 10,
+      },
     ]),
     EmployeesModule,
     ProductsModule,
