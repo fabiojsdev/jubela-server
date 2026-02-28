@@ -15,9 +15,8 @@ import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { RoutePolicyGuard } from 'src/auth/guards/route-policy.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
-import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
-import { ReqBodyPhoneNumberValidation } from 'src/common/pipes/phone-number-validation-body-request.pipe';
+import { IsNotEmptyPayloadPipe } from 'src/common/pipes/empty-payload-validation.pipe';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { SearchByEmailDTO } from './dto/search-email-user.dto';
@@ -36,14 +35,13 @@ export class UsersController {
   }
 
   @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
-  @Patch(':id')
-  @UsePipes(ReqBodyPhoneNumberValidation)
+  @UsePipes(IsNotEmptyPayloadPipe)
+  @Patch()
   Update(
-    @Param('id') id: UrlUuidDTO,
     @Body() updateUserDTO: UpdateUserDTO,
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    return this.usersService.Update(id, updateUserDTO, tokenPayloadDTO);
+    return this.usersService.Update(tokenPayloadDTO, updateUserDTO);
   }
 
   @SkipThrottle({ write: true, auth: true, refresh: true, preference: true })

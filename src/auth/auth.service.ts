@@ -77,10 +77,11 @@ export class AuthService {
   async LoginUser(loginUserDTO: LoginUserDTO) {
     const findUser = await this.userRepository.findOneBy({
       email: loginUserDTO.email,
+      name: loginUserDTO.name,
     });
 
     if (!findUser) {
-      throw new UnauthorizedException('Email ou senha inválidos');
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
     const passwordCompare = await this.hashingService.Compare(
@@ -89,7 +90,7 @@ export class AuthService {
     );
 
     if (!passwordCompare) {
-      throw new UnauthorizedException('Email ou senha inválidos');
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
     const create = await this.CreateTokensUser(findUser);

@@ -1,13 +1,13 @@
 import {
-  ForbiddenException,
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
-import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
@@ -49,29 +49,17 @@ export class UsersService {
     };
   }
 
-  async Update(
-    userIdDTO: UrlUuidDTO,
-    updateUserDTO: UpdateUserDTO,
-    tokenPayloadDTO: TokenPayloadDTO,
-  ) {
-    const id = userIdDTO.id;
-
+  async Update(tokenPayloadDTO: TokenPayloadDTO, updateUserDTO: UpdateUserDTO) {
     const allowedData = {
       email: updateUserDTO.email,
       name: updateUserDTO.name,
-      password_hash: updateUserDTO.password,
+      password_hash: '',
     };
 
-    if (id !== tokenPayloadDTO.sub) {
-      throw new ForbiddenException('Ação não permitida');
-    }
+    const { sub: id } = tokenPayloadDTO;
 
-    if (updateUserDTO?.password) {
-      const passwordHash = await this.hashingService.Hash(
-        updateUserDTO.password,
-      );
-
-      allowedData.password_hash = passwordHash;
+    if (!id) {
+      throw new BadRequestException('Id não enviado');
     }
 
     const findUserById = await this.usersRepository.findOne({
@@ -82,6 +70,25 @@ export class UsersService {
 
     if (!findUserById) {
       throw new NotFoundException('Usuário não encontrado');
+    }
+
+    if (updateUserDTO.newPassword && !updateUserDTO.currentPassword) {
+      throw new BadRequestException('Senha antiga não enviada');
+    }
+
+    const updateEmailOrPassword = await this.VerifyToUpdateEmailOrPassword(
+      findUserById,
+      updateUserDTO.email,
+      updateUserDTO.currentPassword,
+      updateUserDTO.newPassword,
+    );
+
+    if (updateEmailOrPassword.email) {
+      allowedData.email = updateEmailOrPassword.email;
+    }
+
+    if (updateEmailOrPassword.password) {
+      allowedData.password_hash = updateEmailOrPassword.password;
     }
 
     const userUpdate = await this.usersRepository.preload({
@@ -95,7 +102,59 @@ export class UsersService {
       throw new InternalServerErrorException('Erro ao tentar atualizar dados');
     }
 
-    return updatedUser;
+    const newUserData = await this.usersRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    return {
+      success: true,
+      name: newUserData.name,
+      email: newUserData.email,
+    };
+  }
+
+  private async VerifyToUpdateEmailOrPassword(
+    user: User,
+    newEmail?: string,
+    currentPassword?: string,
+    newPassword?: string,
+  ) {
+    const newData = {
+      email: '',
+      password: '',
+    };
+
+    if (newPassword) {
+      const passwordCompare = await this.hashingService.Compare(
+        currentPassword,
+        user.password_hash,
+      );
+
+      if (!passwordCompare) {
+        throw new UnauthorizedException('Senha incorreta');
+      }
+
+      const passwordHash = await this.hashingService.Hash(newPassword);
+
+      newData.password = passwordHash;
+    }
+
+    if (newEmail) {
+      const passwordCompare = await this.hashingService.Compare(
+        currentPassword,
+        user.password_hash,
+      );
+
+      if (!passwordCompare) {
+        throw new UnauthorizedException('Senha incorreta');
+      }
+
+      newData.email = newEmail;
+    }
+
+    return newData;
   }
 
   async FindByEmail(emailDTO: SearchByEmailDTO) {
