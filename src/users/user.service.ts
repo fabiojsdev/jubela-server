@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
-import { Like, Repository } from 'typeorm';
+import { DataSource, Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { SearchByEmailDTO } from './dto/search-email-user.dto';
@@ -21,6 +21,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly hashingService: HashingServiceProtocol,
+    private dataSource: DataSource,
   ) {}
 
   async Create(createUserDTO: CreateUserDTO) {
@@ -62,45 +63,46 @@ export class UsersService {
       throw new BadRequestException('Id não enviado');
     }
 
-    const findUserById = await this.usersRepository.findOne({
-      where: {
-        id,
-      },
+    await this.dataSource.transaction(async (manager) => {
+      const findUserById = await manager.findOne(User, {
+        where: {
+          id,
+        },
+      });
+
+      if (!findUserById) {
+        throw new NotFoundException('Usuário não encontrado');
+      }
+
+      if (updateUserDTO.newPassword && !updateUserDTO.currentPassword) {
+        throw new BadRequestException('Senha antiga não enviada');
+      }
+
+      const updateEmailOrPassword = await this.VerifyToUpdateEmailOrPassword(
+        findUserById,
+        updateUserDTO.email,
+        updateUserDTO.currentPassword,
+        updateUserDTO.newPassword,
+      );
+
+      if (updateEmailOrPassword.email) {
+        allowedData.email = updateEmailOrPassword.email;
+      }
+
+      if (updateEmailOrPassword.password) {
+        allowedData.password_hash = updateEmailOrPassword.password;
+      }
+
+      const userUpdate = await manager.update(User, findUserById.id, {
+        ...allowedData,
+      });
+
+      if (!userUpdate || userUpdate.affected === 0) {
+        throw new InternalServerErrorException(
+          'Erro ao tentar atualizar dados',
+        );
+      }
     });
-
-    if (!findUserById) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    if (updateUserDTO.newPassword && !updateUserDTO.currentPassword) {
-      throw new BadRequestException('Senha antiga não enviada');
-    }
-
-    const updateEmailOrPassword = await this.VerifyToUpdateEmailOrPassword(
-      findUserById,
-      updateUserDTO.email,
-      updateUserDTO.currentPassword,
-      updateUserDTO.newPassword,
-    );
-
-    if (updateEmailOrPassword.email) {
-      allowedData.email = updateEmailOrPassword.email;
-    }
-
-    if (updateEmailOrPassword.password) {
-      allowedData.password_hash = updateEmailOrPassword.password;
-    }
-
-    const userUpdate = await this.usersRepository.preload({
-      id,
-      ...allowedData,
-    });
-
-    const updatedUser = await this.usersRepository.save(userUpdate);
-
-    if (!userUpdate || !updatedUser) {
-      throw new InternalServerErrorException('Erro ao tentar atualizar dados');
-    }
 
     const newUserData = await this.usersRepository.findOne({
       where: {
@@ -117,41 +119,34 @@ export class UsersService {
 
   private async VerifyToUpdateEmailOrPassword(
     user: User,
+    currentPassword: string,
     newEmail?: string,
-    currentPassword?: string,
     newPassword?: string,
   ) {
+    const passwordCompare = await this.hashingService.Compare(
+      currentPassword,
+      user.password_hash,
+    );
+
+    if (!passwordCompare) {
+      throw new UnauthorizedException('Senha incorreta');
+    }
+
     const newData = {
       email: '',
       password: '',
     };
 
+    if (newEmail) newData.email = newEmail;
+
     if (newPassword) {
-      const passwordCompare = await this.hashingService.Compare(
-        currentPassword,
-        user.password_hash,
-      );
-
-      if (!passwordCompare) {
-        throw new UnauthorizedException('Senha incorreta');
-      }
-
       const passwordHash = await this.hashingService.Hash(newPassword);
 
-      newData.password = passwordHash;
-    }
-
-    if (newEmail) {
-      const passwordCompare = await this.hashingService.Compare(
-        currentPassword,
-        user.password_hash,
-      );
-
-      if (!passwordCompare) {
-        throw new UnauthorizedException('Senha incorreta');
+      if (!passwordHash) {
+        throw new InternalServerErrorException('Erro ao atualizar senha');
       }
 
-      newData.email = newEmail;
+      newData.password = passwordHash;
     }
 
     return newData;
