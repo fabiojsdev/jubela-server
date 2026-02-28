@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { User } from 'src/users/entities/user.entity';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/set-metadata.decorator';
+import { LoginUserDTO } from './dto/login-user.dto';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
 import { GoogleAuthGuard } from './guards/google.guard';
@@ -45,6 +46,38 @@ export class AuthController {
       email: createTokens.email,
       name: createTokens.name,
       id: createTokens.id,
+    };
+  }
+
+  @Public()
+  @Post('register')
+  async LoginUser(
+    @Res({ passthrough: true }) res: Response,
+    @Body() loginUserDto: LoginUserDTO,
+  ) {
+    const createTokens = await this.authService.LoginUser(loginUserDto);
+
+    res.cookie('accessToken', createTokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 20, // 20 minutos
+      path: '/',
+    });
+
+    res.cookie('refreshToken', createTokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+      path: '/refresh/employee',
+    });
+
+    return {
+      success: true,
+      id: createTokens.id,
+      name: createTokens.name,
+      email: createTokens.email,
     };
   }
 

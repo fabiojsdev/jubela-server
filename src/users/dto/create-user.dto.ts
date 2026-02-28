@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsStrongPassword,
+  Length,
+} from 'class-validator';
 
 export class CreateUserDTO {
   @IsNotEmpty({
@@ -23,4 +29,15 @@ export class CreateUserDTO {
     message: 'campo "nome" deve ter no máximo 125 caracteres',
   })
   readonly name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsStrongPassword({
+    minLength: 8,
+    minLowercase: 2,
+    minNumbers: 2,
+    minSymbols: 2,
+    minUppercase: 2,
+  })
+  readonly password?: string;
 }

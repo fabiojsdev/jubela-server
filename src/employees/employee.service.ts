@@ -46,6 +46,12 @@ export class EmployeesService {
 
     const newEmployee = await this.employeeRepository.save(employeeCreate);
 
+    if (!newEmployee) {
+      throw new InternalServerErrorException(
+        'Erro ao criar conta de funcionário',
+      );
+    }
+
     const allowedData = {
       id: newEmployee.id,
       email: newEmployee.email,

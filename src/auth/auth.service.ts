@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   Inject,
   Injectable,
@@ -20,6 +21,7 @@ import { UsersService } from 'src/users/user.service';
 import { DataSource, Repository } from 'typeorm';
 import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import jwtConfig from './config/jwt.config';
+import { LoginUserDTO } from './dto/login-user.dto';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
 import { HashingServiceProtocol } from './hashing/hashing.service';
@@ -68,6 +70,29 @@ export class AuthService {
     }
 
     const create = await this.CreateTokensEmployee(findEmployee);
+
+    return create;
+  }
+
+  async LoginUser(loginUserDTO: LoginUserDTO) {
+    const findUser = await this.userRepository.findOneBy({
+      email: loginUserDTO.email,
+    });
+
+    if (!findUser) {
+      throw new UnauthorizedException('Email ou senha inválidos');
+    }
+
+    const passwordCompare = await this.hashingService.Compare(
+      loginUserDTO.password,
+      findUser.password_hash,
+    );
+
+    if (!passwordCompare) {
+      throw new UnauthorizedException('Email ou senha inválidos');
+    }
+
+    const create = await this.CreateTokensUser(findUser);
 
     return create;
   }
@@ -272,7 +297,13 @@ export class AuthService {
       googleUser.email,
     );
 
-    if (createUser) return createUser;
+    if (createUser.password_hash) {
+      throw new BadRequestException(
+        'Conta do usuário registrada no sistema sem google',
+      );
+    }
+
+    if (createUser && createUser.password_hash === null) return createUser;
 
     return await this.userService.Create(googleUser);
   }

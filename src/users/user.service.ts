@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
+import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { UrlUuidDTO } from 'src/common/dto/url-uuid.dto';
 import { Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
@@ -19,21 +20,32 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly hashingService: HashingServiceProtocol,
   ) {}
 
   async Create(createUserDTO: CreateUserDTO) {
-    const userCreate = this.usersRepository.create(createUserDTO);
+    let password_hash: string | null = null;
+
+    if (createUserDTO?.password) {
+      password_hash = await this.hashingService.Hash(createUserDTO.password);
+    }
+
+    const userData = {
+      name: createUserDTO.name,
+      email: createUserDTO.email,
+      password_hash,
+    };
+
+    const userCreate = this.usersRepository.create(userData);
 
     const newUser = await this.usersRepository.save(userCreate);
 
-    const allowedData = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-    };
+    if (!newUser) {
+      throw new InternalServerErrorException('Erro ao criar conta');
+    }
 
     return {
-      ...allowedData,
+      ...newUser,
     };
   }
 
@@ -47,10 +59,19 @@ export class UsersService {
     const allowedData = {
       email: updateUserDTO.email,
       name: updateUserDTO.name,
+      password_hash: updateUserDTO.password,
     };
 
     if (id !== tokenPayloadDTO.sub) {
       throw new ForbiddenException('Ação não permitida');
+    }
+
+    if (updateUserDTO?.password) {
+      const passwordHash = await this.hashingService.Hash(
+        updateUserDTO.password,
+      );
+
+      allowedData.password_hash = passwordHash;
     }
 
     const findUserById = await this.usersRepository.findOne({
@@ -68,11 +89,13 @@ export class UsersService {
       ...allowedData,
     });
 
-    if (!userUpdate) {
+    const updatedUser = await this.usersRepository.save(userUpdate);
+
+    if (!userUpdate || !updatedUser) {
       throw new InternalServerErrorException('Erro ao tentar atualizar dados');
     }
 
-    return this.usersRepository.save(userUpdate);
+    return updatedUser;
   }
 
   async FindByEmail(emailDTO: SearchByEmailDTO) {
