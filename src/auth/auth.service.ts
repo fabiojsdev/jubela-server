@@ -81,7 +81,21 @@ export class AuthService {
     });
 
     if (!findUser) {
-      throw new UnauthorizedException('Credenciais inválidas');
+      const userData = {
+        name: loginUserDTO.name,
+        email: loginUserDTO.email,
+        password: loginUserDTO.password,
+      };
+
+      const createUser = await this.userService.Create(userData);
+
+      if (!createUser) {
+        throw new InternalServerErrorException('Erro ao cadastrar usuário');
+      }
+
+      const create = await this.CreateTokensUser(createUser);
+
+      return create;
     }
 
     const passwordCompare = await this.hashingService.Compare(
