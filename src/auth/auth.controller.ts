@@ -70,7 +70,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
-      path: '/refresh/employee',
+      path: '/refresh/user',
     });
 
     return {

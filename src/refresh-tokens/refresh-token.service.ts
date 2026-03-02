@@ -217,7 +217,7 @@ export class RefreshTokensService {
 
     if (!findEmployee) {
       // O Error vai pular para o Unauthorized no catch e a mensagem será esta
-      throw new Error('Usuário não encontrado ou inativo');
+      throw new Error('Funcionário não encontrado ou inativo');
     }
 
     const create = await this.CreateTokensEmployee(findEmployee, id);
@@ -276,7 +276,7 @@ export class RefreshTokensService {
           UPDATE refresh_token_employee
           SET is_valid = false
           WHERE token_id = $1
-            AND employee_id = $2
+            AND employee = $2
             AND is_valid = true
           RETURNING *
         `,
@@ -352,7 +352,7 @@ export class RefreshTokensService {
           UPDATE refresh_token_user
           SET is_valid = false
           WHERE token_id = $1
-            AND user_id = $2
+            AND user = $2
             AND is_valid = true
           RETURNING *
         `,

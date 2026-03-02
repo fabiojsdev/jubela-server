@@ -24,7 +24,7 @@ export class RefreshTokensController {
 
     res.cookie('accessToken', getRefreshToken.accessToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
@@ -32,7 +32,7 @@ export class RefreshTokensController {
 
     res.cookie('refreshToken', getRefreshToken.refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/user',
@@ -52,7 +52,7 @@ export class RefreshTokensController {
 
     res.cookie('accessToken', getRefreshToken.accessToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 20, // 20 minutos
       path: '/',
@@ -60,7 +60,7 @@ export class RefreshTokensController {
 
     res.cookie('refreshToken', getRefreshToken.refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
       path: '/refresh/employee',

@@ -90,8 +90,8 @@ export class UsersService {
 
       const updateEmailOrPassword = await this.VerifyToUpdateEmailOrPassword(
         findUserById,
-        updateUserDTO.email,
         updateUserDTO.currentPassword,
+        updateUserDTO.email,
         updateUserDTO.newPassword,
       );
 
