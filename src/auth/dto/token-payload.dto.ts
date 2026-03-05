@@ -3,6 +3,7 @@ import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 export class TokenPayloadDTO {
   sub: string;
   role: EmployeeRole;
+  id?: string;
   email: string;
   iat: number;
   exp: number;

@@ -116,6 +116,8 @@ export class EmailService {
     }
   }
 
+  async ResetPassword() {}
+
   async LowStockWarn(product: Product) {
     try {
       const productData = {

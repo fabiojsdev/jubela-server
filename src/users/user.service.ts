@@ -8,9 +8,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
+import { EmailService } from 'src/email/email.service';
 import { DataSource, Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
+import { ResetPasswordDTO } from './dto/reset-password.dto';
 import { SearchByEmailDTO } from './dto/search-email-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -20,6 +22,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly emailsService: EmailService,
     private readonly hashingService: HashingServiceProtocol,
     private dataSource: DataSource,
   ) {}
@@ -161,6 +164,8 @@ export class UsersService {
 
     return newData;
   }
+
+  async ResetPassword(resetPasswordDTO: ResetPasswordDTO) {}
 
   async FindByEmail(emailDTO: SearchByEmailDTO) {
     const email = emailDTO.email;

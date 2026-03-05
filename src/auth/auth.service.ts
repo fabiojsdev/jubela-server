@@ -171,7 +171,10 @@ export class AuthService {
     let refreshToken: string = '';
 
     try {
-      await this.refreshTokenService.CreateEmployee(employeeData, queryRunner);
+      const createToken = await this.refreshTokenService.CreateEmployee(
+        employeeData,
+        queryRunner,
+      );
 
       accessToken = await this.SignJwtAsync(
         employeeData.id,
@@ -182,6 +185,7 @@ export class AuthService {
       refreshToken = await this.SignJwtAsync(
         employeeData.id,
         this.jwtConfiguration.jwtRefreshTtl,
+        { id: createToken.token_id },
       );
 
       const dataForLog = {
@@ -236,7 +240,10 @@ export class AuthService {
     let refreshToken: string = '';
 
     try {
-      await this.refreshTokenService.CreateUser(user, queryRunner);
+      const createToken = await this.refreshTokenService.CreateUser(
+        user,
+        queryRunner,
+      );
 
       accessToken = await this.SignJwtAsync<Partial<User>>(
         user.id,
@@ -247,6 +254,7 @@ export class AuthService {
       refreshToken = await this.SignJwtAsync<Partial<User>>(
         user.id,
         this.jwtConfiguration.jwtRefreshTtl,
+        { id: createToken.token_id },
       );
 
       const dataForLog = {
@@ -314,7 +322,7 @@ export class AuthService {
 
     if (createUser.password_hash) {
       throw new BadRequestException(
-        'Conta do usuário registrada no sistema sem google',
+        'Conta do usuário já registrada via sistema',
       );
     }
 
