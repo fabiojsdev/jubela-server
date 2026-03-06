@@ -8,7 +8,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
-import { EmailService } from 'src/email/email.service';
 import { DataSource, Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
@@ -22,7 +21,6 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
-    private readonly emailsService: EmailService,
     private readonly hashingService: HashingServiceProtocol,
     private dataSource: DataSource,
   ) {}

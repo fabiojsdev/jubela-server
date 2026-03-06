@@ -50,12 +50,44 @@ export class AuthController {
   }
 
   @Public()
-  @Post('register')
+  @Post('user')
   async LoginUser(
+    @Res({ passthrough: true }) res: Response,
+    @Body() loginDto: LoginDTO,
+  ) {
+    const createTokens = await this.authService.LoginUser(loginDto);
+
+    res.cookie('accessToken', createTokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 20, // 20 minutos
+      path: '/',
+    });
+
+    res.cookie('refreshToken', createTokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+      path: '/refresh/user',
+    });
+
+    return {
+      success: true,
+      email: createTokens.email,
+      name: createTokens.name,
+      id: createTokens.id,
+    };
+  }
+
+  @Public()
+  @Post('register')
+  async RegisterUser(
     @Res({ passthrough: true }) res: Response,
     @Body() loginUserDto: LoginUserDTO,
   ) {
-    const createTokens = await this.authService.LoginUser(loginUserDto);
+    const createTokens = await this.authService.Register(loginUserDto);
 
     res.cookie('accessToken', createTokens.accessToken, {
       httpOnly: true,
@@ -81,7 +113,6 @@ export class AuthController {
     };
   }
 
-  @Public()
   @Post('logout/employee')
   async LogoutEmployee(
     @Body() logoutDto: LogoutDTO,
@@ -95,7 +126,6 @@ export class AuthController {
     return { success: true, message: 'Logout concluído' };
   }
 
-  @Public()
   @Post('logout/user')
   async LogoutUser(
     @Body() logoutDto: LogoutDTO,

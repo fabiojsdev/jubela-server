@@ -5,6 +5,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -74,40 +75,60 @@ export class AuthService {
     return create;
   }
 
-  async LoginUser(loginUserDTO: LoginUserDTO) {
+  async LoginUser(loginDTO: LoginDTO) {
     const findUser = await this.userRepository.findOneBy({
-      email: loginUserDTO.email,
-      name: loginUserDTO.name,
+      email: loginDTO.email,
     });
 
     if (!findUser) {
-      const userData = {
-        name: loginUserDTO.name,
-        email: loginUserDTO.email,
-        password: loginUserDTO.password,
-      };
-
-      const createUser = await this.userService.Create(userData);
-
-      if (!createUser) {
-        throw new InternalServerErrorException('Erro ao cadastrar usuário');
-      }
-
-      const create = await this.CreateTokensUser(createUser);
-
-      return create;
+      throw new UnauthorizedException('Email ou senha inválidos');
     }
 
     const passwordCompare = await this.hashingService.Compare(
-      loginUserDTO.password,
+      loginDTO.password,
       findUser.password_hash,
     );
 
     if (!passwordCompare) {
-      throw new UnauthorizedException('Credenciais inválidas');
+      throw new UnauthorizedException('Email ou senha inválidos');
     }
 
     const create = await this.CreateTokensUser(findUser);
+
+    return create;
+  }
+
+  async Register(loginUserDTO: LoginUserDTO) {
+    let user: User;
+
+    this.dataSource.transaction(async (manager) => {
+      const findUser = await manager.findOneBy(User, {
+        email: loginUserDTO.email,
+        name: loginUserDTO.name,
+      });
+
+      if (findUser) {
+        throw new BadRequestException('Usuário já existe');
+      }
+
+      const userCreate = manager.create(User, loginUserDTO);
+
+      user = await manager.save(User, userCreate);
+    });
+
+    const userExists = await this.userRepository.findOne({
+      where: {
+        id: user.id,
+      },
+    });
+
+    if (!userExists) {
+      throw new NotFoundException(
+        'Erro ao recuperar dados do usuário cadastrado',
+      );
+    }
+
+    const create = await this.CreateTokensUser(user);
 
     return create;
   }
