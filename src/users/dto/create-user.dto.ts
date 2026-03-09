@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsStrongPassword,
   Length,
@@ -30,7 +31,7 @@ export class CreateUserDTO {
   })
   readonly name: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @IsStrongPassword({
     minLength: 8,

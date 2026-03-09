@@ -22,12 +22,13 @@ import { ResetPasswordDTO } from 'src/users/dto/reset-password.dto';
 import { ResetPassword } from 'src/users/entities/reset-password.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, MoreThan, Repository } from 'typeorm';
 import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import jwtConfig from './config/jwt.config';
 import { LoginUserDTO } from './dto/login-user.dto';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
+import { UpdatePasswordDTO } from './dto/update-password.dto';
 import { HashingServiceProtocol } from './hashing/hashing.service';
 
 @Injectable()
@@ -156,7 +157,7 @@ export class AuthService {
 
     const resetPasswordData = {
       tokenHash,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 20 * 60 * 1000), // 20 minutos
       user: findUser || null,
     };
 
@@ -166,6 +167,95 @@ export class AuthService {
     await this.resetPasswordRepository.save(newResetPasswordAttempt);
 
     return this.emailsService.ResetPassword(email, newToken);
+  }
+
+  async UpdatePassword(updatePasswordDTO: UpdatePasswordDTO) {
+    let userId = '';
+
+    this.dataSource.transaction(async (manager) => {
+      const findResetPassAttemptRegister = await manager.findOne(
+        ResetPassword,
+        {
+          where: {
+            tokenHash: updatePasswordDTO.token,
+            used: false,
+            expiresAt: MoreThan(new Date()),
+          },
+          relations: {
+            user: true,
+          },
+        },
+      );
+
+      if (!findResetPassAttemptRegister) {
+        throw new BadRequestException('Token inválido ou expirado');
+      }
+
+      const bufferDbToken = Buffer.from(findResetPassAttemptRegister.tokenHash);
+      const bufferIncoming = Buffer.from(updatePasswordDTO.token);
+
+      if (
+        bufferDbToken.length !== bufferIncoming.length ||
+        !crypto.timingSafeEqual(bufferDbToken, bufferIncoming)
+      ) {
+        throw new BadRequestException('Token inválido');
+      }
+
+      const updatedPassword = await this.hashingService.Hash(
+        updatePasswordDTO.newPassword,
+      );
+
+      if (!updatedPassword) {
+        throw new InternalServerErrorException('Erro ao criar nova senha');
+      }
+
+      const updateUserPassword = await manager.update(
+        User,
+        findResetPassAttemptRegister.user.id,
+        {
+          password_hash: updatedPassword,
+        },
+      );
+
+      if (!updateUserPassword || updateUserPassword.affected === 0) {
+        throw new InternalServerErrorException('Erro ao atualizar senha');
+      }
+
+      const updateUsedField = await manager.update(
+        ResetPassword,
+        findResetPassAttemptRegister.id,
+        {
+          used: true,
+        },
+      );
+
+      if (!updateUsedField || updateUsedField.affected === 0) {
+        throw new InternalServerErrorException(
+          'Erro ao atualizar estado do token',
+        );
+      }
+
+      userId = findResetPassAttemptRegister.user.id;
+    });
+
+    const findUser = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!findUser) {
+      throw new NotFoundException(
+        'Não foi possível recuperar os dados do usuário',
+      );
+    }
+
+    return {
+      success: true,
+      email: findUser.email,
+      name: findUser.name,
+      newPasswordHash: findUser.password_hash,
+    };
   }
 
   async LogoutEmployee(logoutDto: LogoutDTO) {

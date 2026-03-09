@@ -9,6 +9,7 @@ import { Public } from './decorators/set-metadata.decorator';
 import { LoginUserDTO } from './dto/login-user.dto';
 import { LoginDTO } from './dto/login.dto';
 import { LogoutDTO } from './dto/logout.dto';
+import { UpdatePasswordDTO } from './dto/update-password.dto';
 import { GoogleAuthGuard } from './guards/google.guard';
 import { GoogleAuthUser } from './params/google-user.param';
 
@@ -122,6 +123,12 @@ export class AuthController {
   @Post('forgot-password')
   ForgotPassword(@Body() body: ResetPasswordDTO) {
     return this.authService.ResetPassword(body);
+  }
+
+  @Public()
+  @Post('reset-password')
+  UpdatePassword(@Body() body: UpdatePasswordDTO) {
+    return this.authService.UpdatePassword(body);
   }
 
   @Post('logout/employee')
