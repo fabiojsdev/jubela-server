@@ -117,25 +117,32 @@ export class EmailService {
   }
 
   async ResetPassword(userEmail: string, tokenHash: string) {
-    const resetPasswordLink = `https://jubela-client.vercel.app/reset-password/?token=${tokenHash}`;
+    try {
+      const resetPasswordLink = `https://jubela-client.vercel.app/reset-senha/?token=${tokenHash}`;
 
-    const html = await this.RenderTemplate('password-reset', resetPasswordLink);
+      const html = await this.RenderTemplate(
+        'password-reset',
+        resetPasswordLink,
+      );
 
-    // Enviar email
-    const info: sgMail.MailDataRequired = {
-      from: process.env.FROM_EMAIL,
-      to: userEmail,
-      subject: 'Redefinição de senha',
-      html,
-    };
+      // Enviar email
+      const info: sgMail.MailDataRequired = {
+        from: process.env.FROM_EMAIL,
+        to: userEmail,
+        subject: 'Redefinição de senha',
+        html,
+      };
 
-    await sgMail.send(info);
+      await sgMail.send(info);
 
-    this.logger.log(`Email enviado para ${userEmail}`);
-
-    return {
-      success: true,
-    };
+      this.logger.log(`Email enviado para ${userEmail}`);
+    } catch (error) {
+      this.logger.error(`Erro ao enviar email para ${userEmail}`, error);
+    } finally {
+      return {
+        success: true,
+      };
+    }
   }
 
   async LowStockWarn(product: Product) {

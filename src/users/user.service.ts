@@ -6,14 +6,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as crypto from 'crypto';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { HashingServiceProtocol } from 'src/auth/hashing/hashing.service';
 import { EmailService } from 'src/email/email.service';
 import { DataSource, Like, Repository } from 'typeorm';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
-import { ResetPasswordDTO } from './dto/reset-password.dto';
 import { SearchByEmailDTO } from './dto/search-email-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { ResetPassword } from './entities/reset-password.entity';
@@ -168,35 +166,6 @@ export class UsersService {
     }
 
     return newData;
-  }
-
-  async ResetPassword(resetPasswordDTO: ResetPasswordDTO) {
-    const { email } = resetPasswordDTO;
-
-    const findUser = await this.usersRepository.findOne({
-      where: {
-        email,
-      },
-    });
-
-    // mandar no link
-    const newToken = crypto.randomBytes(32).toString('hex');
-
-    // salvar no db
-    const tokenHash = crypto.createHash('sha25').update(newToken).digest('hex');
-
-    const resetPasswordData = {
-      tokenHash,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-      user: findUser || null,
-    };
-
-    const newResetPasswordAttempt =
-      this.resetPasswordRepository.create(resetPasswordData);
-
-    await this.resetPasswordRepository.save(newResetPasswordAttempt);
-
-    return this.emailService.ResetPassword(email, newToken);
   }
 
   async FindByEmail(emailDTO: SearchByEmailDTO) {

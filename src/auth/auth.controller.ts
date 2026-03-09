@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { Response } from 'express';
+import { ResetPasswordDTO } from 'src/users/dto/reset-password.dto';
 import { User } from 'src/users/entities/user.entity';
+import { UsersService } from 'src/users/user.service';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/set-metadata.decorator';
 import { LoginUserDTO } from './dto/login-user.dto';
@@ -14,7 +16,10 @@ import { GoogleAuthUser } from './params/google-user.param';
 @SkipThrottle({ read: true, write: true, refresh: true, preference: true })
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Public()
   @Post('employee')
@@ -111,6 +116,12 @@ export class AuthController {
       name: createTokens.name,
       email: createTokens.email,
     };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  ForgotPassword(@Body() body: ResetPasswordDTO) {
+    return this.authService.ResetPassword(body);
   }
 
   @Post('logout/employee')

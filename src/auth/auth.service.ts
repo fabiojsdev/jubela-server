@@ -11,12 +11,15 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as crypto from 'crypto';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { LogsService } from 'src/logs-register/log.service';
 import { RefreshTokensService } from 'src/refresh-tokens/refresh-token.service';
 import { CreateUserDTO } from 'src/users/dto/create-user.dto';
+import { ResetPasswordDTO } from 'src/users/dto/reset-password.dto';
+import { ResetPassword } from 'src/users/entities/reset-password.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
 import { DataSource, Repository } from 'typeorm';
@@ -35,6 +38,9 @@ export class AuthService {
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    @InjectRepository(ResetPassword)
+    private readonly resetPasswordRepository: Repository<ResetPassword>,
 
     @InjectRepository(JWTBlacklist)
     private readonly jwtBlacklistRepository: Repository<JWTBlacklist>,
@@ -131,6 +137,35 @@ export class AuthService {
     const create = await this.CreateTokensUser(user);
 
     return create;
+  }
+
+  async ResetPassword(resetPasswordDTO: ResetPasswordDTO) {
+    const { email } = resetPasswordDTO;
+
+    const findUser = await this.userRepository.findOne({
+      where: {
+        email,
+      },
+    });
+
+    // mandar no link
+    const newToken = crypto.randomBytes(32).toString('hex');
+
+    // salvar no db
+    const tokenHash = crypto.createHash('sha25').update(newToken).digest('hex');
+
+    const resetPasswordData = {
+      tokenHash,
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      user: findUser || null,
+    };
+
+    const newResetPasswordAttempt =
+      this.resetPasswordRepository.create(resetPasswordData);
+
+    await this.resetPasswordRepository.save(newResetPasswordAttempt);
+
+    return this.emailsService.ResetPassword(email, newToken);
   }
 
   async LogoutEmployee(logoutDto: LogoutDTO) {
