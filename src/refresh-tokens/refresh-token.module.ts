@@ -2,6 +2,7 @@ import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailModule } from 'src/email/email.module';
 import { Employee } from 'src/employees/entities/employee.entity';
+import { LogsModule } from 'src/logs-register/log.module';
 import { User } from 'src/users/entities/user.entity';
 import { RefreshTokenEmployee } from './entities/refresh-token-employee.entity';
 import { RefreshTokenUser } from './entities/refresh-token-user.entity';
@@ -17,6 +18,7 @@ import { RefreshTokensService } from './refresh-token.service';
       User,
     ]),
     EmailModule,
+    LogsModule,
   ],
   controllers: [RefreshTokensController],
   providers: [RefreshTokensService, Logger],

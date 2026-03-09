@@ -14,6 +14,7 @@ import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
 import { RTAlertDTO } from 'src/email/dto/rt-alert.dto';
 import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
+import { LogsService } from 'src/logs-register/log.service';
 import { User } from 'src/users/entities/user.entity';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { RefreshTokenEmployee } from './entities/refresh-token-employee.entity';
@@ -38,6 +39,7 @@ export class RefreshTokensService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
     private readonly emailsService: EmailService,
+    private readonly logsService: LogsService,
     private readonly logger: Logger,
     private dataSource: DataSource,
   ) {}
@@ -305,6 +307,14 @@ export class RefreshTokensService {
         { id: create.token_id, role: employeeData.role },
       );
 
+      const dataForLog = {
+        name: employeeData.name,
+        email: employeeData.email,
+        employee: employeeData,
+      };
+
+      await this.logsService.CreateLogEmployee(dataForLog, queryRunner);
+
       await queryRunner.commitTransaction();
 
       return {
@@ -380,6 +390,14 @@ export class RefreshTokensService {
         this.jwtConfiguration.jwtRefreshTtl,
         { id: create.token_id },
       );
+
+      const dataForLog = {
+        name: userData.name,
+        email: userData.email,
+        user: userData,
+      };
+
+      await this.logsService.CreateLogUser(dataForLog, queryRunner);
 
       await queryRunner.commitTransaction();
 
