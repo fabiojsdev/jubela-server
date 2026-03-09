@@ -116,7 +116,27 @@ export class EmailService {
     }
   }
 
-  async ResetPassword() {}
+  async ResetPassword(userEmail: string, tokenHash: string) {
+    const resetPasswordLink = `https://jubela-client.vercel.app/reset-password/?token=${tokenHash}`;
+
+    const html = await this.RenderTemplate('password-reset', resetPasswordLink);
+
+    // Enviar email
+    const info: sgMail.MailDataRequired = {
+      from: process.env.FROM_EMAIL,
+      to: userEmail,
+      subject: 'Redefinição de senha',
+      html,
+    };
+
+    await sgMail.send(info);
+
+    this.logger.log(`Email enviado para ${userEmail}`);
+
+    return {
+      success: true,
+    };
+  }
 
   async LowStockWarn(product: Product) {
     try {

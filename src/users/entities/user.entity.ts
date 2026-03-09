@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ResetPassword } from './reset-password.entity';
 
 @Entity()
 export class User {
@@ -33,6 +34,9 @@ export class User {
 
   @OneToMany(() => RefreshTokenUser, (token) => token.user)
   refresh_tokens: RefreshTokenUser[];
+
+  @OneToMany(() => ResetPassword, (resetPassword) => resetPassword.user)
+  reset_passeword_attempts: ResetPassword[];
 
   @CreateDateColumn()
   createdAt: Date;

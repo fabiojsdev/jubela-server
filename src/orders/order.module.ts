@@ -12,7 +12,7 @@ import { OrdersService } from './order.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, Items, Product]),
-    UsersModule,
+    forwardRef(() => UsersModule),
     forwardRef(() => ProductsModule),
     forwardRef(() => EmailModule),
   ],
