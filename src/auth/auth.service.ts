@@ -108,7 +108,7 @@ export class AuthService {
   async Register(loginUserDTO: LoginUserDTO) {
     let user: User;
 
-    this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       const findUser = await manager.findOneBy(User, {
         email: loginUserDTO.email,
         name: loginUserDTO.name,
@@ -132,18 +132,6 @@ export class AuthService {
 
       user = await manager.save(User, userCreate);
     });
-
-    const userExists = await this.userRepository.findOne({
-      where: {
-        id: user.id,
-      },
-    });
-
-    if (!userExists) {
-      throw new NotFoundException(
-        'Erro ao recuperar dados do usuário cadastrado',
-      );
-    }
 
     const create = await this.CreateTokensUser(user);
 
@@ -185,7 +173,7 @@ export class AuthService {
   async UpdatePassword(updatePasswordDTO: UpdatePasswordDTO) {
     let userId = '';
 
-    this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       const findResetPassAttemptRegister = await manager.findOne(
         ResetPassword,
         {
@@ -394,6 +382,8 @@ export class AuthService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+
+    console.log(user);
 
     let accessToken: string = '';
     let refreshToken: string = '';

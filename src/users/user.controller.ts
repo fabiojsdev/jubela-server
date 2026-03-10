@@ -4,7 +4,6 @@ import {
   Get,
   Param,
   Patch,
-  Post,
   Query,
   UseGuards,
   UsePipes,
@@ -18,7 +17,6 @@ import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { EmployeeRole } from 'src/common/enums/employee-role.enum';
 import { IsNotEmptyPayloadPipe } from 'src/common/pipes/empty-payload-validation.pipe';
 import { PaginationByNameDTO } from '../common/dto/pagination-name.dto';
-import { CreateUserDTO } from './dto/create-user.dto';
 import { SearchByEmailDTO } from './dto/search-email-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { UsersService } from './user.service';
@@ -26,13 +24,6 @@ import { UsersService } from './user.service';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
-  @Public()
-  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
-  @Post()
-  Create(@Body() body: CreateUserDTO) {
-    return this.usersService.Create(body);
-  }
 
   @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
   @UsePipes(IsNotEmptyPayloadPipe)

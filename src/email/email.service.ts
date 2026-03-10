@@ -194,9 +194,6 @@ export class EmailService {
     //   },
     // });
 
-    console.log(status);
-    console.log(order.status);
-
     if (status !== order.status) {
       throw new BadRequestException(
         `Status enviado diferente do status do pedido ${order}`,
