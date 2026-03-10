@@ -147,10 +147,10 @@ export class AuthService {
       },
     });
 
-    // mandar no link
+    // Enviado junto com o link
     const newToken = crypto.randomBytes(32).toString('hex');
 
-    // salvar no db
+    // Salvo no banco de dados
     const tokenHash = crypto
       .createHash('sha256')
       .update(newToken)
@@ -171,16 +171,17 @@ export class AuthService {
   }
 
   async UpdatePassword(updatePasswordDTO: UpdatePasswordDTO) {
-    let userId = '';
+    const { token } = updatePasswordDTO;
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-    console.log(updatePasswordDTO);
+    let userId = '';
 
     await this.dataSource.transaction(async (manager) => {
       const findResetPassAttemptRegister = await manager.findOne(
         ResetPassword,
         {
           where: {
-            tokenHash: updatePasswordDTO.token,
+            tokenHash,
             used: false,
             expiresAt: MoreThan(new Date()),
           },
@@ -192,16 +193,6 @@ export class AuthService {
 
       if (!findResetPassAttemptRegister) {
         throw new BadRequestException('Token inválido ou expirado');
-      }
-
-      const bufferDbToken = Buffer.from(findResetPassAttemptRegister.tokenHash);
-      const bufferIncoming = Buffer.from(updatePasswordDTO.token);
-
-      if (
-        bufferDbToken.length !== bufferIncoming.length ||
-        !crypto.timingSafeEqual(bufferDbToken, bufferIncoming)
-      ) {
-        throw new BadRequestException('Token inválido');
       }
 
       const updatedPassword = await this.hashingService.Hash(
