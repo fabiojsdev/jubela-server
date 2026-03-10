@@ -118,7 +118,17 @@ export class AuthService {
         throw new BadRequestException('Usuário já existe');
       }
 
-      const userCreate = manager.create(User, loginUserDTO);
+      const password_hash = await this.hashingService.Hash(
+        loginUserDTO.password,
+      );
+
+      const userData = {
+        name: loginUserDTO.name,
+        email: loginUserDTO.email,
+        password_hash,
+      };
+
+      const userCreate = manager.create(User, userData);
 
       user = await manager.save(User, userCreate);
     });
