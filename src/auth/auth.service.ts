@@ -153,7 +153,10 @@ export class AuthService {
     const newToken = crypto.randomBytes(32).toString('hex');
 
     // salvar no db
-    const tokenHash = crypto.createHash('sha25').update(newToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(newToken)
+      .digest('hex');
 
     const resetPasswordData = {
       tokenHash,

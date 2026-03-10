@@ -120,10 +120,9 @@ export class EmailService {
     try {
       const resetPasswordLink = `https://jubela-client.vercel.app/reset-senha/?token=${tokenHash}`;
 
-      const html = await this.RenderTemplate(
-        'password-reset',
+      const html = await this.RenderTemplate('password-reset', {
         resetPasswordLink,
-      );
+      });
 
       // Enviar email
       const info: sgMail.MailDataRequired = {
