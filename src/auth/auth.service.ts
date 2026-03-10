@@ -173,6 +173,8 @@ export class AuthService {
   async UpdatePassword(updatePasswordDTO: UpdatePasswordDTO) {
     let userId = '';
 
+    console.log(updatePasswordDTO);
+
     await this.dataSource.transaction(async (manager) => {
       const findResetPassAttemptRegister = await manager.findOne(
         ResetPassword,
@@ -382,8 +384,6 @@ export class AuthService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-
-    console.log(user);
 
     let accessToken: string = '';
     let refreshToken: string = '';
