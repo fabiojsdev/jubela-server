@@ -191,6 +191,8 @@ export class AuthService {
         },
       );
 
+      this.logger.log(findResetPassAttemptRegister);
+
       if (!findResetPassAttemptRegister) {
         throw new BadRequestException('Token inválido ou expirado');
       }
