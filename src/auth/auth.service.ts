@@ -158,7 +158,7 @@ export class AuthService {
 
     const resetPasswordData = {
       tokenHash,
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutos
+      expiresAt: new Date(Date.now() + 20 * 60 * 1000), // 20 minutos
       user: findUser || null,
     };
 
