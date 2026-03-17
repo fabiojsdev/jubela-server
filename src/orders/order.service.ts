@@ -340,24 +340,17 @@ export class OrdersService {
     return [total, ...findAll];
   }
 
-  async ListOrdersUsers(
-    tokenPayloadDTO: TokenPayloadDTO,
-    paginationAllOrders?: PaginationAllOrdersDTO,
-  ) {
+  async ListOrdersUsers(tokenPayloadDTO: TokenPayloadDTO) {
     const findUser = await this.usersService.FindById(tokenPayloadDTO.sub);
 
     if (!findUser) {
       throw new UnauthorizedException('Ação não permitida');
     }
 
-    const { limit, offset } = paginationAllOrders;
-
     const [findAll, total] = await this.ordersRepository.findAndCount({
       where: {
         user: findUser,
       },
-      take: limit,
-      skip: offset,
       order: {
         id: 'desc',
       },
