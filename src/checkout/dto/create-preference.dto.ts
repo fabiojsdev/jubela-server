@@ -1,18 +1,13 @@
-export class CreatePreferenceDto {
-  items: Array<{
-    id: string; // obrigatório
-    title: string;
-    description?: string;
-    picture_url?: string;
-    category_id?: string;
-    quantity: number;
-    currency_id: string; // obrigatório
-    unit_price: number;
-  }>;
-  payer?: {
-    email?: string;
+import { OrderDTO } from './order.dto';
+
+export class CreateCheckoutDto {
+  handle: string; // sua InfiniteTag (sem o $)
+  items: OrderDTO[];
+  redirect_url: string;
+  order_nsu?: string; // ID do pedido no seu sistema
+  webhook_url?: string;
+  customer?: {
     name?: string;
-    last_name?: string;
+    email?: string;
   };
-  external_reference?: string; // seu orderId
 }

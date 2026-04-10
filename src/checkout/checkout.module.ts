@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EmailModule } from 'src/email/email.module';
 import { OrdersModule } from 'src/orders/order.module';
@@ -8,7 +8,7 @@ import mercadopagoConfig from './config/mercadopago.config';
 
 @Module({
   controllers: [CheckoutController],
-  providers: [CheckoutService],
+  providers: [CheckoutService, Logger],
   imports: [
     ConfigModule.forFeature(mercadopagoConfig),
     OrdersModule,

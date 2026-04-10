@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -22,6 +23,7 @@ import { Product } from 'src/products/entities/product.entity';
 import { DataSource, Repository } from 'typeorm';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
+import { CreateCheckoutDto } from './dto/create-preference.dto';
 import { OrderDTO } from './dto/order.dto';
 import { PartialRefundDTO } from './dto/partial-refund.dto';
 import { PartialRefundItemDTO } from './dto/refund-item.dto';
@@ -523,37 +525,58 @@ export class CheckoutService {
     }
   }
 
-  async CreatePreference(orderDTO: OrderDTO, tokenPayloadDTO: TokenPayloadDTO) {
-    const { orderItems } = orderDTO;
+  async CreateCheckout(orderDTO: OrderDTO, tokenPayloadDTO: TokenPayloadDTO) {
+    try {
+      const { orderItems } = orderDTO;
 
-    const createOrder = await this.ordersService.Create(
-      orderItems,
-      tokenPayloadDTO,
-    );
+      const createOrder = await this.ordersService.Create(
+        orderItems,
+        tokenPayloadDTO,
+      );
 
-    const preferenceBody = {
-      ...createOrder,
-      back_urls: {
-        success: 'https://jubela-ecommerce.vercel.app/success',
-        pending: 'https://jubela-ecommerce.vercel.app/pending',
-        failure: 'https://jubela-ecommerce.vercel.app/failure',
-      },
-      auto_return: 'approved',
-      notification_url:
-        this.mercadoPagoConfiguration.appUrlBackend +
-        'checkout/webhooks/mercadopago',
-      statement_descriptor: 'Jubela Ecommerce',
-      expires: true,
-      expiration_date_from: new Date().toISOString(),
-      expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-    };
+      const ipData: CreateCheckoutDto = {
+        handle: 'tag',
+        redirect_url: 'url',
+        order_nsu: createOrder.orderId,
+        customer: {
+          name: createOrder.payer.name,
+          email: createOrder.payer.email,
+        },
+        items: [...createOrder.items],
+      };
 
-    const response = await this.preference.create({
-      body: preferenceBody,
-    });
+      // trocar orderDTO pelo objeto completo esperado pelo infinitepay em body
+      const res = await fetch(
+        'https://api.infinitepay.io/invoices/public/checkout/links',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ipData),
+        },
+      );
 
-    this.logger.debug('Resposta MP:' + JSON.stringify(response));
-    return response;
+      // Verficar errorData se não expõe nenhum dado sensível
+      if (!res.ok) {
+        const errorData = await res.json();
+
+        throw new HttpException(
+          errorData.message || 'Erro na transação',
+          res.status,
+        );
+      }
+
+      const response = await res.json();
+
+      return response;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Erro de comunicação com o provedor',
+      );
+    }
   }
 
   private translateMPError(errorMessage: string): string {

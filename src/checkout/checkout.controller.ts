@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   HttpStatus,
-  Inject,
   InternalServerErrorException,
   Logger,
   NotFoundException,
@@ -13,12 +12,10 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
 import { SkipThrottle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
-import MercadoPagoConfig, { Payment } from 'mercadopago';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
@@ -28,7 +25,6 @@ import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CheckoutService } from './checkout.service';
-import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { OrderDTO } from './dto/order.dto';
 import { PartialRefundDTO } from './dto/partial-refund.dto';
@@ -36,43 +32,27 @@ import { RefundDTO } from './dto/refund.dto';
 
 @Controller('checkout')
 export class CheckoutController {
-  private readonly logger = new Logger(CheckoutService.name);
-  private paymentApi: Payment;
-
   constructor(
-    @Inject(mercadopagoConfig.KEY)
-    private readonly mercadoPagoConfiguration: ConfigType<
-      typeof mercadopagoConfig
-    >,
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
     private readonly checkoutService: CheckoutService,
     private readonly emaillSerive: EmailService,
+    private readonly logger: Logger,
     private dataSource: DataSource,
-  ) {
-    const client = new MercadoPagoConfig({
-      accessToken: mercadoPagoConfiguration.accessToken,
-    });
-
-    this.paymentApi = new Payment(client);
-  }
+  ) {}
 
   @SkipThrottle({ read: true, auth: true, refresh: true })
-  @Post('preference')
+  @Post('checkout')
   async Create(
     @Body() orderDTO: OrderDTO,
     @TokenPayloadParam() tokenPayloadDTO: TokenPayloadDTO,
   ) {
-    const pref = await this.checkoutService.CreatePreference(
+    const { url } = await this.checkoutService.CreateCheckout(
       orderDTO,
       tokenPayloadDTO,
     );
-    return {
-      id: pref.id,
-      init_point: pref.init_point,
-      // remover em prod
-      sandbox_init_point: pref.sandbox_init_point,
-    };
+
+    return url;
   }
 
   @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })

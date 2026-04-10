@@ -16,7 +16,9 @@ import { EmailService } from 'src/email/email.service';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
-import { DataSource, LessThan, Repository } from 'typeorm';
+import { GetErrorMessage } from 'src/utils/error-message.util';
+import { DataSource, In, LessThan, Repository } from 'typeorm';
+import { QueryRunner } from 'typeorm/browser';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
@@ -53,11 +55,6 @@ export class OrdersService {
     const itemsFromThisOrder: Items[] = [];
 
     try {
-      const decimal = createOrderItemDTO.reduce(
-        (sum, item) => sum.add(item.price),
-        new Decimal(0),
-      );
-
       findUser = await queryRunner.manager.findOne(User, {
         where: {
           id: tokenPayloadDTO.sub,
@@ -68,8 +65,13 @@ export class OrdersService {
         throw new NotFoundException('Usuário não encontrado');
       }
 
+      const getTotalPrice = await this.PriceCalculate(
+        createOrderItemDTO,
+        queryRunner,
+      );
+
       const orderData = {
-        total_price: decimal.toString(),
+        total_price: getTotalPrice,
         user: findUser,
         items: [],
         status: OrderStatus.PENDING,
@@ -83,7 +85,7 @@ export class OrdersService {
       for (let i = 0; i < createOrderItemDTO.length; i++) {
         findProduct = await queryRunner.manager.findOne(Product, {
           where: {
-            id: createOrderItemDTO[i].product.id,
+            id: createOrderItemDTO[i].product,
           },
           loadEagerRelations: false,
           lock: { mode: 'pessimistic_write' },
@@ -96,7 +98,7 @@ export class OrdersService {
         const itemData = {
           product_name: createOrderItemDTO[i].product_name,
           quantity: createOrderItemDTO[i].quantity,
-          price: createOrderItemDTO[i].price,
+          price: findProduct.price,
           order: newOrderData,
           product: findProduct,
         };
@@ -152,6 +154,7 @@ export class OrdersService {
         this.ReturnItemsMPObject(itemsFromThisOrder);
 
       return {
+        orderId: newOrderData.id,
         items: createPreferenceObject,
         payer: {
           email: findUser.email,
@@ -161,11 +164,19 @@ export class OrdersService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
+      const manageError = GetErrorMessage(error);
+
       this.logger.error(
-        `Erro ao criar pedido e atualizar dados do produto: ${error.message}`,
+        `Erro ao criar pedido e atualizar dados do produto: ${manageError}`,
       );
 
       if (error instanceof HttpException) {
+        const status = error.getStatus();
+
+        if (status >= 500) {
+          throw new InternalServerErrorException('Erro ao processar o pedido');
+        }
+
         throw error;
       }
 
@@ -175,6 +186,38 @@ export class OrdersService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async PriceCalculate(
+    createOrderItemDTO: CreateOrderItemDTO[],
+    queryRunner: QueryRunner,
+  ) {
+    const productsIds = createOrderItemDTO.map((item) => item.product);
+    const findProducts = await queryRunner.manager.find(Product, {
+      where: {
+        id: In(productsIds),
+      },
+    });
+
+    if (findProducts.length !== productsIds.length) {
+      throw new NotFoundException('Um ou mais produtos não encontrados');
+    }
+
+    const productsMap = new Map(
+      findProducts.map((product) => [product.id, product]),
+    );
+
+    let totalPrice = new Decimal(0);
+
+    for (const item of createOrderItemDTO) {
+      const product = productsMap.get(item.product);
+
+      const price = new Decimal(product.price);
+
+      totalPrice = totalPrice.add(price.mul(item.quantity));
+    }
+
+    return totalPrice.toString();
   }
 
   ReturnItemsMPObject(items: Items[]) {
