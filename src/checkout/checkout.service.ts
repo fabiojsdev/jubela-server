@@ -10,17 +10,17 @@ import {
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { randomUUID } from 'crypto';
 import Decimal from 'decimal.js';
 import * as mercadopago from 'mercadopago';
-import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
-import { OrderStatus } from 'src/common/enums/order-status.enum';
-import { EmailService } from 'src/email/email.service';
-import { Items } from 'src/orders/entities/items.entity';
-import { Order } from 'src/orders/entities/order.entity';
-import { OrdersService } from 'src/orders/order.service';
-import { Product } from 'src/products/entities/product.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, QueryRunner, Repository } from 'typeorm';
+import { TokenPayloadDTO } from '../auth/dto/token-payload.dto';
+import { OrderStatus } from '../common/enums/order-status.enum';
+import { EmailService } from '../email/email.service';
+import { Items } from '../orders/entities/items.entity';
+import { Order } from '../orders/entities/order.entity';
+import { OrdersService } from '../orders/order.service';
+import { Product } from '../products/entities/product.entity';
+import { GetErrorMessage } from '../utils/error-message.util';
 import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { CreateCheckoutDto } from './dto/create-preference.dto';
@@ -73,7 +73,7 @@ export class CheckoutService {
       !tokenPayloadDTO.role?.includes('admin')
     ) {
       throw new ForbiddenException(
-        'Você não tem permissão para estornar este pedido',
+        'Você não tem permissão para estornar pedidos',
       );
     }
 
@@ -99,22 +99,6 @@ export class CheckoutService {
       if (!doesOrderReallyExists) {
         throw new NotFoundException(`Pedido ${orderId} não encontrado`);
       }
-
-      this.ValidateRefundEligibility(doesOrderReallyExists);
-
-      const idmptKey = randomUUID();
-
-      const refund = await this.paymentRefundClient.create({
-        payment_id: doesOrderReallyExists.paymentId,
-        body: {
-          amount: refundDTO.amount,
-        },
-        requestOptions: {
-          idempotencyKey: idmptKey,
-        },
-      });
-
-      this.logger.log(`Estorno criado no MP: ${refund.id}`);
 
       for (const item of doesOrderReallyExists.items) {
         const findProduct = await queryRunner.manager.findOne(Product, {
@@ -155,12 +139,12 @@ export class CheckoutService {
 
       await queryRunner.commitTransaction();
 
-      this.logger.log(`✅ Estorno total processado: Order ${orderId}`);
+      this.logger.log(`✅ Devolução total processada: Order ${orderId}`);
 
+      // amount
+      // função completa com switch e if para variações (DRY)
       const returnObject = {
-        refundId: refund.id,
-        amount: refund.amount,
-        status: refund.status,
+        amount: 0,
         orderId,
       };
 
@@ -170,8 +154,33 @@ export class CheckoutService {
       return returnObject;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Erro ao processar estorno no MP:', error);
-      throw new BadRequestException(this.translateMPError(error.message));
+
+      const manageError = GetErrorMessage(error);
+
+      this.logger.error(
+        `Erro na devolução: ${manageError}`,
+        error instanceof Error ? error.stack : null,
+      );
+
+      if (error instanceof QueryFailedError) {
+        throw new InternalServerErrorException(
+          'Erro na atualização dos dados da devolução',
+        );
+      }
+
+      if (error instanceof HttpException) {
+        const status = error.getStatus();
+
+        if (status >= 500) {
+          throw new InternalServerErrorException(
+            'Erro interno ao processar devolução',
+          );
+        }
+
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Erro ao processar devolução');
     } finally {
       await queryRunner.release();
     }
@@ -216,30 +225,11 @@ export class CheckoutService {
         throw new NotFoundException('Pedido não encontrado');
       }
 
-      this.ValidateRefundEligibility(doesOrderReallyExists);
-
       const refundDetails = await this.ValidateAndCalculateRefund(
         doesOrderReallyExists,
         partialRefundDTO.items,
+        queryRunner,
       );
-
-      const idmptKey = randomUUID();
-
-      const refund = await this.paymentRefundClient.create({
-        payment_id: doesOrderReallyExists.paymentId,
-        body: {
-          amount: refundDetails.totalAmount,
-        },
-        requestOptions: {
-          idempotencyKey: idmptKey,
-        },
-      });
-
-      if (!refund) {
-        throw new InternalServerErrorException(
-          'Erro ao criar reembolso com api de pagamento',
-        );
-      }
 
       for (const item of partialRefundDTO.items) {
         const findProduct = await queryRunner.manager.findOne(Product, {
@@ -294,9 +284,7 @@ export class CheckoutService {
       await queryRunner.commitTransaction();
 
       const returnObject = {
-        refundId: refund.id,
-        amount: refund.amount,
-        status: refund.status,
+        amount: totalAmount.toNumber(),
         orderId,
         itemsRefunded: refundDetails.items.length,
         details: refundDetails.items.map((item) => {
@@ -331,8 +319,32 @@ export class CheckoutService {
       return returnObject;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Erro no estorno parcial:', error);
-      throw new BadRequestException(this.translateMPError(error.message));
+
+      const manageError = GetErrorMessage(error);
+
+      this.logger.error(`Erro na devolução parcial: ${manageError}`);
+
+      if (error instanceof QueryFailedError) {
+        throw new InternalServerErrorException(
+          'Erro nas atualizações de dados de devolução parcial',
+        );
+      }
+
+      if (error instanceof HttpException) {
+        const status = error.getStatus();
+
+        if (status >= 500) {
+          throw new InternalServerErrorException(
+            'Erro interno ao processar devolução parcial',
+          );
+        }
+
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Erro ao processar devolução parcial',
+      );
     } finally {
       await queryRunner.release();
     }
@@ -341,6 +353,7 @@ export class CheckoutService {
   async ValidateAndCalculateRefund(
     order: Order,
     refundItems: PartialRefundItemDTO[],
+    queryRunner: QueryRunner,
   ) {
     const refundDetails = {
       totalAmount: new Decimal(0),
@@ -352,7 +365,7 @@ export class CheckoutService {
     };
 
     for (const refundItem of refundItems) {
-      const orderItem = await this.ItemsRepository.findOne({
+      const orderItem = await queryRunner.manager.findOne(Items, {
         where: {
           id: refundItem.orderItemId,
           order: { id: order.id }, // Garantir que pertence a este pedido
@@ -500,8 +513,30 @@ export class CheckoutService {
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Erro ao cancelar:', error);
-      throw new BadRequestException(this.translateMPError(error.message));
+
+      const manageError = GetErrorMessage(error);
+
+      this.logger.error(`Erro ao cancelar pedido: ${manageError}`);
+
+      if (error instanceof QueryFailedError) {
+        throw new InternalServerErrorException(
+          'Erro ao atualizar dados do pedido cancelado',
+        );
+      }
+
+      if (error instanceof HttpException) {
+        const status = error.getStatus();
+
+        if (status >= 500) {
+          throw new InternalServerErrorException(
+            'Erro interno ao cancelar pedido',
+          );
+        }
+
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Erro ao cancelar pedido');
     } finally {
       await queryRunner.release();
     }
@@ -509,21 +544,21 @@ export class CheckoutService {
     return returnObject;
   }
 
-  private ValidateRefundEligibility(order: Order) {
-    if (order.status !== OrderStatus.APPROVED) {
-      throw new BadRequestException('Só é possível estornar pedidos aprovados');
-    }
+  // private ValidateRefundEligibility(order: Order) {
+  //   if (order.status !== OrderStatus.APPROVED) {
+  //     throw new BadRequestException('Só é possível estornar pedidos aprovados');
+  //   }
 
-    const daysSincePaid = Math.floor(
-      (Date.now() - order.paidAt.getTime()) / (1000 * 60 * 60 * 24),
-    );
+  //   const daysSincePaid = Math.floor(
+  //     (Date.now() - order.paidAt.getTime()) / (1000 * 60 * 60 * 24),
+  //   );
 
-    if (daysSincePaid > 180) {
-      throw new BadRequestException(
-        'Prazo para estorno expirado (máximo 180 dias)',
-      );
-    }
-  }
+  //   if (daysSincePaid > 180) {
+  //     throw new BadRequestException(
+  //       'Prazo para estorno expirado (máximo 180 dias)',
+  //     );
+  //   }
+  // }
 
   async CreateCheckout(orderDTO: OrderDTO, tokenPayloadDTO: TokenPayloadDTO) {
     try {
@@ -569,32 +604,51 @@ export class CheckoutService {
 
       return response;
     } catch (error) {
+      const manageError = GetErrorMessage(error);
+
+      this.logger.error(
+        `Erro no checkout: ${manageError}`,
+        error instanceof Error ? error.stack : null,
+      );
+
+      if (error instanceof QueryFailedError) {
+        throw new InternalServerErrorException(
+          'Erro ao criar registros do checkout',
+        );
+      }
+
       if (error instanceof HttpException) {
+        const status = error.getStatus();
+
+        if (status >= 500) {
+          throw new InternalServerErrorException(
+            'Erro interno ao criar checkout',
+          );
+        }
+
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Erro de comunicação com o provedor',
-      );
+      throw new InternalServerErrorException('Erro ao criar checkout');
     }
   }
 
-  private translateMPError(errorMessage: string): string {
-    const errors = {
-      payment_too_old_to_be_refunded:
-        'Pagamento muito antigo para estorno (máx 180 dias)',
-      refund_not_found: 'Estorno não encontrado',
-      invalid_payment_status_to_refund:
-        'Status do pagamento não permite estorno',
-      insufficient_amount: 'Saldo insuficiente na conta Mercado Pago',
-    };
+  // private translateMPError(errorMessage: string): string {
+  //   const errors = {
+  //     payment_too_old_to_be_refunded:
+  //       'Pagamento muito antigo para estorno (máx 180 dias)',
+  //     refund_not_found: 'Estorno não encontrado',
+  //     invalid_payment_status_to_refund:
+  //       'Status do pagamento não permite estorno',
+  //     insufficient_amount: 'Saldo insuficiente na conta Mercado Pago',
+  //   };
 
-    for (const [key, message] of Object.entries(errors)) {
-      if (errorMessage.toLowerCase().includes(key.toLowerCase())) {
-        return message;
-      }
-    }
+  //   for (const [key, message] of Object.entries(errors)) {
+  //     if (errorMessage.toLowerCase().includes(key.toLowerCase())) {
+  //       return message;
+  //     }
+  //   }
 
-    return 'Erro ao processar operação no Mercado Pago';
-  }
+  //   return 'Erro ao processar operação no Mercado Pago';
+  // }
 }

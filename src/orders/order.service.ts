@@ -17,8 +17,8 @@ import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
 import { GetErrorMessage } from 'src/utils/error-message.util';
-import { DataSource, In, LessThan, Repository } from 'typeorm';
-import { QueryRunner } from 'typeorm/browser';
+import { DataSource, In, LessThan, QueryRunner, Repository } from 'typeorm';
+
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
@@ -192,10 +192,12 @@ export class OrdersService {
     createOrderItemDTO: CreateOrderItemDTO[],
     queryRunner: QueryRunner,
   ) {
-    const productsIds = createOrderItemDTO.map((item) => item.product);
+    const productsIds: string[] = createOrderItemDTO.map(
+      (item) => item.product,
+    );
     const findProducts = await queryRunner.manager.find(Product, {
       where: {
-        id: In(productsIds),
+        id: In(productsIds as string[]),
       },
     });
 
