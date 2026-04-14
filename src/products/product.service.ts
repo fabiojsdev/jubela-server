@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -8,11 +7,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UploadApiResponse } from 'cloudinary';
+import 'multer';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
 import { EmailService } from 'src/email/email.service';
 import { EmployeesService } from 'src/employees/employee.service';
 import { Employee } from 'src/employees/entities/employee.entity';
+import { GetErrorMessage } from 'src/utils/error-message.util';
+import { ErrorManagement } from 'src/utils/error.util';
 import { DataSource, Like, QueryRunner, Repository } from 'typeorm';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { PaginationByEmployeeDTO } from './dto/pagination-by-employee.dto';
@@ -61,9 +64,12 @@ export class ProductsService {
         'products',
       );
     } catch (error) {
-      throw new InternalServerErrorException(
-        `Erro ao fazer upload das imagens: ${error.message}`,
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao fazer upload das imagens:',
+        queryFailedError: '',
+        internalServerError: 'Erro interno ao realizar upload de imagens',
+        generalError: 'Erro ao fazer upload das imagens',
+      });
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -127,8 +133,6 @@ export class ProductsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Erro ao cadastrar produto: ${error.message}`);
-
       try {
         const publicIds = uploadResults.map((results) => results.public_id);
         await this.cloudinaryService.DeleteMultipleImages(publicIds);
@@ -138,13 +142,12 @@ export class ProductsService {
         // Você pode enviar para um sistema de log/monitoramento aqui
       }
 
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação na criação de produto',
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao cadastrar produto:',
+        queryFailedError: 'Erro ao registrar produto',
+        internalServerError: 'Erro interno cadastrar produto',
+        generalError: 'Falha ao processar transação na criação de produto',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -199,15 +202,12 @@ export class ProductsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Erro ao atualizar produto: ${error}`);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação na atualização do produto',
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao atualizar produto:',
+        queryFailedError: 'Erro ao atualizar dados de produto',
+        internalServerError: 'Erro interno ao atualizar produto',
+        generalError: 'Falha ao processar transação na atualização do produto',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -294,9 +294,12 @@ export class ProductsService {
       );
       uploadResult = results[0];
     } catch (error) {
-      throw new InternalServerErrorException(
-        `Erro ao fazer upload da imagem: ${error.message}`,
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao fazer upload da imagem:',
+        queryFailedError: '',
+        internalServerError: 'Erro interno ao fazer upload de imagem',
+        generalError: 'Erro ao fazer upload da imagem',
+      });
     }
 
     // 3. Transação: Atualiza no banco
@@ -312,23 +315,21 @@ export class ProductsService {
     try {
       await this.cloudinaryService.DeleteMultipleImages([oldPublicId]);
     } catch (error) {
-      console.error(
-        'Erro ao deletar imagem antiga do Cloudinary:',
-        error.message,
-      );
-
       // Cleanup: deleta nova imagem do Cloudinary para não deixar órfã
       try {
         await this.cloudinaryService.DeleteMultipleImages([
           uploadResult.public_id,
         ]);
       } catch (cleanupError) {
-        console.error('Erro no cleanup:', cleanupError.message);
+        this.logger.error('Erro no cleanup:', cleanupError);
       }
 
-      throw new InternalServerErrorException(
-        `Erro ao substituir imagem, operação revertida ${error.message}`,
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao deletar imagem antiga do Cloudinary:',
+        queryFailedError: 'Erro ao atualizar registro de imagem',
+        internalServerError: 'Erro interno ao atualizar imagem',
+        generalError: 'Erro ao substituir imagem, operação revertida',
+      });
     }
   }
 
@@ -363,9 +364,13 @@ export class ProductsService {
         'products',
       );
     } catch (error) {
-      throw new InternalServerErrorException(
-        `Erro ao fazer upload das imagens: ${error.message}`,
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao fazer upload das imagens:',
+        queryFailedError: '',
+        internalServerError:
+          'Erro interno ao fazer upload das imagens do produto',
+        generalError: 'Erro interno ao fazer upload de imagens',
+      });
     }
 
     // 2. Transação: Adiciona no banco
@@ -422,12 +427,15 @@ export class ProductsService {
       try {
         await this.cloudinaryService.DeleteMultipleImages(publicIds);
       } catch (cleanupError) {
-        console.error('Erro no cleanup:', cleanupError.message);
+        this.logger.error('Erro no cleanup:', cleanupError);
       }
 
-      if (error instanceof HttpException) {
-        throw error;
-      }
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao adicionar imagens no banco de dados:',
+        queryFailedError: 'Erro ao adicionar registros de imagens',
+        internalServerError: 'Erro interno ao registrar imagens do produto',
+        generalError: 'Erro interno ao fazer upload de imagens',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -484,13 +492,15 @@ export class ProductsService {
       } catch (cloudinaryError) {
         // ⚠️ Banco já foi commitado, então não podemos reverter
         // Loga o erro para investigação/cleanup manual
-        console.error(
+        const errorMessage = GetErrorMessage(cloudinaryError);
+
+        this.logger.error(
           `ATENÇÃO: Imagem deletada do banco mas falhou no Cloudinary:`,
           {
             productId,
             imageId,
             publicId: publicIdToDelete,
-            error: cloudinaryError.message,
+            error: errorMessage,
           },
         );
 
@@ -509,17 +519,13 @@ export class ProductsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(
-        `Erro ao atualizar ingredientes do produto: ${error.message}`,
-      );
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação na atualização dos ingredientes do produto',
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao apagar imagens:',
+        queryFailedError: 'Erro ao apagar registro de imagem',
+        internalServerError: 'Erro interno ao remover imagem',
+        generalError:
+          'Falha ao processar transação da remoção das imagens do produto',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -551,7 +557,7 @@ export class ProductsService {
       if (publicIdsToDelete.length > 0) {
         await this.DeleteFromCloudinaryAsync(publicIdsToDelete).catch(
           (error) => {
-            this.logger.error('Erro ao deletar do Cloudinary:', error.message);
+            this.logger.error('Erro ao deletar do Cloudinary:', error);
           },
         );
       }
@@ -560,15 +566,12 @@ export class ProductsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Erro ao excluir produto: ${error.message}`);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação na exclusão de produto',
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao excluir produto:',
+        queryFailedError: 'Erro ao apagar registro de produto',
+        internalServerError: 'Erro interno ao deletar produto',
+        generalError: 'Falha ao processar transação na exclusão de produto',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -584,7 +587,12 @@ export class ProductsService {
       //   productId,
       //   'Produto deletado',
       // );
-      throw error;
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro do cloudinary - múltiplas imagens',
+        queryFailedError: '',
+        internalServerError: 'Erro interno ao deletar múltiplas imagens',
+        generalError: 'Erro ao deletar imagens',
+      });
     }
   }
 

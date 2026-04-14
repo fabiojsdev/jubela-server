@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -13,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'crypto';
 import { EmployeeSituation } from 'src/common/enums/employee-situation.enum';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
 import { EmailService } from 'src/email/email.service';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { LogsService } from 'src/logs-register/log.service';
@@ -22,6 +22,7 @@ import { ResetPasswordDTO } from 'src/users/dto/reset-password.dto';
 import { ResetPassword } from 'src/users/entities/reset-password.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
+import { ErrorManagement } from 'src/utils/error.util';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { JWTBlacklist } from '../jwt-blacklist/entities/jwt_blacklist.entity';
 import jwtConfig from './config/jwt.config';
@@ -350,24 +351,21 @@ export class AuthService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Erro ao criar novo par de tokens: ${error.message}`);
-
       try {
         await this.emailsService.LogIssue('funcionário');
       } catch (emailErr) {
-        console.error(
+        this.logger.error(
           'Falha ao enviar e-mail de alerta de erro de autenticação',
-          emailErr.message,
+          emailErr,
         );
       }
 
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação da autenticação',
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao criar novo par de tokens',
+        queryFailedError: 'Erro nos registros de autenticação',
+        internalServerError: 'Erro interno ao criar novo par de tokens',
+        generalError: 'Falha ao processar transação da autenticação',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -419,24 +417,21 @@ export class AuthService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Erro ao criar novo par de tokens: ${error.message}`);
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao criar novo par de tokens',
+        queryFailedError: 'Erro nos registros de autenticação',
+        internalServerError: 'Erro interno ao criar novo par de tokens',
+        generalError: 'Falha ao processar transação da autenticação',
+      });
 
       try {
         await this.emailsService.LogIssue('usuário');
       } catch (emailErr) {
         this.logger.error(
           'Falha ao enviar e-mail de alerta de erro de autenticação',
-          emailErr.message,
+          emailErr,
         );
       }
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação da autenticação',
-      );
     } finally {
       await queryRunner.release();
     }

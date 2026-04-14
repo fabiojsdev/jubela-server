@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -16,9 +15,10 @@ import { EmailService } from 'src/email/email.service';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
-import { GetErrorMessage } from 'src/utils/error-message.util';
 import { DataSource, In, LessThan, QueryRunner, Repository } from 'typeorm';
 
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
+import { ErrorManagement } from 'src/utils/error.util';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
 import { PaginationByPriceDTO } from './dto/pagination-by-price.dto';
@@ -164,25 +164,13 @@ export class OrdersService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      const manageError = GetErrorMessage(error);
-
-      this.logger.error(
-        `Erro ao criar pedido e atualizar dados do produto: ${manageError}`,
-      );
-
-      if (error instanceof HttpException) {
-        const status = error.getStatus();
-
-        if (status >= 500) {
-          throw new InternalServerErrorException('Erro ao processar o pedido');
-        }
-
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Falha ao processar transação na criação de pedido e atualização de dados do produto',
-      );
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao criar pedido e atualizar dados do produto',
+        queryFailedError: 'Erro nas transações de dados do pedido',
+        internalServerError: 'Erro ao processar o pedido',
+        generalError:
+          'Falha ao processar transação na criação de pedido e atualização de dados do produto',
+      });
     } finally {
       await queryRunner.release();
     }
@@ -338,15 +326,13 @@ export class OrdersService {
         return this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
       } catch (error) {
         await queryRunner.rollbackTransaction();
-        this.logger.error(`❌ Erro no pedido ${order.id}`, error);
 
-        if (error instanceof HttpException) {
-          throw error;
-        }
-
-        throw new InternalServerErrorException(
-          `Falha ao processar transação no cancelamento do pedido ${order.id}`,
-        );
+        ErrorManagement(error, GeneralErrorType.INTERNAL, {
+          logger: `❌ Erro no pedido ${order.id}`,
+          queryFailedError: 'Erro na atualização dos dados do pedido cancelado',
+          internalServerError: 'Erro interno no cancelamento do pedido',
+          generalError: `Falha ao processar transação no cancelamento do pedido ${order.id}`,
+        });
       } finally {
         await queryRunner.release();
       }

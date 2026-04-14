@@ -2,36 +2,45 @@ import {
   HttpException,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
+import { ErrorMessages } from 'src/interfaces/error-messages';
 import { QueryFailedError } from 'typeorm';
 import { GetErrorMessage } from './error-message.util';
 
-export function ErrorManagement(error: unknown) {
+export function ErrorManagement(
+  error: unknown,
+  generalErrorType: GeneralErrorType,
+  messages: ErrorMessages,
+) {
   const logger = new Logger('errorManagement');
   const manageError = GetErrorMessage(error);
 
   logger.error(
-    `Erro na devolução: ${manageError}`,
+    `${messages.logger}: ${manageError}`,
     error instanceof Error ? error.stack : null,
   );
 
   if (error instanceof QueryFailedError) {
-    throw new InternalServerErrorException(
-      'Erro na atualização dos dados da devolução',
-    );
+    throw new InternalServerErrorException(messages.queryFailedError);
   }
 
   if (error instanceof HttpException) {
     const status = error.getStatus();
 
     if (status >= 500) {
-      throw new InternalServerErrorException(
-        'Erro interno ao processar devolução',
-      );
+      throw new InternalServerErrorException(messages.internalServerError);
     }
 
     throw error;
   }
 
-  throw new InternalServerErrorException('Erro ao processar devolução');
+  switch (generalErrorType) {
+    case GeneralErrorType.INTERNAL:
+      throw new InternalServerErrorException(messages.generalError);
+
+    case GeneralErrorType.UNAUTHORIZED:
+      throw new UnauthorizedException(messages.generalError);
+  }
 }

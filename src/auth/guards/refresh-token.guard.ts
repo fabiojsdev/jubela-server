@@ -10,8 +10,10 @@ import { ConfigType } from '@nestjs/config';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
 import { RefreshTokenEmployee } from 'src/refresh-tokens/entities/refresh-token-employee.entity';
 import { RefreshTokenUser } from 'src/refresh-tokens/entities/refresh-token-user.entity';
+import { ErrorManagement } from 'src/utils/error.util';
 import { Repository } from 'typeorm';
 import jwtConfig from '../config/jwt.config';
 
@@ -46,8 +48,6 @@ export class RefreshTokenGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      this.logger.error(`RefreshTokenError: ${error.message}`);
-
       if (error instanceof TokenExpiredError) {
         await this.InvalidateExpiredToken(token);
         throw new UnauthorizedException(
@@ -55,7 +55,12 @@ export class RefreshTokenGuard implements CanActivate {
         );
       }
 
-      throw new UnauthorizedException('Erro ao solicitar novos tokens');
+      ErrorManagement(error, GeneralErrorType.UNAUTHORIZED, {
+        logger: 'RefreshTokenError:',
+        queryFailedError: 'Erro na busca de dados para re-autenticação',
+        internalServerError: 'Erro interno ao realizar re-autenticação',
+        generalError: 'Falha ao re-autenticar',
+      });
     }
   }
 
@@ -109,7 +114,12 @@ export class RefreshTokenGuard implements CanActivate {
         }
       }
     } catch (err) {
-      this.logger.error(`Erro ao invalidar token expirado: ${err.message}`);
+      ErrorManagement(err, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao invalidar token',
+        queryFailedError: 'Erro na atualização de dados de token',
+        internalServerError: 'Erro interno ao invalidar token',
+        generalError: 'Falha ao invalidar token',
+      });
     }
   }
 }

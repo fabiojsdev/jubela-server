@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle } from '@nestjs/throttler';
+import 'multer';
 import { Public } from 'src/auth/decorators/set-metadata.decorator';
 import { SetRoutePolicy } from 'src/auth/decorators/set-route-policy.decorator';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';

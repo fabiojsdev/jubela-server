@@ -2,16 +2,19 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import * as sgMail from '@sendgrid/mail';
 import * as ejs from 'ejs';
 import { join } from 'path';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { EmailTemplateData } from 'src/interfaces/email-template';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { ErrorManagement } from 'src/utils/error.util';
 import emailConfig from './config/email.config';
 import { RTAlertDTO } from './dto/rt-alert.dto';
 
@@ -56,7 +59,8 @@ export class EmailService {
         `Erro ao enviar email para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}:`,
         error,
       );
-      throw error;
+
+      throw new InternalServerErrorException('Erro ao enviar email');
     }
   }
 
@@ -87,7 +91,8 @@ export class EmailService {
         `Erro ao enviar email para ${forSupportTeam === true ? process.env.FROM_EMAIL : alertData.email}:`,
         error,
       );
-      throw error;
+
+      throw new InternalServerErrorException('Erro ao enviar email');
     }
   }
 
@@ -112,7 +117,8 @@ export class EmailService {
         `Erro ao enviar email para ${process.env.FROM_EMAIL}`,
         error,
       );
-      throw error;
+
+      throw new InternalServerErrorException('Erro ao enviar email');
     }
   }
 
@@ -137,6 +143,8 @@ export class EmailService {
       this.logger.log(`Email enviado para ${userEmail}`);
     } catch (error) {
       this.logger.error(`Erro ao enviar email para ${userEmail}`, error);
+
+      throw new InternalServerErrorException('Erro ao enviar email');
     } finally {
       return {
         success: true,
@@ -174,7 +182,8 @@ export class EmailService {
         `Erro ao enviar email para ${process.env.FROM_EMAIL}:`,
         error,
       );
-      throw error;
+
+      throw new InternalServerErrorException('Erro ao enviar email');
     }
   }
 
@@ -234,7 +243,8 @@ export class EmailService {
         `Erro ao enviar email para ${order.user.email}:`,
         error,
       );
-      throw error;
+
+      throw new InternalServerErrorException('Erro ao enviar email');
     }
   }
 
@@ -455,11 +465,12 @@ export class EmailService {
       const html = (await ejs.renderFile(templatePath, data)) as string;
       return html;
     } catch (error) {
-      this.logger.error(
-        `Erro ao renderizar template orders-status.ejs:`,
-        error.message,
-      );
-      throw error;
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao renderizar template orders-status.ejs:',
+        queryFailedError: '',
+        internalServerError: 'Erro interno ao renderizar template',
+        generalError: 'Erro ao renderizar template',
+      });
     }
   }
 

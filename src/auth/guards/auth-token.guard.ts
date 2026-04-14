@@ -10,6 +10,8 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
+import { ErrorManagement } from 'src/utils/error.util';
 import { Repository } from 'typeorm';
 import { JWTBlacklist } from '../../jwt-blacklist/entities/jwt_blacklist.entity';
 import { IS_PUBLIC_KEY, REQUEST_TOKEN_PAYLOAD_KEY } from '../auth.constants';
@@ -63,7 +65,12 @@ export class AuthTokenGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException(error.message);
+      ErrorManagement(error, GeneralErrorType.UNAUTHORIZED, {
+        logger: 'Erro na verificação do token - autenticação',
+        queryFailedError: 'Erro na busca de dados para autenticação',
+        internalServerError: 'Erro interno ao realizar autenticação',
+        generalError: 'Falha ao autenticar',
+      });
     }
   }
 
