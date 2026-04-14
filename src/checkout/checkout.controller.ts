@@ -1,4 +1,12 @@
-import { Body, Controller, Logger, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Logger,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -35,6 +43,31 @@ export class CheckoutController {
     );
 
     return url;
+  }
+
+  @Post('webhook')
+  @HttpCode(200)
+  async HandleWebhook(@Body() body: any) {
+    const { order_nsu, paid_amount, capture_method, transaction_nsu } = body;
+
+    const processPayment =
+      await this.checkoutService.ProcessPaymentNotification(
+        transaction_nsu,
+        order_nsu,
+      );
+
+    if (processPayment === 'ok') {
+      return {
+        success: true,
+        message: 'Pagamento já processado',
+      };
+    }
+
+    this.logger.log(
+      `Pedido ${order_nsu} pago via ${capture_method}: R$ ${paid_amount / 100}`,
+    );
+
+    return { received: true };
   }
 
   @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
@@ -187,69 +220,6 @@ export class CheckoutController {
   //   } catch (error) {
   //     this.logger.error('Erro ao validar assinatura:', error.message);
   //     return false;
-  //   }
-  // }
-
-  // private async ProcessPaymentNotification(paymentId: string) {
-  //   try {
-  //     const payment = await this.paymentApi.get({ id: paymentId });
-
-  //     this.logger.log('Pagamento encontrado:', JSON.stringify(payment));
-
-  //     const orderId = payment.external_reference;
-  //     const status = payment.status;
-
-  //     const order = await this.ordersRepository.findOne({
-  //       where: {
-  //         id: orderId,
-  //       },
-  //       relations: {
-  //         items: true,
-  //       },
-  //       select: {
-  //         items: {
-  //           product: true,
-  //         },
-  //       },
-  //     });
-
-  //     if (!order) {
-  //       throw new NotFoundException(
-  //         `Pedido ${orderId} não encontrado. Webhook`,
-  //       );
-  //     }
-
-  //     await this.ordersRepository.update(orderId, {
-  //       paymentId: payment.id.toString(),
-  //     });
-
-  //     switch (status) {
-  //       case 'approved':
-  //         await this.HandleApprovedPayment(order);
-  //         break;
-
-  //       case 'rejected':
-  //       case 'cancelled':
-  //         await this.HandleRejectedPayment(order, status);
-  //         break;
-
-  //       case 'pending':
-  //         await this.HandlePendingPayment(order);
-  //         break;
-
-  //       case 'in_process':
-  //         await this.HandleInProcessPayment(order);
-  //         break;
-
-  //       default:
-  //         this.logger.warn(`Status desconhecido: ${status}`);
-  //     }
-  //   } catch (error) {
-  //     this.logger.error(
-  //       'Erro ao processar notificação de pagamento:',
-  //       error.message,
-  //     );
-  //     throw error;
   //   }
   // }
 

@@ -2,16 +2,15 @@ import {
   BadRequestException,
   ForbiddenException,
   HttpException,
-  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
-import * as mercadopago from 'mercadopago';
+import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
+import { ErrorManagement } from 'src/utils/error.util';
 import { DataSource, QueryFailedError, QueryRunner, Repository } from 'typeorm';
 import { TokenPayloadDTO } from '../auth/dto/token-payload.dto';
 import { OrderStatus } from '../common/enums/order-status.enum';
@@ -21,7 +20,6 @@ import { Order } from '../orders/entities/order.entity';
 import { OrdersService } from '../orders/order.service';
 import { Product } from '../products/entities/product.entity';
 import { GetErrorMessage } from '../utils/error-message.util';
-import mercadopagoConfig from './config/mercadopago.config';
 import { CancelDTO } from './dto/cancel.dto';
 import { CreateCheckoutDto } from './dto/create-preference.dto';
 import { OrderDTO } from './dto/order.dto';
@@ -32,34 +30,14 @@ import { RefundDTO } from './dto/refund.dto';
 @Injectable()
 export class CheckoutService {
   private readonly logger = new Logger(CheckoutService.name);
-  private client: mercadopago.MercadoPagoConfig;
-  private preference: mercadopago.Preference;
-  private paymentClient: mercadopago.Payment;
-  private paymentRefundClient: mercadopago.PaymentRefund;
 
   constructor(
-    @Inject(mercadopagoConfig.KEY)
-    private readonly mercadoPagoConfiguration: ConfigType<
-      typeof mercadopagoConfig
-    >,
-
-    @InjectRepository(Items)
-    private readonly ItemsRepository: Repository<Items>,
+    @InjectRepository(Order)
+    private readonly ordersRepository: Repository<Order>,
     private readonly ordersService: OrdersService,
     private readonly emailsService: EmailService,
     private dataSource: DataSource,
-  ) {
-    this.client = new mercadopago.MercadoPagoConfig({
-      accessToken: mercadoPagoConfiguration.accessToken,
-      options: { timeout: 5000 },
-    });
-
-    this.paymentClient = new mercadopago.Payment(this.client);
-
-    this.paymentRefundClient = new mercadopago.PaymentRefund(this.client);
-
-    this.preference = new mercadopago.Preference(this.client);
-  }
+  ) {}
 
   async RefundOrder(
     orderId: string,
@@ -461,9 +439,9 @@ export class CheckoutService {
         throw new NotFoundException('Pedido não encontrado');
       }
 
-      await this.paymentClient.cancel({
-        id: doesOrderReallyExists.paymentId,
-      });
+      // await this.paymentClient.cancel({
+      //   id: doesOrderReallyExists.paymentId,
+      // });
 
       for (const item of doesOrderReallyExists.items) {
         const findProduct = await queryRunner.manager.findOne(Product, {
@@ -604,32 +582,75 @@ export class CheckoutService {
 
       return response;
     } catch (error) {
-      const manageError = GetErrorMessage(error);
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro no checkout:',
+        queryFailedError: 'Erro ao criar registros do checkout',
+        internalServerError: 'Erro interno ao criar checkout',
+        generalError: 'Erro ao criar checkout',
+      });
+    }
+  }
 
-      this.logger.error(
-        `Erro no checkout: ${manageError}`,
-        error instanceof Error ? error.stack : null,
-      );
+  async ProcessPaymentNotification(paymentId: string, orderNsu: string) {
+    try {
+      const isOrderAlreadyPaid = await this.ordersRepository.findOne({
+        where: {
+          paymentId,
+        },
+      });
 
-      if (error instanceof QueryFailedError) {
-        throw new InternalServerErrorException(
-          'Erro ao criar registros do checkout',
-        );
-      }
+      if (isOrderAlreadyPaid) return 'ok';
 
-      if (error instanceof HttpException) {
-        const status = error.getStatus();
+      let order: Order;
 
-        if (status >= 500) {
-          throw new InternalServerErrorException(
-            'Erro interno ao criar checkout',
+      await this.dataSource.transaction(async (manager) => {
+        order = await manager.findOne(Order, {
+          where: {
+            id: orderNsu,
+          },
+          relations: {
+            items: true,
+          },
+          select: {
+            items: {
+              product: true,
+            },
+          },
+        });
+
+        if (!order) {
+          throw new NotFoundException(
+            `Pedido ${orderNsu} não encontrado. Webhook`,
           );
         }
 
-        throw error;
-      }
+        const updateOrder = await manager.update(Order, order.id, {
+          paymentId: paymentId,
+          status: OrderStatus.APPROVED,
+          paidAt: new Date(),
+        });
 
-      throw new InternalServerErrorException('Erro ao criar checkout');
+        if (!updateOrder || updateOrder.affected === 0) {
+          throw new InternalServerErrorException(
+            'Erro ao adicionar id de pagamento ao pedido',
+          );
+        }
+      });
+
+      this.logger.log(`✅ Pedido ${orderNsu} aprovado e estoque reduzido`);
+
+      await this.emailsService.SendPaymentApprovedEmail(order, false);
+      await this.emailsService.SendPaymentApprovedEmail(order, true);
+
+      return 'Pedido processado';
+    } catch (error) {
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: 'Erro ao processar notificação de pagamento:',
+        queryFailedError: 'Erro ao atualizar dados do pedido',
+        internalServerError:
+          'Erro interno ao processar notificação de pagamento',
+        generalError: 'Erro ao processar notificação de pagamento',
+      });
     }
   }
 
