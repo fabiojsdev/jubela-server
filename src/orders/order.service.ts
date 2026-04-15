@@ -99,6 +99,7 @@ export class OrdersService {
           product_name: createOrderItemDTO[i].product_name,
           quantity: createOrderItemDTO[i].quantity,
           price: findProduct.price,
+          description: findProduct.description,
           order: newOrderData,
           product: findProduct,
         };
@@ -151,7 +152,7 @@ export class OrdersService {
       if (sendEmail === true) await this.emailService.LowStockWarn(findProduct);
 
       const createPreferenceObject =
-        this.ReturnItemsMPObject(itemsFromThisOrder);
+        this.ReturnItemsIPObject(itemsFromThisOrder);
 
       return {
         orderId: newOrderData.id,
@@ -207,18 +208,18 @@ export class OrdersService {
       totalPrice = totalPrice.add(price.mul(item.quantity));
     }
 
-    return totalPrice.toString();
+    const totalPriceCents = totalPrice.mul(100).toDecimalPlaces(0).toString();
+
+    return totalPriceCents;
   }
 
-  ReturnItemsMPObject(items: Items[]) {
+  ReturnItemsIPObject(items: Items[]) {
     const itemsList = [];
-    for (let i = 0; i < items.length; i++) {
+    for (const item of items) {
       itemsList.push({
-        id: items[i].id,
-        title: items[i].product_name,
-        quantity: items[i].quantity,
-        currency_id: 'BRL',
-        unit_price: new Decimal(items[i].price).toDecimalPlaces(2).toNumber(),
+        quantity: item.quantity,
+        price: item.price,
+        description: item.description,
       });
     }
 

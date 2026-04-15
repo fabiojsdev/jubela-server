@@ -558,7 +558,6 @@ export class CheckoutService {
         items: [...createOrder.items],
       };
 
-      // trocar orderDTO pelo objeto completo esperado pelo infinitepay em body
       const res = await fetch(
         'https://api.infinitepay.io/invoices/public/checkout/links',
         {

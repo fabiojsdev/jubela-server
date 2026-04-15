@@ -22,6 +22,9 @@ export class Items {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: string;
 
+  @Column({ type: 'varchar', length: 255 })
+  description: string;
+
   @ManyToOne(() => Order, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'order' })
   order: Order;
