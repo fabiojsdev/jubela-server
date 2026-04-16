@@ -50,6 +50,8 @@ export class CheckoutController {
   async HandleWebhook(@Body() body: any) {
     const { order_nsu, paid_amount, capture_method, transaction_nsu } = body;
 
+    if (Object.keys(body).length < 1) this.checkoutService.CheckPaymentStatus();
+
     const processPayment =
       await this.checkoutService.ProcessPaymentNotification(
         transaction_nsu,

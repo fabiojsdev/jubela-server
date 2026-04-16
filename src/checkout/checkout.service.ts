@@ -538,6 +538,10 @@ export class CheckoutService {
   //   }
   // }
 
+  async CheckPayment() {}
+
+  async CreateCronJob() {}
+
   async CreateCheckout(orderDTO: OrderDTO, tokenPayloadDTO: TokenPayloadDTO) {
     try {
       const { orderItems } = orderDTO;

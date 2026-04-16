@@ -5,12 +5,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Items } from './items.entity';
+import { PaymentConfirmation } from './payment-confirmation.entity';
 
 @Entity()
 export class Order {
@@ -73,6 +76,13 @@ export class Order {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentId: string;
+
+  @OneToOne(() => PaymentConfirmation, (pc) => pc.order, {
+    onDelete: 'RESTRICT',
+    nullable: true,
+  })
+  @JoinColumn()
+  paymentConfirmation: PaymentConfirmation;
 
   @CreateDateColumn()
   createdAt: Date;
