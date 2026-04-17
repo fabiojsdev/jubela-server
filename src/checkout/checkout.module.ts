@@ -5,10 +5,11 @@ import { OrdersModule } from 'src/orders/order.module';
 import { CheckoutController } from './checkout.controller';
 import { CheckoutService } from './checkout.service';
 import mercadopagoConfig from './config/mercadopago.config';
+import { CronJobOrgService } from './cron-job-org.service';
 
 @Module({
   controllers: [CheckoutController],
-  providers: [CheckoutService, Logger],
+  providers: [CheckoutService, CronJobOrgService, Logger],
   imports: [
     ConfigModule.forFeature(mercadopagoConfig),
     OrdersModule,
