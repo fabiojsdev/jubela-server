@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   Logger,
   Param,
   Patch,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -50,8 +52,6 @@ export class CheckoutController {
   async HandleWebhook(@Body() body: any) {
     const { order_nsu, paid_amount, capture_method, transaction_nsu } = body;
 
-    if (Object.keys(body).length < 1) this.checkoutService.CheckPaymentStatus();
-
     const processPayment =
       await this.checkoutService.ProcessPaymentNotification(
         transaction_nsu,
@@ -70,6 +70,20 @@ export class CheckoutController {
     );
 
     return { received: true };
+  }
+
+  @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })
+  @Post('payment-check/:orderId')
+  async CheckPayment(
+    @Param('orderId') orderId: string,
+    @Headers('x-cron-secret') secret: string,
+  ) {
+    if (secret !== process.env.CRONJOB_ORG_SECRET) {
+      throw new UnauthorizedException();
+    }
+
+    await this.checkoutService.CheckPaymentStatus(orderId);
+    return { ok: true };
   }
 
   @SkipThrottle({ read: true, auth: true, refresh: true, preference: true })

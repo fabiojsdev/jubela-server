@@ -6,7 +6,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { TokenPayloadDTO } from 'src/auth/dto/token-payload.dto';
@@ -15,9 +14,10 @@ import { EmailService } from 'src/email/email.service';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/user.service';
-import { DataSource, In, LessThan, QueryRunner, Repository } from 'typeorm';
+import { DataSource, In, QueryRunner, Repository } from 'typeorm';
 
 import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
+import { PaymentStatus } from 'src/common/enums/payment-status.enum';
 import { ErrorManagement } from 'src/utils/error.util';
 import { CreateOrderItemDTO } from './dto/create-item.dto';
 import { PaginationAllOrdersDTO } from './dto/pagination-all-orders.dto';
@@ -27,6 +27,7 @@ import { PaginationByStatusDTO } from './dto/pagination-order-status.dto';
 import { PaginationDTO } from './dto/pagination-order.dto';
 import { Items } from './entities/items.entity';
 import { Order } from './entities/order.entity';
+import { PaymentConfirmation } from './entities/payment-confirmation.entity';
 
 @Injectable()
 export class OrdersService {
@@ -226,117 +227,83 @@ export class OrdersService {
     return itemsList;
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
-  async StockRelease() {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+  async StockRelease(order: Order) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const expiredOrders = await this.ordersRepository.find({
-      where: {
-        status: OrderStatus.PENDING,
-        createdAt: LessThan(thirtyMinutesAgo),
-      },
-      relations: {
-        items: true,
-      },
-      select: {
-        items: {
-          product: true,
-        },
-      },
-    });
-
-    if (!expiredOrders) {
-      throw new InternalServerErrorException(
-        'Erro ao buscar pedidos pendentes',
-      );
-    }
-
-    if (expiredOrders.length < 1) {
-      this.logger.log('✅ Nenhuma reserva expirada');
-      return;
-    }
-
-    this.logger.log(`📋 Processando ${expiredOrders.length} pedidos expirados`);
-
-    for (const order of expiredOrders) {
-      const queryRunner = this.dataSource.createQueryRunner();
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-
-      try {
-        const doesExpiredOrderReallyExists = await queryRunner.manager.findOne(
-          Order,
-          {
-            where: {
-              id: order.id,
-              status: OrderStatus.PENDING,
-              createdAt: LessThan(thirtyMinutesAgo),
-            },
-            relations: {
-              items: true,
-            },
+    try {
+      for (const item of order.items) {
+        const findProduct = await queryRunner.manager.findOne(Product, {
+          where: {
+            id: item.product.id,
           },
+          lock: { mode: 'pessimistic_write' },
+          loadEagerRelations: false,
+        });
+
+        if (!findProduct) {
+          throw new NotFoundException(
+            `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
+          );
+        }
+
+        const returnedQuantity = await queryRunner.manager.increment(
+          Product,
+          { id: findProduct.id },
+          'quantity',
+          item.quantity,
         );
 
-        if (!doesExpiredOrderReallyExists) {
-          await queryRunner.rollbackTransaction();
-          this.logger.error(`❌ Pedido ${order.id} não encontrado`);
-          continue;
-        }
-
-        // Liberar estoque
-        for (const item of doesExpiredOrderReallyExists.items) {
-          const findProduct = await queryRunner.manager.findOne(Product, {
-            where: {
-              id: item.product.id,
-            },
-            lock: { mode: 'pessimistic_write' },
-            loadEagerRelations: false,
-          });
-
-          // Sem rollback nem release aqui. Só pode um de cada para cada query runner
-          if (!findProduct) {
-            throw new NotFoundException(
-              `Produto ${item.product_name} não encontrado para ser devolvido ao estoque`,
-            );
-          }
-
-          const returnedQuantity = await queryRunner.manager.increment(
-            Product,
-            { id: findProduct.id },
-            'quantity',
-            item.quantity,
+        if (!returnedQuantity || returnedQuantity.affected < 1) {
+          throw new InternalServerErrorException(
+            `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
           );
-
-          if (!returnedQuantity || returnedQuantity.affected < 1) {
-            throw new InternalServerErrorException(
-              `Erro ao tentar devolver unidades de produto ${item.product_name} ao estoque`,
-            );
-          }
         }
-
-        // Cancelar pedido
-        await queryRunner.manager.update(Order, order.id, {
-          status: OrderStatus.CANCELED,
-          cancelReason: 'Expirado (30 minutos sem pagamento)',
-          canceledAt: new Date(),
-        });
-
-        await queryRunner.commitTransaction();
-
-        return this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
-      } catch (error) {
-        await queryRunner.rollbackTransaction();
-
-        ErrorManagement(error, GeneralErrorType.INTERNAL, {
-          logger: `❌ Erro no pedido ${order.id}`,
-          queryFailedError: 'Erro na atualização dos dados do pedido cancelado',
-          internalServerError: 'Erro interno no cancelamento do pedido',
-          generalError: `Falha ao processar transação no cancelamento do pedido ${order.id}`,
-        });
-      } finally {
-        await queryRunner.release();
       }
+
+      const orderUpdate = await queryRunner.manager.update(Order, order.id, {
+        status: OrderStatus.CANCELED,
+        cancelReason: 'Expirado (1 hora sem pagamento)',
+        canceledAt: new Date(),
+      });
+
+      if (!orderUpdate || orderUpdate.affected === 0) {
+        throw new InternalServerErrorException('Erro ao atualizar pedido');
+      }
+
+      const paymentConfirmationUpdate = await queryRunner.manager.update(
+        PaymentConfirmation,
+        order.paymentConfirmation.id,
+        {
+          paymentStatus: PaymentStatus.FAILED,
+          errorMessage: 'Expirado (1 hora sem pagamento)',
+        },
+      );
+
+      if (
+        !paymentConfirmationUpdate ||
+        paymentConfirmationUpdate.affected === 0
+      ) {
+        throw new InternalServerErrorException(
+          'Erro ao atualizar dados de confirmação de pagamento',
+        );
+      }
+
+      await queryRunner.commitTransaction();
+
+      return this.logger.log(`✅ Pedido ${order.id} expirado e liberado`);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      ErrorManagement(error, GeneralErrorType.INTERNAL, {
+        logger: `❌ Erro no cancelamento do pedido ${order.id}`,
+        queryFailedError: 'Erro na atualização dos dados do pedido cancelado',
+        internalServerError: 'Erro interno no cancelamento do pedido',
+        generalError: `Falha ao processar transação no cancelamento do pedido ${order.id}`,
+      });
+    } finally {
+      await queryRunner.release();
     }
   }
 

@@ -10,6 +10,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import Decimal from 'decimal.js';
 import { GeneralErrorType } from 'src/common/enums/general-error-type.enum';
+import { PaymentStatus } from 'src/common/enums/payment-status.enum';
+import { PaymentConfirmation } from 'src/orders/entities/payment-confirmation.entity';
 import { ErrorManagement } from 'src/utils/error.util';
 import { DataSource, QueryFailedError, QueryRunner, Repository } from 'typeorm';
 import { TokenPayloadDTO } from '../auth/dto/token-payload.dto';
@@ -20,6 +22,7 @@ import { Order } from '../orders/entities/order.entity';
 import { OrdersService } from '../orders/order.service';
 import { Product } from '../products/entities/product.entity';
 import { GetErrorMessage } from '../utils/error-message.util';
+import { CronJobOrgService } from './cron-job-org.service';
 import { CancelDTO } from './dto/cancel.dto';
 import { CreateCheckoutDto } from './dto/create-preference.dto';
 import { OrderDTO } from './dto/order.dto';
@@ -30,12 +33,17 @@ import { RefundDTO } from './dto/refund.dto';
 @Injectable()
 export class CheckoutService {
   private readonly logger = new Logger(CheckoutService.name);
+  private readonly RETRY_DELAYS = [2, 8, 20, 30];
 
   constructor(
     @InjectRepository(Order)
     private readonly ordersRepository: Repository<Order>,
+
+    @InjectRepository(PaymentConfirmation)
+    private readonly paymentConfirmationRepository: Repository<PaymentConfirmation>,
     private readonly ordersService: OrdersService,
     private readonly emailsService: EmailService,
+    private readonly cronJobOrgService: CronJobOrgService,
     private dataSource: DataSource,
   ) {}
 
@@ -538,7 +546,99 @@ export class CheckoutService {
   //   }
   // }
 
-  async CheckPayment() {}
+  async CheckPaymentStatus(orderId: string): Promise<void> {
+    const confirmation = await this.paymentConfirmationRepository.findOne({
+      where: {
+        order: {
+          id: orderId,
+        },
+      },
+      relations: {
+        order: true,
+      },
+    });
+
+    if (!confirmation) {
+      this.logger.warn(
+        `Confirmação de pagamento do pedido ${orderId} não encontrada`,
+      );
+    }
+
+    if (confirmation?.jobId) {
+      await this.cronJobOrgService.DeleteJob(confirmation.jobId).catch(() => {
+        this.logger.warn(`Não foi possível deletar job ${confirmation.jobId}`);
+      });
+    }
+
+    const order = await this.ordersRepository.findOne({
+      where: {
+        id: orderId,
+      },
+    });
+
+    if (order?.status === OrderStatus.APPROVED) {
+      await this.paymentConfirmationRepository.update(confirmation.id, {
+        paymentStatus: PaymentStatus.CONFIRMED,
+        processedAt: new Date(),
+        jobId: null,
+      });
+
+      this.logger.log(`✅ Check confirmou pagamento do pedido ${orderId}`);
+      return;
+    }
+
+    const nextAttempt = (confirmation?.attempts ?? 0) + 1;
+
+    // Esgotou tentativas (passou de 1 hora)
+    if (nextAttempt > this.RETRY_DELAYS.length) {
+      await this.paymentConfirmationRepository.update(confirmation.id, {
+        paymentStatus: PaymentStatus.FAILED,
+        errorMessage: 'Pagamento não confirmado após 1 hora',
+        jobId: null,
+      });
+
+      this.logger.warn(
+        `⚠️ Pedido ${orderId} sem confirmação após todos os checks`,
+      );
+
+      // Notifica admin?
+      // Notificar cliente a cada cron ou só no final?
+      // await this.emailsService.SendPaymentNotConfirmedEmail(order);
+      await this.ordersService.StockRelease(order);
+      return;
+    }
+
+    // Agenda próximo check
+    await this.SchedulePaymentCheck(orderId, nextAttempt);
+
+    this.logger.log(
+      `🔄 Pedido ${orderId} ainda pendente — próximo check em ${this.RETRY_DELAYS[nextAttempt - 1]}min`,
+    );
+  }
+
+  async SchedulePaymentCheck(orderId: string, attempt: number) {
+    const delayInMinutes = this.RETRY_DELAYS[attempt - 1];
+
+    if (!delayInMinutes) return;
+
+    const url = `${process.env.URL_RENDER}/checkout/payment-check/${orderId}`;
+
+    const jobId = await this.cronJobOrgService.UniqueJobSchedule(
+      `First job - order ${orderId}`,
+      delayInMinutes,
+      url,
+    );
+
+    await this.paymentConfirmationRepository.upsert(
+      {
+        order: { id: orderId },
+        jobId,
+        attempts: attempt,
+        paymentStatus: PaymentStatus.PENDING,
+      },
+      ['order'],
+    );
+  }
 
   async CreateCheckout(orderDTO: OrderDTO, tokenPayloadDTO: TokenPayloadDTO) {
     try {
@@ -580,6 +680,8 @@ export class CheckoutService {
       }
 
       const response = await res.json();
+
+      await this.SchedulePaymentCheck(createOrder.orderId, 1);
 
       return response;
     } catch (error) {
@@ -654,23 +756,4 @@ export class CheckoutService {
       });
     }
   }
-
-  // private translateMPError(errorMessage: string): string {
-  //   const errors = {
-  //     payment_too_old_to_be_refunded:
-  //       'Pagamento muito antigo para estorno (máx 180 dias)',
-  //     refund_not_found: 'Estorno não encontrado',
-  //     invalid_payment_status_to_refund:
-  //       'Status do pagamento não permite estorno',
-  //     insufficient_amount: 'Saldo insuficiente na conta Mercado Pago',
-  //   };
-
-  //   for (const [key, message] of Object.entries(errors)) {
-  //     if (errorMessage.toLowerCase().includes(key.toLowerCase())) {
-  //       return message;
-  //     }
-  //   }
-
-  //   return 'Erro ao processar operação no Mercado Pago';
-  // }
 }

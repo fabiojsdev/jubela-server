@@ -6,18 +6,22 @@ import { ProductsModule } from 'src/products/product.module';
 import { UsersModule } from 'src/users/user.module';
 import { Items } from './entities/items.entity';
 import { Order } from './entities/order.entity';
+import { PaymentConfirmation } from './entities/payment-confirmation.entity';
 import { OrdersController } from './order.controller';
 import { OrdersService } from './order.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, Items, Product]),
+    TypeOrmModule.forFeature([Order, Items, Product, PaymentConfirmation]),
     forwardRef(() => UsersModule),
     forwardRef(() => ProductsModule),
     forwardRef(() => EmailModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersService, Logger],
-  exports: [TypeOrmModule.forFeature([Order, Items]), OrdersService],
+  exports: [
+    TypeOrmModule.forFeature([Order, Items, PaymentConfirmation]),
+    OrdersService,
+  ],
 })
 export class OrdersModule {}
