@@ -1,4 +1,4 @@
-# Storage Manager System - API v2.0
+# Jubela E-Commerce - API
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -353,15 +353,9 @@ Todas as rotas (exceto `/auth` e `/refresh`) exigem autenticação via JWT e per
 
 **Fábio Marinho**
 
-## 📄 Licença
-
-Este projeto está licenciado sob a **AGPL-3.0-only**.
-
-💡 Para Estudantes: Sinta-se à vontade para clonar, estudar e rodar este projeto localmente. Você não tem obrigações de publicar suas alterações se o uso for apenas para aprendizado pessoal. Se decidir hospedar uma versão modificada publicamente, lembre-se das diretrizes da AGPLv3 sobre o compartilhamento do fonte.
-
 <strong><--------------------------------------------- English Version -------------------------------------------------------></strong>
 
-# Storage Manager System - API v2.0
+# # Jubela E-Commerce - API
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -713,10 +707,3 @@ All routes (except `/auth` and `/refresh`) require authentication via JWT and ap
 
 **Lucas Nascimento Fortunato**<br>
 📧 lucasfortunato328@gmail.com<br>
-💼 [LinkedIn](https://www.linkedin.com/in/lucas-nascimento-fortunato-b63162297)
-
-## 📄 License
-
-This project is licensed under **AGPL-3.0-only**.
-
-💡 For Students: Feel free to clone, study, and run this project locally. You are under no obligation to publish your changes if the use is solely for personal learning. If you decide to host a modified version publicly, remember the AGPLv3 guidelines regarding source sharing.
