@@ -38,7 +38,7 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 
 ## 🛡️ Recursos de Segurança
 ### Rate Limiting
-- Limites configurados por tipo de operação:<br>
+Limites configurados por tipo de operação:<br>
 
 - auth: 5 requisições/minuto (login)
 - refresh: 10 requisições/minuto
