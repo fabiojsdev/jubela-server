@@ -29,7 +29,8 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 - Product: Produtos cadastrados
 - Item: Produtos dos pedidos
 - Order: Pedidos
-- RefreshTokenEmployee: Tokens de autenticação
+- RefreshTokenEmployee: Tokens de autenticação de funcionários
+- RefreshTokenUser: Tokens de autenticação de usuários
 - JWTBlacklist: Tokens invalidados
 
 ### Relacionamentos
