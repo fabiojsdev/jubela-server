@@ -32,8 +32,8 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 - RefreshTokenEmployee: Tokens de autenticação
 - JWTBlacklist: Tokens invalidados
 
-## Relacionamentos
-
+### Relacionamentos
+<img src="https://github.com/fabiojsdev/jubela-server/blob/master/images/jbserver%20-%20public.png" width=550 heigth=550/>
 
 ## ⚠️ Direitos autorais e uso de código
 Este projeto é um **software real desenvolvido pelos autores.**
