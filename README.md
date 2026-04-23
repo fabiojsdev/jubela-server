@@ -36,6 +36,28 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 ### Relacionamentos
 <img src="https://github.com/fabiojsdev/jubela-server/blob/master/images/jbserver%20-%20public.png" width=550 heigth=550/>
 
+## 🛡️ Recursos de Segurança
+### Rate Limiting
+- Limites configurados por tipo de operação:<br>
+
+- auth: 5 requisições/minuto (login)
+- refresh: 10 requisições/minuto
+- write: 10 requisições/10 segundos (criação/atualização)
+- read: 50 requisições/10 segundos (consultas)
+- global: 100 requisições/minuto
+
+### CORS
+
+- Configurado para permitir credenciais
+- Lista de origens permitidas configurável via `.env`
+- Headers personalizados permitidos (X-CSRF-Token)
+
+### Cookies Seguros
+
+`httpOnly: true` para tokens de autenticação<br>
+`sameSite: 'none'` em produção (cross-domain)<br>
+`secure: true` apenas em HTTPS (produção)<br>
+
 ## ⚠️ Direitos autorais e uso de código
 Este projeto é um **software real desenvolvido pelos autores.**
 
