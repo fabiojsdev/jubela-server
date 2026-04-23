@@ -32,6 +32,9 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 - RefreshTokenEmployee: Tokens de autenticação
 - JWTBlacklist: Tokens invalidados
 
+## Relacionamentos
+
+
 ## ⚠️ Direitos autorais e uso de código
 Este projeto é um **software real desenvolvido pelos autores.**
 
