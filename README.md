@@ -67,8 +67,6 @@ O uso não autorizado do código ou de qualquer parte deste projeto pode resulta
 
 ## 👨‍💻 Autores
 
-**Lucas Fortunato**:<br>
-https://github.com/LucasNasc3000<br>
+[Lucas Fortunato](https://github.com/LucasNasc3000)<br>
 
-**Fábio Marinho**:<br>
-https://github.com/fabiojsdev
+[Fábio Marinho](https://github.com/fabiojsdev)
