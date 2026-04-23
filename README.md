@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white)](https://www.postgresql.org/)<br>
-Aplicação full-stack de e-commerce desenvolvida com Node.js e PostgreSQL no backend e React + Vite no frontend.
+Aplicação full-stack de e-commerce desenvolvida com Node.js e PostgreSQL.
 
 O sistema implementa a estrutura de uma loja online com catálogo de produtos, carrinho de compras e fluxo de pedidos, seguindo uma arquitetura moderna de aplicações web com separação clara entre camada de interface e camada de serviços.
 
@@ -34,7 +34,7 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 - JWTBlacklist: Tokens invalidados
 
 ### Relacionamentos
-<img src="https://github.com/fabiojsdev/jubela-server/blob/master/images/jbserver%20-%20public.png" width=550 heigth=550/>
+<img src="https://github.com/fabiojsdev/jubela-server/blob/master/images/jbserver%20-%20public.png" width=550 height=550/>
 
 ## 🛡️ Recursos de Segurança
 ### Rate Limiting
