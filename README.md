@@ -34,7 +34,7 @@ O sistema implementa a estrutura de uma loja online com catálogo de produtos, c
 - JWTBlacklist: Tokens invalidados
 
 ### Relacionamentos
-<img src="https://github.com/fabiojsdev/jubela-server/blob/master/images/jbserver%20-%20public.png" width=550 height=550/>
+<img src="https://github.com/fabiojsdev/jubela-server/blob/master/images/jbserver%20-%20public.png" width=550 />
 
 ## 🛡️ Recursos de Segurança
 ### Rate Limiting
